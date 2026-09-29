@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from typer-engine!")
+"""Typer engine: word and phrase suggestions served to the TSF text service over a named pipe."""

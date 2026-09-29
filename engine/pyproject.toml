@@ -12,7 +12,8 @@ dependencies = [
 ]
 
 [project.scripts]
-typer-engine = "typer_engine:main"
+typer-engine = "typer_engine.app:main"
+typer-probe = "typer_engine.probe:main"
 
 [build-system]
 requires = ["uv_build>=0.11.3,<0.12.0"]
