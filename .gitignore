@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[oc]
+*.egg-info
+build/
+dist/
+.venv
+.pytest_cache/
+
+# Visual Studio / MSVC (tip/)
+.vs/
+*.user
+[Bb]in/
+[Oo]bj/
+x64/
+Debug/
+Release/
+*.ipch
+*.pdb
+*.ilk
+
+# Generated data (n-gram tables live in %LOCALAPPDATA%\Typer, not in git)
+data/out/

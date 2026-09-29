@@ -1,0 +1,24 @@
+[project]
+name = "typer-engine"
+version = "0.1.0"
+description = "Typer engine: word and phrase suggestions served to the TSF text service over a named pipe"
+readme = "README.md"
+authors = [
+    { name = "Daniel", email = "lidaniel645@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "wordfreq>=3.1.1",
+]
+
+[project.scripts]
+typer-engine = "typer_engine:main"
+
+[build-system]
+requires = ["uv_build>=0.11.3,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
