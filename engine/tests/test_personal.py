@@ -225,3 +225,71 @@ def test_pruning_drops_single_use_trigrams_when_there_are_too_many(tmp_path):
     store.flush()
     assert dict(store.counts(("hello", "big"), "").words) == {"keep": 2}
     store.close()
+
+
+# -- looking at what was learned, and forgetting it ---------------------------------------------------
+
+
+def test_words_are_listed_most_used_first_and_can_be_searched(store):
+    for word, times in [("linqi", 3), ("linux", 1), ("hello", 5)]:
+        for _ in range(times):
+            store.record_typed(word, ())
+    assert store.words() == [("hello", 5), ("linqi", 3), ("linux", 1)]
+    assert store.words("lin") == [("linqi", 3), ("linux", 1)]
+    assert store.words("inq") == [("linqi", 3)]  # a search matches anywhere in the word
+    assert store.words(limit=2) == [("hello", 5), ("linqi", 3)]
+    assert store.words("LIN") == [("linqi", 3), ("linux", 1)]
+
+
+def test_forgetting_a_word_removes_it_and_every_pair_and_triple_it_is_in(store):
+    store.record_typed("linqi", ("hey", "there"))
+    store.record_typed("said", ("linqi", "hey"))
+    store.record_typed("keep", ("hey", "there"))
+    assert store.forget("Linqi") is True
+    assert store.words() == [("keep", 1), ("said", 1)]
+    assert dict(store.counts(("hey", "there"), "").words) == {"keep": 1}
+    assert store.counts(("hey", "there"), "").total == 1
+    assert store.counts(("linqi",), "").total == 0
+    assert store.counts(("linqi", "hey"), "").total == 0
+    assert store.counts((), "").total == 2  # the running total follows
+
+
+def test_forgetting_an_unknown_word_says_so(store):
+    assert store.forget("nothing") is False
+
+
+def test_a_forgotten_word_can_be_learned_again_from_scratch(store):
+    for _ in range(3):
+        store.record_typed("linqi", ("hey",))
+    store.forget("linqi")
+    store.record_typed("linqi", ("hey",))
+    assert store.words() == [("linqi", 1)]
+    assert dict(store.counts(("hey",), "").words) == {"linqi": 1}
+
+
+def test_forgetting_survives_a_reopen_and_leaves_nothing_in_the_file(tmp_path):
+    path = tmp_path / "personal.sqlite"
+    store = PersonalStore(path)
+    store.record_typed("linqi", ("hey", "there"))
+    store.record_typed("keep", ("hey", "there"))
+    store.close()
+    store = PersonalStore(path)
+    store.forget("linqi")
+    store.close()
+    again = PersonalStore(path)
+    assert again.words() == [("keep", 1)]
+    assert dict(again.counts(("hey", "there"), "").words) == {"keep": 1}
+    again.close()
+    with sqlite3.connect(path) as db:
+        for table, column in [("words", "word"), ("bigrams", "word"), ("trigrams", "word")]:
+            assert db.execute(f"select count(*) from {table} where {column} = 'linqi'").fetchone() == (0,)
+        assert db.execute("select count(*) from bigrams where prev = 'linqi'").fetchone() == (0,)
+
+
+def test_unsaved_counts_for_a_forgotten_word_are_not_written_later(tmp_path):
+    path = tmp_path / "personal.sqlite"
+    store = PersonalStore(path)
+    store.record_typed("linqi", ("hey",))  # not flushed yet
+    store.forget("linqi")
+    store.close()
+    assert PersonalStore(path).words() == []

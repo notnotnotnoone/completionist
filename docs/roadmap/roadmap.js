@@ -907,12 +907,16 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.3",
           "title": "`completionist-words` command: list and forget",
-          "status": "doing",
+          "status": "done",
           "area": "engine",
           "stories": [
             67
           ],
-          "notes": "`list` with search, `forget <word>` and `forget-recent 10m`. The smallest way to see and edit the log; the viewer (M8) shows the same data."
+          "notes": "`list` with search, `forget <word>` and `forget-recent 10m`. The smallest way to see and edit the log; the viewer (M8) shows the same data.",
+          "refs": [
+            "engine/src/completionist_engine/personal.py",
+            "branch m7-kinds"
+          ]
         },
         {
           "id": "M7.4",
@@ -947,39 +951,55 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.6",
           "title": "Protocol: each suggestion carries its kind (word, chunk or next)",
-          "status": "next",
+          "status": "done",
           "area": "engine",
           "stories": [
             64
           ],
-          "notes": "The field is covered by tests on both the engine and DLL sides, like the `accept` event was."
+          "notes": "The field is covered by tests on both the engine and DLL sides, like the `accept` event was.",
+          "refs": [
+            "engine/src/completionist_engine/protocol.py",
+            "tip/src/protocol.cpp",
+            "branch m7-kinds"
+          ]
         },
         {
           "id": "M7.7",
           "title": "Popup shows words, chunks and the phrase in one box",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             64
           ],
-          "notes": "The phrase stays on top. First guess at the order: phrase, then chunks, then words. The row order gets polished in the UI redesign (M10). Checked in the TSF harness with a screenshot."
+          "notes": "The phrase stays on top. First guess at the order: phrase, then chunks, then words. The row order gets polished in the UI redesign (M10). Checked in the TSF harness with a screenshot. Built: the popup already drew the phrase row above the word rows, so chunks (engine-ordered first) and next words appear in the same box; the service now remembers each row's kind and sends it on accept. Not checked in the TSF harness: it steals focus, so it runs when you say you're away.",
+          "refs": [
+            "tip/src/tsf_service.cpp",
+            "tip/src/popup.cpp",
+            "branch m7-kinds"
+          ]
         },
         {
           "id": "M7.8",
           "title": "Open the popup after a space without stealing Tab or Enter",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             62,
             7,
             8
           ],
-          "notes": "Today the popup closes on space (story 9), so this changes the key router and needs native tests for every key. A next-word row is not highlighted by default until you press Down, so Tab still indents or moves on, like the 150 ms no-steal idea for phrases."
+          "notes": "Today the popup closes on space (story 9), so this changes the key router and needs native tests for every key. A next-word row is not highlighted by default until you press Down, so Tab still indents or moves on, like the 150 ms no-steal idea for phrases. Built: next-word rows open with nothing highlighted, so Tab and Enter stay the app's until Up or Down highlights a row; Esc dismisses. 12 native tests cover every key. [words] next and chunks now default to on.",
+          "refs": [
+            "tip/src/popup_model.h",
+            "tip/tests/test_popup_model.cpp",
+            "tip/src/tsf_service.cpp",
+            "branch m7-kinds"
+          ]
         },
         {
           "id": "M7.9",
           "title": "Check next words and chunks live in real apps",
-          "status": "todo",
+          "status": "next",
           "area": "test",
           "stories": [
             62,
@@ -987,7 +1007,7 @@ window.COMPLETIONIST_ROADMAP = {
             64,
             65
           ],
-          "notes": "Needs you: type in Notepad, Discord and Chrome and judge whether it helps or is noisy. If the base tables (0.8M bigrams, 1.6M trigrams from WikiText-103) feel thin, rebuild them with a looser prune and a chat-style corpus such as subtitles. Don't do that before this check says it's needed."
+          "notes": "Needs you. Checklist: (1) rebuild and register the DLL from the merged code (tip\build.cmd, then tip\register.ps1; restart Chrome with chrome://restart) and restart the engine. (2) In Notepad, Discord and Chrome type 'I would like to ' and check: a few next words appear with nothing highlighted; Tab still indents or moves on; Down then Tab takes one; Enter still sends or adds a line. (3) Type 'thank you for yo' and check a chunk can show above the words and Tab takes it. (4) Judge: helpful, or noisy? If noisy, raise [words] next_threshold (for example 0.15) or set next = false or chunks = false in config.toml. (5) If the base tables feel thin, the next step is a looser prune and a chat-style corpus, and only then. Logs are in %LOCALAPPDATA%\\Completionist (engine.log, tip.log); completionist-stats shows accepts."
         }
       ]
     },
@@ -1608,6 +1628,22 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M7.9 prepared: the live-check checklist is in the task. It needs you to run it; nothing else in M7 is left."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "M7.7 and M7.8 done: next words and chunks show in the one popup box; next-word rows open with nothing highlighted so Tab and Enter pass through; [words] next and chunks default on. 70 native and 442 engine tests pass; the DLL builds. M7.9 (live check) is next."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "M7.3 done: PersonalStore.words(search) lists learned words and forget(word) removes a word from the counts, pairs, triples and the saved file (built on request; no command line, the M8 viewer will call these)."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "M7.6 done: replies carry a kind per suggestion (word, chunk or next) and accept events may name chunk or next; engine and DLL both tested. Chunks are behind [words] chunks (off until M7.7)."
+    },
     {
       "date": "2026-09-30",
       "text": "Pushed main and tag v0.4.1 to origin; engine tests pass on main (422)."

@@ -5,6 +5,8 @@
 //   * Tab accepts the highlighted row: a word, or the whole phrase. The phrase row is highlighted by
 //     default when present, but only 150 ms after it appears, so a phrase that arrives just as Tab is
 //     pressed can't steal it: that Tab still takes the word that was highlighted before.
+//   * Next-word rows (offered after a space) open with nothing highlighted, so Tab passes through to the
+//     app until Up or Down highlights a row. Enter is never consumed either way.
 //   * Up/Down move the highlight through the rows, wrapping. Esc dismisses. Ctrl+Right takes the next
 //     word of the phrase. Ctrl+Space asks for a phrase.
 //   * Enter is never consumed, so it still sends messages and inserts newlines.
@@ -39,11 +41,14 @@ class PopupModel {
 public:
     static constexpr std::uint64_t kNoStealMs = 150;
     static constexpr int kPhraseRow = -1;  // "selection" value meaning the phrase row
+    static constexpr int kNoRow = -2;      // "selection" value meaning nothing is highlighted
 
-    // Show `count` words with the first highlighted (0 words is fine when there's a phrase).
-    void Open(std::size_t count) {
+    // Show `count` words (0 words is fine when there's a phrase). The first is highlighted, unless
+    // `highlightFirst` is false: next-word rows offered after a space start with nothing highlighted,
+    // so Tab is still the app's until the writer presses Down or Up.
+    void Open(std::size_t count, bool highlightFirst = true) {
         count_ = count;
-        selection_ = 0;
+        selection_ = highlightFirst ? 0 : kNoRow;
         moved_ = false;
         stale_ = false;
     }
@@ -104,6 +109,7 @@ public:
         switch (key) {
             case Key::Tab: {
                 int row = selection(nowMs);
+                if (row == kNoRow) return {};  // nothing highlighted: Tab belongs to the app
                 KeyDecision decision = row == kPhraseRow ? KeyDecision{true, Action::AcceptPhrase, 0}
                                                          : KeyDecision{true, Action::Accept, static_cast<std::size_t>(row)};
                 Close();
@@ -129,6 +135,7 @@ private:
         int rows = static_cast<int>(count_) + (phrase_ ? 1 : 0);
         int current = selection(nowMs);
         int position = phrase_ ? (current == kPhraseRow ? 0 : current + 1) : current;
+        if (current == kNoRow) position = delta > 0 ? -1 : 0;  // from nothing: Down is the top row, Up the bottom
         position = (position + delta + rows) % rows;
         selection_ = phrase_ ? position - 1 : position;  // position 0 is the phrase row when there is one
         moved_ = true;

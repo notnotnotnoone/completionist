@@ -26,7 +26,7 @@ struct Request {
     std::wstring before;
     std::wstring after;
     std::wstring accepted;  // for "accept": the word that was inserted
-    std::string kind;       // for "accept": "word" (default), "phrase" or "phrase_word"
+    std::string kind;       // for "accept": "word" (default), "chunk", "next", "phrase" or "phrase_word"
     bool quiet = false;     // the popup is held back here, so the engine should not ask for phrases
 };
 
@@ -41,6 +41,7 @@ struct WordReply {
     std::uint32_t id = 0;
     int replace = 0;  // characters before the caret that a chosen word replaces
     std::vector<std::wstring> words;
+    std::vector<std::string> kinds;  // one per word: "word", "chunk" (2 or 3 words) or "next" (before a letter is typed)
     std::wstring phrase;          // the phrase continuation to show, if any
     bool phrase_done = true;      // false while more phrase text may arrive
     std::string phrase_mode = "off";  // "auto", "hotkey" or "off": whether phrases are available here

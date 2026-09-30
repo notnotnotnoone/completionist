@@ -332,3 +332,130 @@ TEST(close_forgets_the_phrase_but_keeps_the_hotkey_setting) {
     CHECK(!model.has_phrase());
     CHECK(model.OnKey(Key::Space, kCtrl).consume);
 }
+
+// ---- next words: offered after a space, with nothing highlighted --------------------------------
+
+namespace {
+PopupModel NextWords(std::size_t count) {
+    PopupModel model;
+    model.Open(count, /*highlightFirst=*/false);
+    return model;
+}
+constexpr auto kNoRow = PopupModel::kNoRow;
+}  // namespace
+
+TEST(next_words_open_with_nothing_highlighted_so_tab_and_enter_pass_through) {
+    PopupModel model = NextWords(3);
+    CHECK(model.visible());
+    CHECK_EQ(model.selection(1000), kNoRow);
+    auto tab = model.OnKey(Key::Tab, kNone, 1000);
+    CHECK(!tab.consume);
+    CHECK(tab.action == Action::None);
+    CHECK(!model.OnKey(Key::Enter, kNone, 1000).consume);
+    CHECK(model.visible());  // the popup stays until the text changes
+    CHECK_EQ(model.selection(1000), kNoRow);
+}
+
+TEST(down_highlights_the_first_next_word_and_then_tab_takes_it) {
+    PopupModel model = NextWords(3);
+    auto down = model.OnKey(Key::Down, kNone, 1000);
+    CHECK(down.consume && down.action == Action::MoveHighlight);
+    CHECK_EQ(model.selection(1000), 0);
+    auto tab = model.OnKey(Key::Tab, kNone, 1000);
+    CHECK(tab.consume && tab.action == Action::Accept);
+    CHECK_EQ(tab.index, 0u);
+    CHECK(!model.visible());
+}
+
+TEST(up_with_nothing_highlighted_goes_to_the_last_next_word) {
+    PopupModel model = NextWords(3);
+    CHECK(model.OnKey(Key::Up, kNone, 1000).consume);
+    CHECK_EQ(model.selection(1000), 2);
+    auto tab = model.OnKey(Key::Tab, kNone, 1000);
+    CHECK(tab.consume && tab.index == 2u);
+}
+
+TEST(the_highlight_then_wraps_like_any_list) {
+    PopupModel model = NextWords(2);
+    model.OnKey(Key::Down, kNone, 1000);
+    model.OnKey(Key::Down, kNone, 1000);
+    CHECK_EQ(model.selection(1000), 1);
+    model.OnKey(Key::Down, kNone, 1000);
+    CHECK_EQ(model.selection(1000), 0);
+}
+
+TEST(enter_is_never_consumed_for_next_words_even_after_moving) {
+    PopupModel model = NextWords(3);
+    model.OnKey(Key::Down, kNone, 1000);
+    CHECK(!model.OnKey(Key::Enter, kNone, 1000).consume);
+    CHECK(model.visible());
+}
+
+TEST(escape_dismisses_next_words) {
+    PopupModel model = NextWords(3);
+    auto esc = model.OnKey(Key::Escape, kNone, 1000);
+    CHECK(esc.consume && esc.action == Action::Dismiss);
+    CHECK(!model.visible());
+}
+
+TEST(other_keys_and_modified_keys_pass_through_next_words) {
+    PopupModel model = NextWords(3);
+    for (Key key : {Key::Left, Key::Right, Key::Space, Key::Enter, Key::Other}) CHECK(!model.OnKey(key, kNone, 1000).consume);
+    for (Key key : kAllKeys) {
+        if (key == Key::Space) continue;  // Ctrl+Space is the phrase hotkey, tested elsewhere
+        CHECK(!model.OnKey(key, kCtrl, 1000).consume);
+        CHECK(!model.OnKey(key, kAlt, 1000).consume);
+        CHECK(!model.OnKey(key, kShift, 1000).consume);
+    }
+}
+
+TEST(a_stale_next_word_popup_consumes_nothing) {
+    PopupModel model = NextWords(3);
+    model.OnKey(Key::Down, kNone, 1000);
+    model.MarkStale();
+    for (Key key : kAllKeys) CHECK(!model.OnKey(key, kNone, 1000).consume);
+}
+
+TEST(a_phrase_above_next_words_takes_tab_only_once_it_is_armed) {
+    PopupModel model = NextWords(3);
+    model.SetPhrase(true, 0);
+    CHECK(!model.OnKey(Key::Tab, kNone, 100).consume);  // inside the 150 ms no-steal window: Tab is the app's
+    CHECK(model.visible());
+    auto tab = model.OnKey(Key::Tab, kNone, 200);
+    CHECK(tab.consume && tab.action == Action::AcceptPhrase);
+}
+
+TEST(a_next_word_popup_can_be_navigated_up_to_the_phrase) {
+    PopupModel model = NextWords(2);
+    model.SetPhrase(true, 0);
+    model.OnKey(Key::Down, kNone, 100);  // nothing highlighted yet: Down goes to the top row, the phrase
+    CHECK_EQ(model.selection(100), kPhrase);
+    model.OnKey(Key::Down, kNone, 100);
+    CHECK_EQ(model.selection(100), 0);
+}
+
+TEST(opening_normally_highlights_the_first_word_again) {
+    PopupModel model = NextWords(3);
+    model.Open(3);
+    CHECK_EQ(model.selection(1000), 0);
+    CHECK(model.OnKey(Key::Tab, kNone, 1000).consume);
+}
+
+TEST(peek_and_onkey_agree_for_next_words_with_and_without_a_phrase) {
+    for (bool phrase : {false, true}) {
+        for (bool moved : {false, true}) {
+            for (Key key : kAllKeys) {
+                for (std::uint64_t now : {std::uint64_t{50}, std::uint64_t{500}}) {
+                    PopupModel model = NextWords(3);
+                    if (phrase) model.SetPhrase(true, 0);
+                    if (moved) model.OnKey(Key::Down, kNone, now);
+                    auto peeked = model.Peek(key, kNone, now);
+                    auto acted = model.OnKey(key, kNone, now);
+                    CHECK_EQ(peeked.consume, acted.consume);
+                    CHECK(peeked.action == acted.action);
+                    CHECK_EQ(peeked.index, acted.index);
+                }
+            }
+        }
+    }
+}

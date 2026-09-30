@@ -119,3 +119,24 @@ def test_a_quiet_flag_is_parsed_and_defaults_to_false():
     assert parse_request({"id": 1, "event": "keystroke", "quiet": True}).quiet is True
     with pytest.raises(ProtocolError):
         parse_request({"id": 1, "event": "keystroke", "quiet": "yes"})
+
+
+def test_a_reply_names_the_kind_of_each_suggestion_only_when_some_are_not_plain_words():
+    mixed = WordReply(id=1, replace=2, words=("know about", "know", "known"), kinds=("chunk", "word", "word"))
+    assert mixed.to_message()["kinds"] == ["chunk", "word", "word"]
+    plain = WordReply(id=1, replace=2, words=("know", "known"), kinds=("word", "word"))
+    assert "kinds" not in plain.to_message()
+    assert "kinds" not in WordReply(id=1, replace=2, words=("know",)).to_message()
+    upcoming = WordReply(id=1, replace=0, words=("be", "see"), kinds=("next", "next"))
+    assert upcoming.to_message()["kinds"] == ["next", "next"]
+
+
+@pytest.mark.parametrize("kind", ["word", "chunk", "next", "phrase", "phrase_word"])
+def test_an_accept_event_may_name_any_suggestion_kind(kind):
+    request = parse_request({"id": 1, "event": "accept", "accepted": "x", "kind": kind})
+    assert request.kind == kind
+
+
+def test_an_unknown_accept_kind_is_rejected():
+    with pytest.raises(ProtocolError):
+        parse_request({"id": 1, "event": "accept", "accepted": "x", "kind": "sentence"})

@@ -116,13 +116,19 @@ class Session:
                 engine._personal.record_typed(word, context)
         config = engine._config
         completion = engine._completer.complete(request.before, limit=config.word_limit)
-        if config.next_words and not completion.words:
+        words, kinds = completion.words, ("word",) * len(completion.words)
+        if config.next_words and not words:
             completion = engine._completer.next_words(
                 request.before, limit=config.word_limit, threshold=config.next_threshold
             )
-        if engine._metrics is not None and completion.words and not request.quiet and not self._words_open:
+            words, kinds = completion.words, ("next",) * len(completion.words)
+        elif config.chunks and words:
+            chunks = engine._completer.chunks(request.before).words
+            words = (*chunks, *words)[: config.word_limit]
+            kinds = (*("chunk",) * len(chunks), *("word",) * len(completion.words))[: config.word_limit]
+        if engine._metrics is not None and words and not request.quiet and not self._words_open:
             engine._metrics.record_shown(self._app, "word")
-        self._words_open = bool(completion.words) and not request.quiet
+        self._words_open = bool(words) and not request.quiet
         phrase, phrase_done, phrase_mode = "", True, "off"
         if self._phrase is not None:
             # A quiet request (the popup is held back after Esc) keeps learning but asks for no phrase.
@@ -134,7 +140,8 @@ class Session:
         return WordReply(
             id=request.id,
             replace=completion.replace,
-            words=completion.words,
+            words=words,
+            kinds=kinds if any(kind != "word" for kind in kinds) else (),
             phrase=phrase,
             phrase_done=phrase_done,
             phrase_mode=phrase_mode,
@@ -144,12 +151,15 @@ class Session:
         engine = self._engine
         if not words_allowed or not request.accepted:
             return
-        if request.kind == "word":
+        if request.kind in ("word", "chunk", "next"):
             typed = len(current_word(request.before))
             if engine._metrics is not None:
                 engine._metrics.record_accept(self._app, "word", max(len(request.accepted) - typed, 0))
             if engine._personal is not None:
-                engine._personal.record_accepted(request.accepted, previous_words(request.before, 2))
+                context = previous_words(request.before, 2)
+                for word in request.accepted.split():  # a chunk teaches each of its words in turn
+                    engine._personal.record_accepted(word, context)
+                    context = (*context, word.lower())[-2:]
             self._words_open = False
         else:
             if engine._metrics is not None:

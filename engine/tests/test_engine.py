@@ -162,13 +162,13 @@ def next_engine(**config) -> Engine:
     return Engine(WordCompleter(NEXT_VOCAB, ngrams=_After()), base)
 
 
-def test_a_space_brings_the_likely_next_words_when_switched_on():
+def test_a_space_brings_the_likely_next_words():
     engine = next_engine(next_words=True, next_threshold=0.1)
-    assert engine.handle(keystroke("I'd like to ")) == WordReply(id=9, replace=0, words=("know", "see"))
+    assert engine.handle(keystroke("I'd like to ")) == WordReply(id=9, replace=0, words=("know", "see"), kinds=("next", "next"))
 
 
-def test_next_words_stay_off_unless_switched_on():
-    assert next_engine().handle(keystroke("I'd like to ")) == WordReply(id=9, replace=0, words=())
+def test_next_words_stay_off_when_switched_off():
+    assert next_engine(next_words=False).handle(keystroke("I'd like to ")) == WordReply(id=9, replace=0, words=())
 
 
 def test_next_words_respect_the_threshold_and_the_quiet_rules():
@@ -182,3 +182,69 @@ def test_next_words_respect_the_threshold_and_the_quiet_rules():
 def test_typing_a_letter_goes_back_to_normal_completion():
     engine = next_engine(next_words=True, next_threshold=0.1)
     assert engine.handle(keystroke("I'd like to k")).words == ("know",)
+
+
+# --- chunks and kinds -------------------------------------------------------------------------------
+
+
+class _Chains:
+    """After "to": know 70%, see 30%. After "know": about 80%, it 20%."""
+
+    def counts(self, context, prefix):
+        table = {("to",): {"know": 70, "see": 30}, ("know",): {"about": 80, "it": 20}}
+        row = table.get(context[-1:]) if len(context) == 1 else None
+        if row is None:
+            return Counts({}, 0)
+        return Counts({w: n for w, n in row.items() if w.startswith(prefix)}, sum(row.values()))
+
+
+CHAIN_VOCAB = VOCAB + [("know", 6.0), ("see", 6.0), ("about", 6.0), ("it", 9.0), ("known", 3.0)]
+
+
+def chain_engine(**config) -> Engine:
+    base = Config(block=frozenset(), allow=frozenset(), word_limit=3, **config)
+    personal = PersonalStore()
+    return Engine(WordCompleter(CHAIN_VOCAB, ngrams=_Chains(), personal=personal), base, personal=personal), personal
+
+
+def test_chunks_come_before_words_and_each_suggestion_names_its_kind():
+    engine, _ = chain_engine(chunks=True)
+    reply = engine.handle(keystroke("I'd like to kn"))
+    assert reply.words == ("know about", "know", "known")
+    assert reply.kinds == ("chunk", "word", "word")
+    assert reply.replace == 2
+
+
+def test_chunks_stay_off_when_switched_off():
+    engine, _ = chain_engine(chunks=False)
+    reply = engine.handle(keystroke("I'd like to kn"))
+    assert reply.words == ("know", "known") and set(reply.kinds) <= {"word"}
+
+
+def test_next_words_are_named_next():
+    engine, _ = chain_engine(next_words=True, next_threshold=0.1)
+    reply = engine.handle(keystroke("I'd like to "))
+    assert reply.words == ("know", "see") and reply.kinds == ("next", "next")
+
+
+def test_the_list_is_never_longer_than_the_word_limit():
+    engine, _ = chain_engine(chunks=True)
+    assert len(engine.handle(keystroke("I'd like to kn")).words) <= 3
+
+
+def accept(engine, accepted: str, kind: str, before: str):
+    session = engine.open_session()
+    session.handle(Request(id=2, event="accept", app="discord.exe", before=before, accepted=accepted, kind=kind))
+
+
+def test_accepting_a_next_word_teaches_it_like_an_accepted_word():
+    engine, personal = chain_engine()
+    accept(engine, "know", "next", "I'd like to ")
+    assert personal.counts(("to",), "kn").words["know"] == 1
+
+
+def test_accepting_a_chunk_teaches_each_of_its_words_in_order():
+    engine, personal = chain_engine()
+    accept(engine, "know about", "chunk", "I'd like to kn")
+    assert personal.counts(("to",), "kn").words["know"] == 1
+    assert personal.counts(("know",), "ab").words["about"] == 1
