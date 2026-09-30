@@ -1333,6 +1333,16 @@ window.COMPLETIONIST_ROADMAP = {
       "date": "2026-09-30"
     },
     {
+      "version": "0.4.1",
+      "status": "released",
+      "title": "Groundwork for smarter suggestions",
+      "highways": [
+        "engine"
+      ],
+      "date": "2026-09-30",
+      "text": "The engine no longer learns words you backspaced over, keeps personal trigram counts, and can rank next words and two- or three-word chunks, all switched off until the popup can show them."
+    },
+    {
       "version": "0.5.0",
       "status": "next",
       "title": "N-gram suggestions",
@@ -1598,6 +1608,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Release 0.4.1: merged m7-next-words and m7-words-command into main; .commandcode is now gitignored and untracked."
+    },
     {
       "date": "2026-09-30",
       "text": "M7.5 done: WordCompleter.chunks extends the top words into two- or three-word chunks while the next word is likely; wiring into replies is M7.6."

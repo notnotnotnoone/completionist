@@ -1,6 +1,0 @@
-- Prefers hands-on involvement in Python/engine work, with Claude tutoring and reviewing; fully hands-off on C++ (Claude owns C++ and its toolchain). Confidence: 0.9
-- Wants to be asked before anything is pushed to main; work on one branch per chunk of work. Confidence: 0.9
-- Push the version tag (vX.Y.Z) alongside main when releasing. Confidence: 0.8
-- Prefers to brainstorm and co-design features/roadmap items before they are implemented. Confidence: 0.7
-- Wants to be consulted before a model/provider is chosen or a default is changed. Confidence: 0.8
-- Cost-conscious: prefers cheap models and avoids expensive compute or API calls. Confidence: 0.7

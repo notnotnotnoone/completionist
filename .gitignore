@@ -24,3 +24,6 @@ out/
 data/out/
 
 .claude/worktrees/
+
+# Command Code tool preferences (not part of the project)
+.commandcode/
