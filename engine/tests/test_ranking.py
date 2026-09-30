@@ -238,3 +238,67 @@ def test_the_pronoun_i_is_capitalised():
 
 def test_no_sources_means_no_next_words():
     assert WordCompleter(NEXT_VOCAB).next_words("I'd like to ", threshold=0.0).words == ()
+
+
+# --- chunks: two- or three-word suggestions while typing --------------------------------------------
+
+CHUNK_VOCAB = NEXT_VOCAB + [("about", 7.0), ("how", 7.0), ("it", 9.0), ("works", 6.0), ("of", 9.0), ("kind", 6.0)]
+CHUNKS = {
+    ("to",): {"know": 60, "knew": 5},
+    ("know",): {"about": 40, "how": 10, "it": 10},
+    ("to", "know"): {"about": 30, "how": 6},
+    ("know", "about"): {"it": 40, "them": 40, "us": 20},
+    ("know", "how"): {"it": 40, "to": 2},
+    ("how", "it"): {"works": 30, "is": 5},
+    ("about", "it"): {"and": 4},
+}
+
+
+def test_the_top_word_is_extended_while_the_next_word_is_likely():
+    completer = WordCompleter(CHUNK_VOCAB, ngrams=FakeCounts(CHUNKS))
+    assert completer.chunks("I want to kn", limit=1, cutoff=0.3).words == ("know about it",)
+
+
+def test_a_chunk_stops_where_the_next_word_is_not_likely_enough():
+    completer = WordCompleter(CHUNK_VOCAB, ngrams=FakeCounts(CHUNKS))
+    assert completer.chunks("I want to kn", limit=1, cutoff=0.6).words == ("know about",)  # "it" is only ~37% likely
+
+
+def test_a_chunk_is_at_most_three_words():
+    completer = WordCompleter(CHUNK_VOCAB, ngrams=FakeCounts(CHUNKS))
+    assert completer.chunks("I want to kn", limit=1, cutoff=0.3, max_words=2).words == ("know about",)
+    assert completer.chunks("I want to kn", limit=1, cutoff=0.0).words == ("know about it",)
+
+
+def test_there_is_no_chunk_when_the_word_cannot_be_extended():
+    completer = WordCompleter(CHUNK_VOCAB, ngrams=FakeCounts(CHUNKS))
+    assert completer.chunks("I want to kn", limit=1, cutoff=0.95).words == ()
+
+
+def test_a_chunk_does_not_end_on_a_word_that_leaves_it_hanging():
+    ngrams = FakeCounts({("to",): {"know": 60}, ("know",): {"about": 40, "the": 1}, ("know", "about"): {"the": 50, "of": 5}})
+    completer = WordCompleter(CHUNK_VOCAB + [("the", 9.0)], ngrams=ngrams)
+    assert completer.chunks("I want to kn", limit=1, cutoff=0.3).words == ("know about",)  # "the" is trimmed
+    hanging = FakeCounts({("to",): {"know": 60}, ("know",): {"the": 40}})
+    assert WordCompleter(CHUNK_VOCAB + [("the", 9.0)], ngrams=hanging).chunks("I want to kn", limit=1, cutoff=0.3).words == ()
+
+
+def test_chunks_are_offered_for_the_top_few_words_and_follow_the_typed_case():
+    ngrams = FakeCounts({("to",): {"know": 60, "knew": 30}, ("know",): {"about": 50}, ("knew",): {"how": 50}})
+    completer = WordCompleter(CHUNK_VOCAB + [("knew", 5.0)], ngrams=ngrams)
+    assert completer.chunks("I want to Kn", limit=2, cutoff=0.3).words == ("Know about", "Knew how")
+
+
+def test_a_chunk_never_repeats_a_word():
+    ngrams = FakeCounts({("to",): {"know": 60}, ("know",): {"know": 50}})
+    assert WordCompleter(CHUNK_VOCAB, ngrams=ngrams).chunks("I want to kn", limit=1, cutoff=0.3).words == ()
+
+
+def test_chunks_replace_the_typed_prefix():
+    completer = WordCompleter(CHUNK_VOCAB, ngrams=FakeCounts(CHUNKS))
+    assert completer.chunks("I want to kn", limit=1, cutoff=0.3).replace == 2
+
+
+def test_no_chunks_without_a_typed_prefix_or_without_n_grams():
+    assert WordCompleter(CHUNK_VOCAB, ngrams=FakeCounts(CHUNKS)).chunks("I want to ", cutoff=0.0).words == ()
+    assert WordCompleter(CHUNK_VOCAB).chunks("I want to kn", cutoff=0.0).words == ()
