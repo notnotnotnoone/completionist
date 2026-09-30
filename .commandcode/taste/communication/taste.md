@@ -1,0 +1,2 @@
+- Prefers terse "caveman" replies: drop filler, keep technical terms exact. Confidence: 0.8
+- Dislikes over-engineering and feature bloat; prefers minimal, focused solutions. Confidence: 0.8

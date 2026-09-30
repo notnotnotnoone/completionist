@@ -1,0 +1,2 @@
+- Prefers simple one-line CLI commands to run tools. Confidence: 0.7
+- Prefers headless/automated tests over interactive manual steps. Confidence: 0.7
