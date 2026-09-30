@@ -211,3 +211,24 @@ def test_legacy_migration_never_overwrites_the_new_folder(tmp_path):
 
     assert (local / "Completionist" / "new.txt").exists()
     assert (local / "Typer" / "old.txt").exists()
+
+
+def test_next_words_are_off_by_default_with_a_five_percent_threshold():
+    config = Config()
+    assert config.next_words is False
+    assert config.next_threshold == 0.05
+
+
+def test_next_words_can_be_switched_on_and_the_threshold_set_or_switched_off(tmp_path):
+    config = load_config(write(tmp_path, "[words]\nnext = true\nnext_threshold = 0\n"))
+    assert config.next_words is True
+    assert config.next_threshold == 0.0
+    assert load_config(write(tmp_path, "[words]\nnext_threshold = 0.2\n")).next_threshold == 0.2
+
+
+@pytest.mark.parametrize(
+    "text", ["[words]\nnext = 'yes'\n", "[words]\nnext_threshold = -1\n", "[words]\nnext_threshold = 1.5\n", "[words]\nnext_threshold = 'x'\n"]
+)
+def test_invalid_next_word_settings_are_rejected(tmp_path, text):
+    with pytest.raises(ConfigError):
+        load_config(write(tmp_path, text))

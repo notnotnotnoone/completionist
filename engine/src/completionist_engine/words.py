@@ -107,6 +107,47 @@ class WordCompleter:
         cased = (_match_case(word, prefix) for word in words)
         return Completion(replace=len(prefix), words=tuple(dict.fromkeys(cased)))
 
+    def next_words(self, before: str, limit: int = 5, threshold: float = 0.05) -> Completion:
+        """Likely words to follow the last one, offered after a space and before any letter is typed.
+
+        Only words that score at least `threshold` (roughly, their chance of coming next) are
+        offered, so most of the time nothing is; a threshold of 0 offers the best few regardless.
+        """
+        nothing = Completion(replace=0, words=())
+        if len(before) < 2 or before[-1] != " " or not (before[-2].isalpha() or before[-2] == "'"):
+            return nothing
+        context = previous_words(before, 2)
+        if not context:
+            return nothing
+        scores = self._next_scores(context)
+        likely = [(p, w) for w, p in scores.items() if p > 0 and p >= threshold]
+        likely.sort(key=lambda pair: (-pair[0], pair[1]))
+        return Completion(replace=0, words=tuple(_display(w) for _, w in likely[:limit]))
+
+    def _next_scores(self, context: tuple[str, ...]) -> dict[str, float]:
+        scores: dict[str, float] = {}
+        if self._ngrams is not None:
+            for order in _NGRAM_ORDERS:  # the bigram first, then the trigram refines it
+                if len(context) < order:
+                    continue
+                counts = self._ngrams.counts(context[-order:], "")
+                if counts.total < _MIN_CONTEXT_TOTAL:
+                    continue
+                weight = counts.total / (counts.total + _CONTEXT_SMOOTHING)
+                for word in scores.keys() | counts.words.keys():
+                    scores[word] = (1 - weight) * scores.get(word, 0.0) + weight * counts.words.get(word, 0) / counts.total
+            scores = {w: p for w, p in scores.items() if w in self._index}
+        if self._personal is not None:
+            known = self._personal.counts((), "")
+            for order in _NGRAM_ORDERS:
+                if len(context) < order:
+                    continue
+                counts = self._personal.counts(context[-order:], "")
+                for word, n in counts.words.items():
+                    if n >= _PERSONAL_MIN_COUNT and (word in self._index or known.words.get(word, 0) >= self._promote_after):
+                        scores[word] = scores.get(word, 0.0) + n / (counts.total + _PERSONAL_BIGRAM_SMOOTHING)
+        return scores
+
     def _rerank(self, key: str, context: tuple[str, ...], limit: int) -> tuple[str, ...]:
         # Evidence from the n-gram tables: a bigram (last word) and a trigram (last two words).
         ngram_counts = [NO_COUNTS, NO_COUNTS]
@@ -162,6 +203,10 @@ class WordCompleter:
         # nlargest keeps equal-weight words in their (alphabetical) index order.
         best = nlargest(limit, range(lo, hi), key=self._weights.__getitem__)
         return tuple(self._words[i] for i in best)
+
+
+def _display(word: str) -> str:
+    return "I" + word[1:] if word == "i" or word.startswith("i'") else word
 
 
 def _match_case(word: str, prefix: str) -> str:
