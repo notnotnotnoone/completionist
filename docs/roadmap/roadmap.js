@@ -342,14 +342,18 @@ window.TYPER_ROADMAP = {
         {
           "id": "M1.15",
           "title": "Roadmap as a highway map, in the Evergreen color scheme",
-          "status": "doing",
+          "status": "done",
           "area": "docs",
           "stories": [],
-          "notes": "Done: highways in the data, checker rules, Evergreen `theme.css`, shared `common.js`, the CLAUDE.md commit rule. To build: the map page (`index.html` + `map.js`), the restyled task board (`tasks.html`), retiring `releases.html`, and CONTEXT.md, following the spec and plan in `docs/superpowers/`.",
+          "notes": "Shipped the highway map page, the restyled task board with highway stripes and filter, the retired timeline page, and a CONTEXT.md holding the Evergreen scheme.",
           "refs": [
             "branch worktree-roadmap-map",
-            "docs/superpowers/specs/2026-09-29-roadmap-highway-map-design.md",
-            "docs/superpowers/plans/2026-09-29-roadmap-highway-map.md"
+            "docs/roadmap/index.html",
+            "docs/roadmap/map-layout.js",
+            "docs/roadmap/map.js",
+            "docs/roadmap/page.js",
+            "docs/roadmap/tasks.html",
+            "CONTEXT.md"
           ]
         }
       ]
@@ -1056,6 +1060,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "M1.15 done: the highway map, the Evergreen task board and CONTEXT.md."
+    },
     {
       "date": "2026-09-29",
       "text": "CONTEXT.md: product, architecture, glossary, release and map rules, and the official Evergreen color scheme and typography."
