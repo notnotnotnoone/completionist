@@ -374,9 +374,14 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M1.17",
           "title": "Make the roadmap easier to read: releases first, plain titles, tasks by status",
-          "status": "next",
+          "status": "done",
           "area": "docs",
           "stories": [],
+          "refs": [
+            "branch m1-roadmap-readability",
+            "docs/roadmap/tasks.html",
+            "v0.0.12"
+          ],
           "notes": "The M-numbers confuse: M2 is 0.2.0 but M5 is 1.1.0, and task ids like M1.14 sit before M1.10. The pages should show each milestone as its release and name (\"0.2.0 · Smarter words\", found through the release's `milestone` field), lead task rows with the plain title and show the id only as a small grey tag (ids stay as stable keys, never renumbered), and sort tasks doing, next, todo, blocked, done, dropped. Then update the wording in CLAUDE.md and CONTEXT.md. Files: tasks.html, common.js, page.js."
         }
       ]
@@ -1247,6 +1252,16 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The engine now starts with `cd engine && uv run completionist.py`, a small launcher script beside the project file."
     },
     {
+      "version": "0.0.12",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Task board by release",
+      "highways": [
+        "tooling"
+      ],
+      "text": "The task board now shows each milestone as its release and name, leads task rows with the plain title and a small grey id, and sorts tasks by status."
+    },
+    {
       "version": "0.1.0",
       "status": "next",
       "title": "Words everywhere",
@@ -1536,6 +1551,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Released 0.0.12 and finished M1.17: the task board names milestones by release, leads rows with the title, sorts by status; CLAUDE.md and CONTEXT.md reworded. Every remaining M1 to M4 task needs the user's hands-on checks."
+    },
     {
       "date": "2026-09-30",
       "text": "Released 0.0.11: engine/completionist.py, so the engine starts with `cd engine && uv run completionist.py`."

@@ -39,7 +39,7 @@ The design for the map pages, and the plan to build them, are in `docs/superpowe
 8. **Validate** with `python scripts/check_roadmap.py`. It must print `roadmap ok`. It also enforces the writing lengths below.
 9. **Commit** `roadmap.js` in the same commit as the work it describes. Every commit has a `roadmap.js` change (see the rule above).
 
-Task statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. Milestone statuses: `planned`, `active`, `done`. Task ids are `<milestone>.<n>` (e.g. `M1.8`); never reuse or renumber them.
+Task statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. Milestone statuses: `planned`, `active`, `done`. Task ids are `<milestone>.<n>` (e.g. `M1.8`); never reuse or renumber them. The pages show a milestone as its release and name ("0.2.0 · Smarter words") and a task id only as a small grey tag; the ids are stable keys, not labels.
 
 ### Releases and versions
 
