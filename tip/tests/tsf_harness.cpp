@@ -292,8 +292,13 @@ static void SaveScreenshot(const std::wstring& folder, const wchar_t* name) {
 struct Keys {
     ITfKeyEventSink* sink;
     ITfContext* context;
-    // Returns whether the text service consumed the key.
-    bool Press(WPARAM vk, bool* testEaten = nullptr) {
+    // Returns whether the text service consumed the key. With `ctrl`, Ctrl is really held (via SendInput)
+    // while the key is offered, since the text service reads the keyboard state.
+    bool Press(WPARAM vk, bool* testEaten = nullptr, bool ctrl = false) {
+        if (ctrl) {
+            SendCtrl(true);
+            Sleep(40);
+        }
         BOOL test = FALSE, eaten = FALSE;
         sink->OnTestKeyDown(context, vk, 0, &test);
         if (testEaten) *testEaten = test;
@@ -303,7 +308,16 @@ struct Keys {
             sink->OnTestKeyUp(context, vk, 0, &upEaten);
             sink->OnKeyUp(context, vk, 0, &upEaten);
         }
+        if (ctrl) SendCtrl(false);
         return eaten != FALSE;
+    }
+
+    static void SendCtrl(bool down) {
+        INPUT input = {};
+        input.type = INPUT_KEYBOARD;
+        input.ki.wVk = VK_CONTROL;
+        input.ki.dwFlags = down ? 0 : KEYEVENTF_KEYUP;
+        SendInput(1, &input, sizeof(input));
     }
 };
 
@@ -311,13 +325,21 @@ static LRESULT CALLBACK HostProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     return DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
+#include "phrase_scenarios.h"
+
 int wmain(int argc, wchar_t** argv) {
     if (argc < 3) {
         std::printf("usage: tsf_harness <TyperTip.dll> <screenshot-folder> [unaware]\n");
         return 2;
     }
     std::wstring shots = argv[2];
-    bool unaware = argc > 3 && std::wstring(argv[3]) == L"unaware";  // pretend to be an old DPI-unaware app
+    // Optional words after the folder: "unaware" (pretend to be an old DPI-unaware app) and "auto"
+    // (run only the automatic-phrase scenarios; the engine must list this app as allow-listed).
+    bool unaware = false, autoOnly = false;
+    for (int i = 3; i < argc; ++i) {
+        unaware = unaware || std::wstring(argv[i]) == L"unaware";
+        autoOnly = autoOnly || std::wstring(argv[i]) == L"auto";
+    }
     if (!unaware) SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     std::printf("spike at start: %s\n", GetModuleHandleW(L"TyperSpike.dll") ? "YES" : "no");
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
@@ -348,6 +370,7 @@ int wmain(int argc, wchar_t** argv) {
     g_window = CreateWindowExW(0, L"TyperHarnessHost", L"Typer harness", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 200, 200, 640, 260,
                                nullptr, nullptr, wc.hInstance, nullptr);
     ShowWindow(g_window, SW_SHOWNORMAL);
+    SetForegroundWindow(g_window);
     Pump(200);
 
     HMODULE dll = LoadLibraryW(argv[1]);
@@ -390,6 +413,9 @@ int wmain(int argc, wchar_t** argv) {
     // Wait for the engine connection.
     Pump(600);
 
+    if (autoOnly) {
+        AutoPhraseScenarios(store, keys, shots);
+    } else {
     std::printf("scenario 1: typing a word shows the popup; Down moves, Tab accepts\n");
     store.Type(L"I would like to recomm");
     Check(WaitForPopup(true), "popup appears at the caret");
@@ -513,6 +539,9 @@ int wmain(int argc, wchar_t** argv) {
     ULONGLONG shownAfter = GetTickCount64() - t0;
     Check(shown, "popup follows fast typing");
     std::printf("    popup up %llu ms after the last character\n", shownAfter);
+
+    HotkeyPhraseScenarios(store, keys, shots);
+    }
 
     // Tear down.
     tip->Deactivate();

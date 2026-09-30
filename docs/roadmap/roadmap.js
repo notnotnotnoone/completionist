@@ -515,7 +515,7 @@ window.TYPER_ROADMAP = {
         {
           "id": "M3.8",
           "title": "Phrase row in the popup",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             18,
@@ -523,15 +523,24 @@ window.TYPER_ROADMAP = {
             20,
             21
           ],
-          "notes": "Greyed top row, highlighted by default, Ctrl+Right accepts the next word, 150 ms no-steal window."
+          "notes": "The popup gets a phrase row on top: typed part in blue, the phrase as ghost text, highlighted by default 150 ms after it appears so a late phrase can't steal a Tab (that Tab takes the word). Up/Down move through phrase and words. Checked in the TSF harness with a fake provider, in both auto and hotkey modes, and in a screenshot.",
+          "refs": [
+            "tip/src/popup_model.h",
+            "tip/src/popup.cpp",
+            "tip/tests/phrase_scenarios.h"
+          ]
         },
         {
           "id": "M3.9",
           "title": "Ctrl+Space hotkey requests a phrase in any app",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             25
+          ],
+          "notes": "Ctrl+Space asks for a phrase (also right after a space, with no word yet), Ctrl+Right inserts the next phrase word and keeps the rest, Esc quiets the popup for the word and stops phrase requests. The key is only taken where the engine says phrases are available, so Word's own Ctrl+Space is safe elsewhere.",
+          "refs": [
+            "tip/src/tsf_service.cpp"
           ]
         },
         {
@@ -546,6 +555,19 @@ window.TYPER_ROADMAP = {
           "refs": [
             "engine/src/typer_engine/phrases.py"
           ]
+        },
+        {
+          "id": "M3.11",
+          "title": "Check phrases live with a real provider and key",
+          "status": "next",
+          "area": "test",
+          "stories": [
+            18,
+            19,
+            25,
+            59
+          ],
+          "notes": "Needs you: `setx DEEPSEEK_API_KEY \"...\"` in a terminal (never in chat), restart the engine, then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Typer` shows what it cost."
         }
       ]
     },
@@ -893,6 +915,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "M3 DLL side done: phrase row, Ctrl+Space, Ctrl+Right, no-steal window, Esc quieting. The TSF harness now runs both phrase modes against a fake provider and all checks pass. Live check with a real provider key is M3.11."
+    },
     {
       "date": "2026-09-29",
       "text": "M3 engine side done on branch m3-phrases: provider, anchored context, daily budget, scheduler, phrase service, pushes over the pipe and typer-bench. 292 engine tests pass. Next: the phrase row in the DLL (M3.8) and the Ctrl+Space hotkey (M3.9). Benchmark runs are blocked on your API keys."

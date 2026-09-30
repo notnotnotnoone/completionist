@@ -164,3 +164,50 @@ TEST(the_encoded_frame_matches_what_the_python_engine_expects) {
     CHECK_EQ(static_cast<unsigned char>(frame[1]), 0u);
     CHECK_EQ(static_cast<std::size_t>(static_cast<unsigned char>(frame[0])), frame.size() - 4);
 }
+
+TEST(a_words_reply_may_carry_a_phrase_and_the_phrase_mode) {
+    auto reply = ParseWordReply(R"({"id":4,"type":"words","replace":3,"words":["world"],"phrase_mode":"auto","phrase":"d is big","phrase_done":false})");
+    CHECK(reply.has_value());
+    CHECK(reply->kind == ReplyKind::Words);
+    CHECK(reply->phrase == L"d is big");
+    CHECK(!reply->phrase_done);
+    CHECK_EQ(reply->phrase_mode, std::string("auto"));
+}
+
+TEST(a_plain_words_reply_has_no_phrase_and_phrases_off) {
+    auto reply = ParseWordReply(R"({"id":4,"type":"words","replace":3,"words":["world"]})");
+    CHECK(reply.has_value());
+    CHECK(reply->phrase.empty());
+    CHECK(reply->phrase_done);
+    CHECK_EQ(reply->phrase_mode, std::string("off"));
+}
+
+TEST(a_phrase_push_is_parsed) {
+    auto push = ParseWordReply(R"({"id":9,"type":"phrase","text":"ld is big","done":true})");
+    CHECK(push.has_value());
+    CHECK(push->kind == ReplyKind::Phrase);
+    CHECK_EQ(push->id, 9u);
+    CHECK(push->phrase == L"ld is big");
+    CHECK(push->phrase_done);
+    auto partial = ParseWordReply(R"({"id":9,"type":"phrase","text":"","done":false})");
+    CHECK(partial.has_value() && partial->phrase.empty() && !partial->phrase_done);
+}
+
+TEST(malformed_phrase_messages_and_modes_are_rejected) {
+    CHECK(!ParseWordReply(R"({"id":9,"type":"phrase","text":5,"done":true})").has_value());
+    CHECK(!ParseWordReply(R"({"id":9,"type":"phrase","text":"x"})").has_value());
+    CHECK(!ParseWordReply(R"({"id":9,"type":"phrase","text":"x","done":"yes"})").has_value());
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":[],"phrase_mode":"sometimes"})").has_value());
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":[],"phrase":3})").has_value());
+}
+
+TEST(a_quiet_request_says_so) {
+    Request request;
+    request.id = 3;
+    request.event = "keystroke";
+    request.quiet = true;
+    CHECK(BodyOf(EncodeRequest(request)).find("\"quiet\":true") != std::string::npos);
+    Request loud;
+    loud.event = "keystroke";
+    CHECK(BodyOf(EncodeRequest(loud)).find("quiet") == std::string::npos);
+}

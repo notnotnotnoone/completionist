@@ -78,7 +78,8 @@ class Session:
         completion = engine._completer.complete(request.before, limit=engine._config.word_limit)
         phrase, phrase_done, phrase_mode = "", True, "off"
         if self._phrase is not None:
-            update = self._phrase.on_request(request, mode.phrase)
+            # A quiet request (the popup is held back after Esc) keeps learning but asks for no phrase.
+            update = self._phrase.on_request(request, "off" if request.quiet else mode.phrase)
             phrase, phrase_done = update.phrase, update.done
             if engine._phrases is not None and engine._phrases.available:
                 phrase_mode = mode.phrase

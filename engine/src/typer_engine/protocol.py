@@ -70,6 +70,8 @@ class Request:
     after: str = ""
     accepted: str = ""
     """For `accept` events: the word that was inserted."""
+    quiet: bool = False
+    """The text service is holding its popup back here, so there's no point asking for a phrase."""
 
 
 def parse_request(message: dict[str, Any]) -> Request:
@@ -85,10 +87,13 @@ def parse_request(message: dict[str, Any]) -> Request:
         if not isinstance(value, str):
             raise ProtocolError(f"{field} must be a string, got {type(value).__name__}")
         strings[field] = value
+    quiet = message.get("quiet", False)
+    if not isinstance(quiet, bool):
+        raise ProtocolError("quiet must be true or false")
     input_scope = message.get("input_scope", [])
     if not isinstance(input_scope, list) or not all(isinstance(s, str) for s in input_scope):
         raise ProtocolError("input_scope must be a list of strings")
-    return Request(id=request_id, event=event, input_scope=tuple(input_scope), **strings)
+    return Request(id=request_id, event=event, input_scope=tuple(input_scope), quiet=quiet, **strings)
 
 
 @dataclass(frozen=True)

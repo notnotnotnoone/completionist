@@ -1,6 +1,7 @@
 // Typer's TSF text service: an English "keyboard" that never transforms keys itself. It watches the
-// text around the caret, asks the engine for word completions, draws them in a popup at the caret and
-// lets Tab/Up/Down/Esc drive it. Everything else about typing is left to the app.
+// text around the caret, asks the engine for word completions and a phrase continuation, draws them in
+// a popup at the caret and lets Tab/Up/Down/Esc/Ctrl+Right/Ctrl+Space drive it. Everything else about
+// typing is left to the app.
 //
 // Threading: TSF calls arrive on the app's UI thread. The engine round trip runs on the engine
 // client's worker thread; replies come back as WM_TYPER_REPLY messages on the UI thread.
@@ -54,9 +55,10 @@ const GUID kCategories[] = {
     GUID_TFCAT_TIPCAP_IMMERSIVESUPPORT,  // without it, Settings won't list the keyboard
 };
 
-constexpr LONG kBeforeChars = 2000;  // how much text before the caret goes to the engine
-constexpr LONG kAfterChars = 500;
+constexpr LONG kBeforeChars = 8000;  // how much text before the caret goes to the engine
+constexpr LONG kAfterChars = 2000;
 constexpr UINT_PTR kRetryTimer = 1;
+constexpr UINT_PTR kArmTimer = 2;  // fires when the phrase row becomes the highlighted one
 constexpr UINT kRetryDelayMs = 40;
 constexpr int kMaxRetries = 3;
 
@@ -74,22 +76,36 @@ LONG g_objects = 0;  // live COM objects plus server locks
 // ---------------------------------------------------------------------------------------------
 // Text helpers
 
+bool IsWordChar(wchar_t c) { return iswalpha(c) || c == L'\''; }
+
 std::wstring TrailingWord(const std::wstring& before) {
     size_t start = before.size();
-    while (start > 0 && (iswalpha(before[start - 1]) || before[start - 1] == L'\'')) --start;
+    while (start > 0 && IsWordChar(before[start - 1])) --start;
     while (start < before.size() && before[start] == L'\'') ++start;  // a word starts with a letter
     return before.substr(start);
 }
 
 bool StartsWithLetter(const std::wstring& after) { return !after.empty() && iswalpha(after[0]); }
 
+// Whether everything in `text` from `from` on is a letter, digit or apostrophe (no word boundary crossed).
+bool OnlyWordChars(const std::wstring& text, size_t from) {
+    for (size_t i = from; i < text.size(); ++i)
+        if (!(iswalnum(text[i]) || text[i] == L'\'')) return false;
+    return true;
+}
+
 bool EqualsIgnoreCase(const std::wstring& a, const std::wstring& b) {
     return a.size() == b.size() && CompareStringOrdinal(a.c_str(), static_cast<int>(a.size()), b.c_str(),
                                                         static_cast<int>(b.size()), TRUE) == CSTR_EQUAL;
 }
 
-bool StartsWithIgnoreCase(const std::wstring& text, const std::wstring& prefix) {
-    return text.size() >= prefix.size() && EqualsIgnoreCase(text.substr(0, prefix.size()), prefix);
+// The next word of a phrase with the whitespace in front of it: what Ctrl+Right inserts.
+std::wstring NextPhraseWord(const std::wstring& phrase) {
+    size_t i = 0;
+    while (i < phrase.size() && iswspace(phrase[i])) ++i;
+    size_t j = i;
+    while (j < phrase.size() && !iswspace(phrase[j])) ++j;
+    return j > i ? phrase.substr(0, j) : phrase;
 }
 
 std::wstring ExeName() {
@@ -107,19 +123,28 @@ typer::Key ToKey(WPARAM vk) {
         case VK_TAB: return typer::Key::Tab;
         case VK_UP: return typer::Key::Up;
         case VK_DOWN: return typer::Key::Down;
+        case VK_LEFT: return typer::Key::Left;
+        case VK_RIGHT: return typer::Key::Right;
+        case VK_SPACE: return typer::Key::Space;
         case VK_ESCAPE: return typer::Key::Escape;
         case VK_RETURN: return typer::Key::Enter;
         default: return typer::Key::Other;
     }
 }
 
+// Held right now, by the thread's view of the keyboard or the system's (they agree in real use; the
+// system one also works when keys are injected for tests while another window has the focus).
+bool KeyHeld(int vk) { return ((GetKeyState(vk) | GetAsyncKeyState(vk)) & 0x8000) != 0; }
+
 typer::Modifiers CurrentModifiers() {
     typer::Modifiers m;
-    m.ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-    m.alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
-    m.shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    m.ctrl = KeyHeld(VK_CONTROL);
+    m.alt = KeyHeld(VK_MENU);
+    m.shift = KeyHeld(VK_SHIFT);
     return m;
 }
+
+std::uint64_t NowMs() { return GetTickCount64(); }
 
 // ---------------------------------------------------------------------------------------------
 // TSF helpers (all require a valid edit cookie)
@@ -383,24 +408,43 @@ public:
 
     STDMETHODIMP OnTestKeyDown(ITfContext*, WPARAM key, LPARAM, BOOL* eaten) override {
         TYPER_GUARD_BEGIN
-        *eaten = model_.Peek(ToKey(key), CurrentModifiers()).consume;
+        *eaten = model_.Peek(ToKey(key), CurrentModifiers(), NowMs()).consume;
         return S_OK;
         TYPER_GUARD_END(S_OK)
     }
 
     STDMETHODIMP OnKeyDown(ITfContext* context, WPARAM key, LPARAM, BOOL* eaten) override {
         TYPER_GUARD_BEGIN
-        typer::KeyDecision decision = model_.OnKey(ToKey(key), CurrentModifiers());
+        typer::KeyDecision decision = model_.OnKey(ToKey(key), CurrentModifiers(), NowMs());
         *eaten = decision.consume;
         if (!decision.consume) return S_OK;
         eatenKey_ = key;
         switch (decision.action) {
             case typer::Action::Accept: Accept(context, decision.index); break;
-            case typer::Action::Dismiss:
-                dismissedPrefix_ = promptWord_;
+            case typer::Action::AcceptPhrase:
                 popup_.Hide();
+                InsertPhrase(context, phrase_);
                 break;
-            case typer::Action::MoveHighlight: popup_.SetHighlight(model_.highlight()); break;
+            case typer::Action::AcceptPhraseWord: InsertPhrase(context, NextPhraseWord(phrase_)); break;
+            case typer::Action::RequestPhrase:
+                dismissed_ = false;  // asking outweighs an earlier Esc
+                dismissedBefore_.clear();
+                hotkeyPending_ = true;
+                QueueInspect(context);  // reads the text now, then sends the request
+                break;
+            case typer::Action::Dismiss: {
+                dismissed_ = true;
+                dismissedBefore_ = promptBefore_;
+                phrase_.clear();
+                popup_.Hide();
+                typer::protocol::Request dismiss;
+                dismiss.id = latestId_;
+                dismiss.event = "dismiss";
+                dismiss.app = app_;
+                EngineClient::Instance().Send(std::move(dismiss), nullptr);
+                break;
+            }
+            case typer::Action::MoveHighlight: Render(); break;
             case typer::Action::None: break;
         }
         return S_OK;
@@ -428,11 +472,36 @@ public:
 private:
     ~TyperService() { InterlockedDecrement(&g_objects); }
 
-    // Hide the popup and forget any words still being computed.
+    // Hide the popup and forget any words or phrase still being computed.
     void HideAll() {
         popup_.Hide();
         model_.Close();
+        phrase_.clear();
         latestId_ = 0;
+        hotkeyPending_ = false;
+        if (popup_.hwnd()) KillTimer(popup_.hwnd(), kArmTimer);
+    }
+
+    // Draws the popup for the current model state, and arranges a redraw when the phrase row becomes
+    // the highlighted one.
+    void Render() {
+        if (!model_.visible()) {
+            popup_.Hide();
+            if (popup_.hwnd()) KillTimer(popup_.hwnd(), kArmTimer);
+            return;
+        }
+        std::uint64_t now = NowMs();
+        typer::PopupContent content;
+        content.words = words_;
+        content.typedChars = static_cast<int>(promptWord_.size());
+        content.phrase = phrase_;
+        content.phraseLead = promptWord_;
+        popup_.Show(content, model_.selection(now), caret_);
+        if (popup_.hwnd()) {
+            std::uint64_t armedAt = model_.armed_at(now);
+            if (armedAt) SetTimer(popup_.hwnd(), kArmTimer, static_cast<UINT>(armedAt - now + 5), nullptr);
+            else KillTimer(popup_.hwnd(), kArmTimer);
+        }
     }
 
     // Reads the context in an async read session; coalesces bursts of edits into one read.
@@ -475,6 +544,9 @@ private:
     };
 
     void Inspect(ITfContext* context, TfEditCookie ec) {
+        bool hotkey = hotkeyPending_;
+        hotkeyPending_ = false;
+
         TF_SELECTION selection = {};
         ULONG fetched = 0;
         if (FAILED(context->GetSelection(ec, TF_DEFAULT_SELECTION, 1, &selection, &fetched)) || fetched == 0) {
@@ -531,19 +603,33 @@ private:
 
         if (extentHr == TF_E_NOLAYOUT) {  // the app hasn't laid the text out yet
             HideAll();
+            hotkeyPending_ = hotkey;
             ScheduleRetry();
             return;
         }
 
-        // Whether this text may show a popup. The request is sent regardless, so the engine can learn
-        // from what is typed even where suggestions are held back.
-        if (!dismissedPrefix_.empty() && (word.empty() || !StartsWithIgnoreCase(word, dismissedPrefix_))) dismissedPrefix_.clear();
+        // After Esc, stay quiet while the writer is still in the same word (or the same gap).
+        bool suppressed = false;
+        if (dismissed_) {
+            suppressed = before.size() >= dismissedBefore_.size() && before.compare(0, dismissedBefore_.size(), dismissedBefore_) == 0 &&
+                         OnlyWordChars(before, dismissedBefore_.size());
+            if (!suppressed) {
+                dismissed_ = false;
+                dismissedBefore_.clear();
+            }
+        }
+        // After Tab on a word, don't pop straight back up for the word just inserted.
         if (!acceptedWord_.empty() && word != acceptedWord_) acceptedWord_.clear();
-        showAllowed_ = SUCCEEDED(extentHr) && !word.empty() && !StartsWithLetter(after) && dismissedPrefix_.empty() &&
-                       acceptedWord_.empty();
-        if (!showAllowed_) {
+
+        // What may be shown for this text. The request is sent regardless, so the engine can learn from
+        // what is typed even where suggestions are held back.
+        bool caretOk = SUCCEEDED(extentHr) && !StartsWithLetter(after);
+        wordsAllowed_ = caretOk && !word.empty() && !suppressed && acceptedWord_.empty();
+        phraseAllowed_ = caretOk && !suppressed;
+        if (!wordsAllowed_ && !phraseAllowed_) {
             popup_.Hide();
             model_.Close();
+            phrase_.clear();
         }
 
         typer::protocol::Request request;
@@ -551,28 +637,46 @@ private:
         request.event = "keystroke";
         request.app = app_;
         request.title = title;
-        request.input_scope = std::move(scopes);
+        request.input_scope = scopes;
         request.before = before;
         request.after = after;
+        request.quiet = !phraseAllowed_;  // no point paying for a phrase nobody will see
 
         latestId_ = request.id;
         promptWord_ = word;
         promptBefore_ = before;
         caret_ = caret;
+        uint32_t id = request.id;
         EngineClient::Instance().Send(std::move(request), popup_.hwnd());
-        LogDebug(L"inspect word=\"%s\" show=%d", word.c_str(), showAllowed_);
+        if (hotkey && caretOk) {
+            typer::protocol::Request ask;  // same id, so the streamed phrase comes back to this text
+            ask.id = id;
+            ask.event = "hotkey";
+            ask.app = app_;
+            ask.title = title;
+            ask.input_scope = std::move(scopes);
+            ask.before = before;
+            ask.after = after;
+            EngineClient::Instance().Send(std::move(ask), nullptr);
+        }
+        LogDebug(L"inspect word=\"%s\" words=%d phrase=%d hotkey=%d", word.c_str(), wordsAllowed_, phraseAllowed_, hotkey);
     }
 
     void OnReply(const typer::protocol::WordReply& reply) {
         if (reply.id != latestId_) return;  // for text that has since changed
-        if (!showAllowed_ || reply.words.empty() || reply.replace != static_cast<int>(promptWord_.size())) {
-            popup_.Hide();
-            model_.Close();
+        if (reply.kind == typer::protocol::ReplyKind::Phrase) {
+            phrase_ = phraseAllowed_ ? reply.phrase : std::wstring();
+            model_.SetPhrase(!phrase_.empty(), NowMs());
+            Render();
             return;
         }
-        words_ = reply.words;
+        model_.SetPhraseAvailable(reply.phrase_mode != "off");
+        bool useWords = wordsAllowed_ && !reply.words.empty() && reply.replace == static_cast<int>(promptWord_.size());
+        words_ = useWords ? reply.words : std::vector<std::wstring>();
+        phrase_ = phraseAllowed_ ? reply.phrase : std::wstring();
         model_.Open(words_.size());
-        popup_.Show(words_, 0, reply.replace, caret_);
+        model_.SetPhrase(!phrase_.empty(), NowMs());
+        Render();
     }
 
     // Replaces the typed part of the current word with words_[index].
@@ -586,19 +690,33 @@ private:
         auto body = [this, context = ComPtrHold(context), chosen, typed](TfEditCookie ec) mutable {
             ReplaceWord(context.get(), ec, typed, chosen);
         };
-        // Synchronous first, so a key typed straight after Tab can't slip in before the text is replaced.
+        RunWriteSession(context, body);
+    }
+
+    // Inserts phrase text at the caret (the whole phrase, or its next word).
+    void InsertPhrase(ITfContext* context, const std::wstring& text) {
+        if (text.empty()) return;
+        std::wstring expectedBefore = promptBefore_;
+        auto body = [this, context = ComPtrHold(context), text, expectedBefore](TfEditCookie ec) mutable {
+            InsertAtCaret(context.get(), ec, text, expectedBefore);
+        };
+        RunWriteSession(context, body);
+    }
+
+    void RunWriteSession(ITfContext* context, const std::function<void(TfEditCookie)>& body) {
+        // Synchronous first, so a key typed straight after Tab can't slip in before the text changes.
         auto* session = new (std::nothrow) EditSession(body);
         if (!session) return;
         HRESULT sessionHr = S_OK;
         HRESULT hr = context->RequestEditSession(clientId_, session, TF_ES_SYNC | TF_ES_READWRITE, &sessionHr);
         session->Release();
         if (FAILED(hr)) {
-            LogDebug(L"sync accept refused hr=0x%08lx; retrying async", hr);
+            LogDebug(L"sync edit refused hr=0x%08lx; retrying async", hr);
             session = new (std::nothrow) EditSession(body);
             if (!session) return;
             hr = context->RequestEditSession(clientId_, session, TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &sessionHr);
             session->Release();
-            if (FAILED(hr)) LogError(L"could not request an edit session to accept a word hr=0x%08lx", hr);
+            if (FAILED(hr)) LogError(L"could not request an edit session hr=0x%08lx", hr);
         }
     }
 
@@ -625,13 +743,7 @@ private:
         range->ShiftStart(ec, -static_cast<LONG>(typed.size()), &moved, nullptr);
         HRESULT setHr = range->SetText(ec, 0, chosen.c_str(), static_cast<LONG>(chosen.size()));
         if (SUCCEEDED(setHr)) {
-            range->Collapse(ec, TF_ANCHOR_END);
-            TF_SELECTION caret = {};
-            caret.range = range;
-            caret.style.ase = TF_AE_NONE;
-            caret.style.fInterimChar = FALSE;
-            context->SetSelection(ec, 1, &caret);
-
+            MoveCaretToEnd(context, ec, range);
             acceptedWord_ = chosen;  // don't pop straight back up for the word just inserted
             typer::protocol::Request accept;
             accept.id = EngineClient::Instance().NextId();
@@ -644,6 +756,47 @@ private:
             LogError(L"SetText failed hr=0x%08lx", setHr);
         }
         range->Release();
+    }
+
+    void InsertAtCaret(ITfContext* context, TfEditCookie ec, const std::wstring& text, const std::wstring& expectedBefore) {
+        TF_SELECTION selection = {};
+        ULONG fetched = 0;
+        if (FAILED(context->GetSelection(ec, TF_DEFAULT_SELECTION, 1, &selection, &fetched)) || fetched == 0) return;
+        BOOL empty = TRUE;
+        selection.range->IsEmpty(ec, &empty);
+        // The phrase was written for the text before the caret at the time; check it's still there.
+        std::wstring tail = ReadBeside(selection.range, ec, true, 200);
+        size_t check = std::min<size_t>(40, expectedBefore.size());
+        bool same = check == 0 || (tail.size() >= check && tail.compare(tail.size() - check, check, expectedBefore, expectedBefore.size() - check, check) == 0);
+        if (!empty || !same) {
+            LogDebug(L"phrase insert skipped: the text changed");
+            selection.range->Release();
+            return;
+        }
+        ITfRange* range = nullptr;
+        if (FAILED(selection.range->Clone(&range))) {
+            selection.range->Release();
+            return;
+        }
+        selection.range->Release();
+        range->Collapse(ec, TF_ANCHOR_END);
+        HRESULT setHr = range->SetText(ec, 0, text.c_str(), static_cast<LONG>(text.size()));
+        if (SUCCEEDED(setHr)) {
+            MoveCaretToEnd(context, ec, range);
+            phrase_.erase(0, std::min(text.size(), phrase_.size()));  // what's left, until the engine confirms
+        } else {
+            LogError(L"phrase SetText failed hr=0x%08lx", setHr);
+        }
+        range->Release();
+    }
+
+    static void MoveCaretToEnd(ITfContext* context, TfEditCookie ec, ITfRange* range) {
+        range->Collapse(ec, TF_ANCHOR_END);
+        TF_SELECTION caret = {};
+        caret.range = range;
+        caret.style.ase = TF_AE_NONE;
+        caret.style.fInterimChar = FALSE;
+        context->SetSelection(ec, 1, &caret);
     }
 
     // Watch the focused context for edits (and stop watching the previous one).
@@ -684,6 +837,11 @@ private:
                 if (service->watched_) service->QueueInspect(service->watched_);
                 return true;
             }
+            if (message == WM_TIMER && wParam == kArmTimer) {
+                KillTimer(service->popup_.hwnd(), kArmTimer);
+                service->Render();  // the phrase row is now the highlighted one
+                return true;
+            }
         } catch (...) {
             LogError(L"exception caught in PopupHook");
             return true;
@@ -703,6 +861,7 @@ private:
     typer::Popup popup_;
     typer::PopupModel model_;
     std::vector<std::wstring> words_;
+    std::wstring phrase_;  // the phrase continuation on screen (what's left of it)
     WPARAM eatenKey_ = 0;
 
     bool inspectQueued_ = false;
@@ -713,9 +872,12 @@ private:
     std::wstring promptWord_;    // the typed part of the word the words complete
     std::wstring promptBefore_;  // text before the caret when it was asked
     RECT caret_ = {};
-    bool showAllowed_ = false;
-    std::wstring dismissedPrefix_;  // after Esc: stay quiet while the word still starts with this
-    std::wstring acceptedWord_;     // after Tab: stay quiet while the text is exactly this word
+    bool wordsAllowed_ = false;   // this text may show word completions
+    bool phraseAllowed_ = false;  // ...and/or a phrase
+    bool hotkeyPending_ = false;  // Ctrl+Space was pressed: ask for a phrase once the text has been read
+    bool dismissed_ = false;      // after Esc: quiet while the writer stays in the same word (or gap)
+    std::wstring dismissedBefore_;
+    std::wstring acceptedWord_;  // after Tab: stay quiet while the text is exactly this word
 };
 
 // ---------------------------------------------------------------------------------------------

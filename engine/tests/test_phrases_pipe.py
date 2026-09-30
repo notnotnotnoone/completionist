@@ -114,3 +114,31 @@ def test_disconnecting_cancels_the_running_request():
             return len(received)
 
     assert asyncio.run(scenario()) == 1  # and the engine is still healthy enough to finish the test cleanly
+
+
+def test_a_quiet_request_asks_for_no_phrase_but_still_says_phrases_are_available():
+    async def scenario():
+        async with fake_provider() as (url, received), serving_phrases(url) as (name, _service):
+            client = await EngineClient.connect(name)
+            reply = await client.request({**keystroke(1, "Hello wor"), "quiet": True})
+            await asyncio.sleep(0.3)
+            await client.close()
+            return reply, len(received)
+
+    reply, asked = asyncio.run(scenario())
+    assert reply["phrase_mode"] == "auto"  # so Ctrl+Space still works
+    assert asked == 0
+
+
+def test_the_hotkey_ignores_quiet():
+    async def scenario():
+        async with fake_provider() as (url, received), serving_phrases(url) as (name, _service):
+            client = await EngineClient.connect(name)
+            await client.request({**keystroke(1, "Hello wor"), "quiet": True})
+            await client.send({"id": 1, "event": "hotkey", "app": "notepad.exe", "before": "Hello wor"})
+            push = await client.receive(timeout=3.0)
+            await client.close()
+            return push, len(received)
+
+    push, asked = asyncio.run(scenario())
+    assert push["type"] == "phrase" and asked == 1

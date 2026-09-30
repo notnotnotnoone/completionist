@@ -12,15 +12,25 @@ constexpr COLORREF kBackground = RGB(31, 34, 42);
 constexpr COLORREF kBorder = RGB(66, 71, 84);
 constexpr COLORREF kText = RGB(226, 229, 236);
 constexpr COLORREF kTyped = RGB(122, 162, 255);
+constexpr COLORREF kGhost = RGB(146, 154, 172);
 constexpr COLORREF kHighlight = RGB(38, 79, 176);
 constexpr COLORREF kHighlightText = RGB(255, 255, 255);
 constexpr COLORREF kHighlightTyped = RGB(190, 214, 255);
+constexpr COLORREF kHighlightGhost = RGB(214, 224, 244);
+constexpr int kMaxPhraseWidth = 520;  // at 96 DPI
 
 int Scale(int value, UINT dpi) { return MulDiv(value, static_cast<int>(dpi), 96); }
 
 UINT DpiOf(HWND hwnd) {
     UINT dpi = GetDpiForWindow(hwnd);
     return dpi ? dpi : 96;
+}
+
+std::wstring OneLine(const std::wstring& text) {
+    std::wstring out = text;
+    for (wchar_t& c : out)
+        if (c == L'\r' || c == L'\n' || c == L'\t') c = L' ';
+    return out;
 }
 
 }  // namespace
@@ -67,14 +77,20 @@ void Popup::EnsureFont(UINT dpi) {
     fontDpi_ = dpi;
 }
 
-void Popup::Show(const std::vector<std::wstring>& words, std::size_t highlight, int typedChars, const RECT& caret) {
-    if (!hwnd_ || words.empty()) {
+int Popup::RowHeight(HDC dc) const {
+    TEXTMETRICW metrics = {};
+    GetTextMetricsW(dc, &metrics);
+    return metrics.tmHeight + Scale(8, dpi_);
+}
+
+void Popup::Show(const PopupContent& content, int selection, const RECT& caret) {
+    if (!hwnd_ || (content.words.empty() && content.phrase.empty())) {
         Hide();
         return;
     }
-    words_ = words;
-    highlight_ = std::min(highlight, words_.size() - 1);
-    typedChars_ = typedChars;
+    content_ = content;
+    content_.phrase = OneLine(content_.phrase);
+    selection_ = selection;
 
     // Move first (hidden) so the DPI is that of the monitor the popup will appear on.
     SetWindowPos(hwnd_, HWND_TOPMOST, caret.left, caret.bottom, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
@@ -83,20 +99,25 @@ void Popup::Show(const std::vector<std::wstring>& words, std::size_t highlight, 
 
     HDC dc = GetDC(hwnd_);
     HGDIOBJ old = SelectObject(dc, font_);
-    TEXTMETRICW metrics = {};
-    GetTextMetricsW(dc, &metrics);
+    int rowHeight = RowHeight(dc);
     int widest = 0;
-    for (const std::wstring& word : words_) {
+    for (const std::wstring& word : content_.words) {
         SIZE size = {};
         GetTextExtentPoint32W(dc, word.c_str(), static_cast<int>(word.size()), &size);
         widest = std::max(widest, static_cast<int>(size.cx));
     }
+    if (!content_.phrase.empty()) {
+        std::wstring row = content_.phraseLead + content_.phrase;
+        SIZE size = {};
+        GetTextExtentPoint32W(dc, row.c_str(), static_cast<int>(row.size()), &size);
+        widest = std::max(widest, std::min(static_cast<int>(size.cx), Scale(kMaxPhraseWidth, dpi_)));
+    }
     SelectObject(dc, old);
     ReleaseDC(hwnd_, dc);
 
-    int rowHeight = metrics.tmHeight + Scale(8, dpi_);
+    int rows = static_cast<int>(content_.words.size()) + (content_.phrase.empty() ? 0 : 1);
     int width = std::max(widest + Scale(24, dpi_), Scale(120, dpi_));
-    int height = rowHeight * static_cast<int>(words_.size()) + 2;  // +2 for the border
+    int height = rowHeight * rows + 2;  // +2 for the border
 
     RECT work = {0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
     MONITORINFO monitor = {sizeof(monitor)};
@@ -114,9 +135,10 @@ void Popup::Show(const std::vector<std::wstring>& words, std::size_t highlight, 
     shown_ = true;
 }
 
-void Popup::SetHighlight(std::size_t highlight) {
-    if (!shown_ || words_.empty()) return;
-    highlight_ = std::min(highlight, words_.size() - 1);
+void Popup::SetSelection(int selection) {
+    if (!shown_) return;
+    if (selection == selection_) return;
+    selection_ = selection;
     InvalidateRect(hwnd_, nullptr, FALSE);
 }
 
@@ -151,19 +173,37 @@ void Popup::Paint() {
     GetTextMetricsW(dc, &metrics);
     int rowHeight = metrics.tmHeight + Scale(8, dpi_);
     int pad = Scale(10, dpi_);
-    for (std::size_t i = 0; i < words_.size(); ++i) {
-        RECT row = {1, 1 + static_cast<int>(i) * rowHeight, width - 1, 1 + static_cast<int>(i + 1) * rowHeight};
-        bool selected = i == highlight_;
+    bool hasPhrase = !content_.phrase.empty();
+    int rows = static_cast<int>(content_.words.size()) + (hasPhrase ? 1 : 0);
+
+    for (int r = 0; r < rows; ++r) {
+        RECT row = {1, 1 + r * rowHeight, width - 1, 1 + (r + 1) * rowHeight};
+        bool isPhrase = hasPhrase && r == 0;
+        int wordIndex = r - (hasPhrase ? 1 : 0);
+        bool selected = isPhrase ? selection_ == -1 : selection_ == wordIndex;
         if (selected) {
             HBRUSH fill = CreateSolidBrush(kHighlight);
             FillRect(dc, &row, fill);
             DeleteObject(fill);
         }
-        const std::wstring& word = words_[i];
-        int typed = std::min(static_cast<int>(word.size()), typedChars_);
         int y = row.top + (rowHeight - metrics.tmHeight) / 2;
         int x = row.left + pad;
 
+        if (isPhrase) {
+            // The typed part of the word, then the phrase as ghost text.
+            SIZE size = {};
+            const std::wstring& lead = content_.phraseLead;
+            SetTextColor(dc, selected ? kHighlightTyped : kTyped);
+            TextOutW(dc, x, y, lead.c_str(), static_cast<int>(lead.size()));
+            GetTextExtentPoint32W(dc, lead.c_str(), static_cast<int>(lead.size()), &size);
+            RECT text = {x + size.cx, y, row.right - pad, y + metrics.tmHeight};
+            SetTextColor(dc, selected ? kHighlightGhost : kGhost);
+            DrawTextW(dc, content_.phrase.c_str(), -1, &text, DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+            continue;
+        }
+
+        const std::wstring& word = content_.words[wordIndex];
+        int typed = std::min(static_cast<int>(word.size()), content_.typedChars);
         SIZE size = {};
         SetTextColor(dc, selected ? kHighlightTyped : kTyped);
         TextOutW(dc, x, y, word.c_str(), typed);

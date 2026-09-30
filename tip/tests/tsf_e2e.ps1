@@ -1,9 +1,12 @@
 # Full check of the real DLL through real TSF, with the real engine and real n-gram data, no install:
-#   .\tsf_e2e.ps1
-# Starts the engine on the default pipe with a throwaway data folder (a copy of your n-gram file, empty
-# personal store), runs tsf_harness.exe, saves popup screenshots as PNGs in out\shots.
-# Refuses to run if an engine is already listening (it would talk to yours).
-param([switch]$Unaware)   # run as a DPI-unaware app
+#   .\tsf_e2e.ps1            # add -Unaware to run as a DPI-unaware app
+# Runs the harness twice against a throwaway engine (a copy of your n-gram file, empty personal store,
+# a local fake phrase provider, no API key needed):
+#   1. this app NOT allow-listed: word scenarios plus the Ctrl+Space phrase scenarios
+#   2. this app allow-listed: phrases arrive on their own after a pause
+# Saves popup screenshots as PNGs in out\shots. Refuses to run if a typer-engine is already running.
+# The phrase scenarios press Ctrl for real (SendInput) for a few milliseconds at a time.
+param([switch]$Unaware)
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $tip = Split-Path -Parent $here
@@ -13,7 +16,7 @@ $dll = Join-Path $out "TyperTip.dll"
 $exe = Join-Path $out "tsf_harness.exe"
 $shots = Join-Path $out "shots"
 if (-not (Test-Path $dll)) { throw "Build first: $dll not found" }
-if (Test-Path "\\.\pipe\typer-engine") { throw "An engine is already running on \\.\pipe\typer-engine; stop it first." }
+if (Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*typer-engine*" -and $_.Name -match "python|uv" }) { throw "A typer-engine is already running; stop it first." }
 
 $build = @"
 call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul
@@ -23,31 +26,70 @@ $buildCmd = Join-Path $out "build_harness.cmd"
 Set-Content -Path $buildCmd -Value $build -Encoding ascii
 Remove-Item $exe -ErrorAction SilentlyContinue
 cmd /c "`"$buildCmd`" >nul 2>nul"
-if (-not (Test-Path $exe)) { throw "harness failed to build" }
+if (-not (Test-Path $exe)) { throw "harness failed to build (run $buildCmd to see why)" }
 
 $data = Join-Path $env:TEMP "typer-e2e-data-$PID"
 New-Item -ItemType Directory -Force $data, $shots | Out-Null
 $ngrams = Join-Path $env:LOCALAPPDATA "Typer\ngrams.sqlite"
 if (Test-Path $ngrams) { Copy-Item $ngrams $data } else { Write-Host "note: no n-gram file, ranking by frequency only" }
-$config = Join-Path $data "config.toml"
-Set-Content -Path $config -Value ("[data]`ndir = '" + ($data -replace '\\', '/') + "'`n") -Encoding ascii
 Remove-Item "$shots\*" -ErrorAction SilentlyContinue
 
-$engine = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "typer-engine", "--config", $config) -PassThru -WindowStyle Hidden -RedirectStandardError (Join-Path $out "engine-e2e.log")
-try {
+# The fake provider.
+$providerLog = Join-Path $out "provider-e2e.log"
+Remove-Item $providerLog -ErrorAction SilentlyContinue
+$provider = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "python", "$here\fake_provider_server.py") -PassThru -WindowStyle Hidden -RedirectStandardOutput $providerLog -RedirectStandardError (Join-Path $out "provider-e2e.err")
+for ($i = 0; $i -lt 120 -and -not ((Test-Path $providerLog) -and (Get-Content $providerLog -ErrorAction SilentlyContinue | Select-String "http://")); $i++) { Start-Sleep -Milliseconds 500 }
+$providerUrl = (Get-Content $providerLog | Select-String "http://" | Select-Object -First 1).ToString().Trim()
+if (-not $providerUrl) { throw "fake provider did not start" }
+$env:TYPER_E2E_KEY = "test-key"
+
+function Invoke-Run($label, $allow, $extraArgs) {
+    $config = Join-Path $data "config.toml"
+    $dataDir = $data -replace '\\', '/'
+    Set-Content -Path $config -Encoding ascii -Value @"
+[apps]
+allow = [$allow]
+
+[data]
+dir = '$dataDir'
+
+[phrase]
+base_url = "$providerUrl"
+api_key_env = "TYPER_E2E_KEY"
+debounce_ms = 100
+timeout = 3.0
+"@
+    Remove-Item (Join-Path $data "personal.sqlite*"), (Join-Path $data "spend.json") -ErrorAction SilentlyContinue
     $log = Join-Path $out "engine-e2e.log"
-    for ($i = 0; $i -lt 180 -and -not ((Test-Path $log) -and (Select-String -Path $log -Pattern "listening on" -Quiet)); $i++) { Start-Sleep -Milliseconds 500 }
-    if (-not (Select-String -Path $log -Pattern "listening on" -Quiet)) { throw ("engine did not start: " + (Get-Content $log -Tail 5)) }
-    Start-Sleep -Milliseconds 300
-    if ($Unaware) { & $exe $dll $shots unaware } else { & $exe $dll $shots }
-    $code = $LASTEXITCODE
+    Remove-Item $log -ErrorAction SilentlyContinue
+    $engine = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "typer-engine", "--config", $config) -PassThru -WindowStyle Hidden -RedirectStandardError $log
+    try {
+        for ($i = 0; $i -lt 180 -and -not ((Test-Path $log) -and (Select-String -Path $log -Pattern "listening on" -Quiet)); $i++) { Start-Sleep -Milliseconds 500 }
+        if (-not (Select-String -Path $log -Pattern "listening on" -Quiet)) { throw ("engine did not start: " + (Get-Content $log -Tail 5)) }
+        Start-Sleep -Milliseconds 300
+        Write-Host "=== $label ==="
+        & $exe $dll $shots @extraArgs | Out-Host
+        $script:harnessExit = $LASTEXITCODE
+    } finally {
+        Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*typer-engine*" -and $_.CommandLine -like "*$data*" } |
+            ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+        Start-Sleep -Milliseconds 500
+    }
+}
+
+$unawareArg = if ($Unaware) { @("unaware") } else { @() }
+$codes = @()
+try {
+    Invoke-Run "words and Ctrl+Space (app not allow-listed)" "" $unawareArg
+    $codes += $script:harnessExit
+    Invoke-Run "automatic phrases (app allow-listed)" '"tsf_harness.exe"' (@("auto") + $unawareArg)
+    $codes += $script:harnessExit
 } finally {
-    Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*typer-engine*" -and $_.CommandLine -like "*$data*" } |
-        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Stop-Process -Id $provider.Id -Force -ErrorAction SilentlyContinue
+    Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*fake_provider_server*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
     Start-Sleep -Milliseconds 300
     Remove-Item $data -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# Convert the raw captures to PNG so they can be viewed.
 python "$here\raw_to_png.py" $shots
-exit $code
+exit ([int](($codes | Measure-Object -Maximum).Maximum))

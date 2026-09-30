@@ -110,3 +110,12 @@ def test_a_word_reply_carries_phrase_fields_only_when_relevant():
     assert (message["phrase"], message["phrase_done"], message["phrase_mode"]) == ("ld is big", False, "auto")
 
     assert PhraseUpdate(id=4, text="hi", done=True).to_message() == {"id": 4, "type": "phrase", "text": "hi", "done": True}
+
+
+def test_a_quiet_flag_is_parsed_and_defaults_to_false():
+    from typer_engine.protocol import parse_request
+
+    assert parse_request({"id": 1, "event": "keystroke"}).quiet is False
+    assert parse_request({"id": 1, "event": "keystroke", "quiet": True}).quiet is True
+    with pytest.raises(ProtocolError):
+        parse_request({"id": 1, "event": "keystroke", "quiet": "yes"})

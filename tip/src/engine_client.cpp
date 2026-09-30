@@ -274,10 +274,10 @@ void EngineClient::DispatchReply(const std::string& body) {
     HWND target = nullptr;
     {
         std::lock_guard<std::mutex> guard(state_->lock);
+        // Kept after the reply: a phrase streams in later, as more messages with the same id.
         auto it = state_->pending.find(reply->id);
         if (it == state_->pending.end()) return;
         target = it->second;
-        state_->pending.erase(it);
     }
     auto* heap = new (std::nothrow) protocol::WordReply(std::move(*reply));
     if (!heap) return;

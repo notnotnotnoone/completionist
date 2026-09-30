@@ -66,6 +66,7 @@ void AppendJsonString(std::string& out, std::string_view utf8) {
 struct Json {
     enum class Type { Null, Bool, Number, String, Array, Object } type = Type::Null;
     double number = 0;
+    bool boolean = false;
     std::string string;
     std::vector<Json> array;
     std::vector<std::pair<std::string, Json>> object;
@@ -153,7 +154,12 @@ private:
             value.string = std::move(*s);
             return value;
         }
-        if (ConsumeWord("true") || ConsumeWord("false")) {
+        if (ConsumeWord("true")) {
+            value.type = Json::Type::Bool;
+            value.boolean = true;
+            return value;
+        }
+        if (ConsumeWord("false")) {
             value.type = Json::Type::Bool;
             return value;
         }
@@ -317,6 +323,7 @@ std::string EncodeRequest(const Request& r) {
         body += ",\"accepted\":";
         AppendJsonString(body, ToUtf8(r.accepted));
     }
+    if (r.quiet) body += ",\"quiet\":true";
     body += '}';
 
     auto length = static_cast<std::uint32_t>(body.size());
@@ -332,19 +339,44 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
     if (!document || document->type != Json::Type::Object) return std::nullopt;
     const Json* type = document->Find("type");
     const Json* id = document->Find("id");
-    const Json* replace = document->Find("replace");
-    const Json* words = document->Find("words");
-    if (!type || type->type != Json::Type::String || type->string != "words") return std::nullopt;
+    if (!type || type->type != Json::Type::String) return std::nullopt;
     if (!id || id->type != Json::Type::Number || id->number < 0 || id->number > 4294967295.0) return std::nullopt;
-    if (!replace || replace->type != Json::Type::Number || replace->number < 0 || replace->number > 100000) return std::nullopt;
-    if (!words || words->type != Json::Type::Array) return std::nullopt;
 
     WordReply reply;
     reply.id = static_cast<std::uint32_t>(id->number);
+
+    if (type->string == "phrase") {
+        const Json* text = document->Find("text");
+        const Json* done = document->Find("done");
+        if (!text || text->type != Json::Type::String || !done || done->type != Json::Type::Bool) return std::nullopt;
+        reply.kind = ReplyKind::Phrase;
+        reply.phrase = FromUtf8(text->string);
+        reply.phrase_done = done->boolean;
+        return reply;
+    }
+    if (type->string != "words") return std::nullopt;
+
+    const Json* replace = document->Find("replace");
+    const Json* words = document->Find("words");
+    if (!replace || replace->type != Json::Type::Number || replace->number < 0 || replace->number > 100000) return std::nullopt;
+    if (!words || words->type != Json::Type::Array) return std::nullopt;
     reply.replace = static_cast<int>(replace->number);
     for (const Json& word : words->array) {
         if (word.type != Json::Type::String) return std::nullopt;
         reply.words.push_back(FromUtf8(word.string));
+    }
+    if (const Json* phrase = document->Find("phrase")) {
+        if (phrase->type != Json::Type::String) return std::nullopt;
+        reply.phrase = FromUtf8(phrase->string);
+    }
+    if (const Json* done = document->Find("phrase_done")) {
+        if (done->type != Json::Type::Bool) return std::nullopt;
+        reply.phrase_done = done->boolean;
+    }
+    if (const Json* mode = document->Find("phrase_mode")) {
+        if (mode->type != Json::Type::String || (mode->string != "auto" && mode->string != "hotkey" && mode->string != "off"))
+            return std::nullopt;
+        reply.phrase_mode = mode->string;
     }
     return reply;
 }
