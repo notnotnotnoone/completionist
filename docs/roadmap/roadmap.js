@@ -1237,6 +1237,16 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The phrase prompt now tells the model not to over-complete, the default model is Llama 3.3 70B on Groq through OpenRouter with a provider_order setting, and the API key moved from an environment variable into the config file."
     },
     {
+      "version": "0.0.11",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "One-line launcher",
+      "highways": [
+        "tooling"
+      ],
+      "text": "The engine now starts with `cd engine && uv run completionist.py`, a small launcher script beside the project file."
+    },
+    {
       "version": "0.1.0",
       "status": "next",
       "title": "Words everywhere",
@@ -1526,6 +1536,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Released 0.0.11: engine/completionist.py, so the engine starts with `cd engine && uv run completionist.py`."
+    },
     {
       "date": "2026-09-30",
       "text": "Released 0.0.10 (merged into main): the \"do not over-complete\" phrase prompt (ends with a TEXT TO CONTINUE label; build_prompt adds the header and text), `[phrase] provider_order`, default model meta-llama/llama-3.3-70b-instruct on Groq, and `[phrase] api_key` in the config instead of the OPENROUTER_API_KEY environment variable (`api_key_env` removed; docs, tray template, install script and harness updated)."
