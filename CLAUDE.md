@@ -75,6 +75,7 @@ Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases
   - Don't drive the screen with computer use or screenshots unless asked.
 - **The TSF harness steals focus.** `tip/tests/tsf_e2e.ps1` pops a real window and needs the foreground for TSF focus. Run it only when the user says they are away, never while they work.
 - **Engine extras:** `typer-stats` (usage numbers), tray icon and Ctrl+Alt+P pause (`--no-tray` to skip), config hot reload, `engine.log` and `metrics.sqlite` in `%LOCALAPPDATA%\Typer`.
+- **Don't over-engineer.** Typer is a typing tool. Build what the user asked for, the simplest way. Don't add side tools, benchmarks, dashboards or config knobs on your own, and don't turn a choice (like which model) into a project or homework for the user: pick a sensible default, say so, and make it easy to swap. Ask before adding anything beyond the request. Existing extras (like `typer-bench`) stay, but don't grow them.
 - **Never ask for API keys in chat.**
   - Keys live in user environment variables that the user sets (e.g. `setx DEEPSEEK_API_KEY ...`).
   - Config only names the variable.
