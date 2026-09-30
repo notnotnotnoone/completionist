@@ -323,6 +323,10 @@ std::string EncodeRequest(const Request& r) {
         body += ",\"accepted\":";
         AppendJsonString(body, ToUtf8(r.accepted));
     }
+    if (!r.kind.empty()) {
+        body += ",\"kind\":";
+        AppendJsonString(body, r.kind);
+    }
     if (r.quiet) body += ",\"quiet\":true";
     body += '}';
 

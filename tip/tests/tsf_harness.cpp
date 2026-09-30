@@ -12,6 +12,7 @@
 
 #include <cstdio>
 #include <deque>
+#include <functional>
 #include <string>
 
 // {71B17AFC-9D1A-4E42-A7C3-2F4151AC6ABF}
@@ -24,6 +25,7 @@ static void Check(bool ok, const char* what) {
 }
 
 static HWND g_window = nullptr;
+static std::function<bool()> g_refocus;  // re-takes the foreground and TSF focus; set once the harness window exists
 
 // ---------------------------------------------------------------------------------------------
 class TextStore final : public ITextStoreACP {
@@ -321,11 +323,25 @@ struct Keys {
     }
 };
 
+// Makes `window` the foreground window even when another app has been in use (by attaching to its input queue).
+static void BringToFront(HWND window) {
+    HWND front = GetForegroundWindow();
+    DWORD frontThread = front ? GetWindowThreadProcessId(front, nullptr) : 0;
+    DWORD self = GetCurrentThreadId();
+    bool attached = frontThread && frontThread != self && AttachThreadInput(self, frontThread, TRUE);
+    SetWindowPos(window, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+    SetForegroundWindow(window);
+    SetActiveWindow(window);
+    SetFocus(window);
+    if (attached) AttachThreadInput(self, frontThread, FALSE);
+}
+
 static LRESULT CALLBACK HostProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     return DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
 #include "phrase_scenarios.h"
+#include "resilience_scenarios.h"
 
 int wmain(int argc, wchar_t** argv) {
     if (argc < 3) {
@@ -336,9 +352,11 @@ int wmain(int argc, wchar_t** argv) {
     // Optional words after the folder: "unaware" (pretend to be an old DPI-unaware app) and "auto"
     // (run only the automatic-phrase scenarios; the engine must list this app as allow-listed).
     bool unaware = false, autoOnly = false;
+    std::wstring resilienceFlags;  // "resilience <folder>": run only the engine-dies-and-returns scenarios
     for (int i = 3; i < argc; ++i) {
         unaware = unaware || std::wstring(argv[i]) == L"unaware";
         autoOnly = autoOnly || std::wstring(argv[i]) == L"auto";
+        if (std::wstring(argv[i]) == L"resilience" && i + 1 < argc) resilienceFlags = argv[i + 1];
     }
     if (!unaware) SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     std::printf("spike at start: %s\n", GetModuleHandleW(L"TyperSpike.dll") ? "YES" : "no");
@@ -370,7 +388,7 @@ int wmain(int argc, wchar_t** argv) {
     g_window = CreateWindowExW(0, L"TyperHarnessHost", L"Typer harness", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 200, 200, 640, 260,
                                nullptr, nullptr, wc.hInstance, nullptr);
     ShowWindow(g_window, SW_SHOWNORMAL);
-    SetForegroundWindow(g_window);
+    BringToFront(g_window);
     Pump(200);
 
     HMODULE dll = LoadLibraryW(argv[1]);
@@ -401,8 +419,26 @@ int wmain(int argc, wchar_t** argv) {
     if (FAILED(hr)) return std::printf("CreateContext failed 0x%08lx\n", hr), 1;
     docMgr->Push(context);
     ITfDocumentMgr* prev = nullptr;
-    threadMgr->SetFocus(docMgr);
+    // TSF only gives our document focus while our window is the foreground one, and a desktop in use can
+    // take that away at any time. So take it back, and say so if that keeps failing.
+    g_refocus = [threadMgr, docMgr]() -> bool {
+        for (int attempt = 0; attempt < 10; ++attempt) {
+            BringToFront(g_window);
+            threadMgr->SetFocus(docMgr);
+            Pump(150);
+            BOOL threadFocus = FALSE;
+            ITfDocumentMgr* focused = nullptr;
+            threadMgr->IsThreadFocus(&threadFocus);
+            threadMgr->GetFocus(&focused);
+            bool ours = threadFocus && focused == docMgr;
+            if (focused) focused->Release();
+            if (ours) return true;
+        }
+        return false;
+    };
+    bool focusOk = g_refocus();
     Pump(300);
+    std::printf("harness has TSF focus: %s\n", focusOk ? "yes" : "NO (something else keeps the foreground; results will be unreliable, so stop using the PC while this runs)");
     std::printf("spike loaded after focus: %s\n", GetModuleHandleW(L"TyperSpike.dll") ? "YES" : "no");
 
     ITfKeyEventSink* keySink = nullptr;
@@ -413,7 +449,9 @@ int wmain(int argc, wchar_t** argv) {
     // Wait for the engine connection.
     Pump(600);
 
-    if (autoOnly) {
+    if (!resilienceFlags.empty()) {
+        ResilienceScenarios(store, keys, resilienceFlags);
+    } else if (autoOnly) {
         AutoPhraseScenarios(store, keys, shots);
     } else {
     std::printf("scenario 1: typing a word shows the popup; Down moves, Tab accepts\n");
@@ -483,7 +521,7 @@ int wmain(int argc, wchar_t** argv) {
     bool eatenDuringStale = true;
     keys.Press(VK_TAB, &eatenDuringStale);
     Check(!eatenDuringStale, "Tab passes through while the popup is stale");
-    Pump(300);
+    Pump(1500);
     Check(store.text == L"recomme", "text untouched");
 
     std::printf("scenario 5: no popup mid-word, with a selection, or where keyboards are disabled\n");

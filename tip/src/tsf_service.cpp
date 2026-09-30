@@ -423,9 +423,9 @@ public:
             case typer::Action::Accept: Accept(context, decision.index); break;
             case typer::Action::AcceptPhrase:
                 popup_.Hide();
-                InsertPhrase(context, phrase_);
+                InsertPhrase(context, phrase_, "phrase");
                 break;
-            case typer::Action::AcceptPhraseWord: InsertPhrase(context, NextPhraseWord(phrase_)); break;
+            case typer::Action::AcceptPhraseWord: InsertPhrase(context, NextPhraseWord(phrase_), "phrase_word"); break;
             case typer::Action::RequestPhrase:
                 dismissed_ = false;  // asking outweighs an earlier Esc
                 dismissedBefore_.clear();
@@ -694,11 +694,11 @@ private:
     }
 
     // Inserts phrase text at the caret (the whole phrase, or its next word).
-    void InsertPhrase(ITfContext* context, const std::wstring& text) {
+    void InsertPhrase(ITfContext* context, const std::wstring& text, const char* kind) {
         if (text.empty()) return;
         std::wstring expectedBefore = promptBefore_;
-        auto body = [this, context = ComPtrHold(context), text, expectedBefore](TfEditCookie ec) mutable {
-            InsertAtCaret(context.get(), ec, text, expectedBefore);
+        auto body = [this, context = ComPtrHold(context), text, expectedBefore, kind](TfEditCookie ec) mutable {
+            InsertAtCaret(context.get(), ec, text, expectedBefore, kind);
         };
         RunWriteSession(context, body);
     }
@@ -758,7 +758,7 @@ private:
         range->Release();
     }
 
-    void InsertAtCaret(ITfContext* context, TfEditCookie ec, const std::wstring& text, const std::wstring& expectedBefore) {
+    void InsertAtCaret(ITfContext* context, TfEditCookie ec, const std::wstring& text, const std::wstring& expectedBefore, const char* kind) {
         TF_SELECTION selection = {};
         ULONG fetched = 0;
         if (FAILED(context->GetSelection(ec, TF_DEFAULT_SELECTION, 1, &selection, &fetched)) || fetched == 0) return;
@@ -784,6 +784,14 @@ private:
         if (SUCCEEDED(setHr)) {
             MoveCaretToEnd(context, ec, range);
             phrase_.erase(0, std::min(text.size(), phrase_.size()));  // what's left, until the engine confirms
+            typer::protocol::Request accept;
+            accept.id = EngineClient::Instance().NextId();
+            accept.event = "accept";
+            accept.kind = kind;
+            accept.app = app_;
+            accept.before = expectedBefore;
+            accept.accepted = text;
+            EngineClient::Instance().Send(std::move(accept), nullptr);
         } else {
             LogError(L"phrase SetText failed hr=0x%08lx", setHr);
         }

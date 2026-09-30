@@ -6,7 +6,7 @@
 #   2. this app allow-listed: phrases arrive on their own after a pause
 # Saves popup screenshots as PNGs in out\shots. Refuses to run if a typer-engine is already running.
 # The phrase scenarios press Ctrl for real (SendInput) for a few milliseconds at a time.
-param([switch]$Unaware)
+param([switch]$Unaware, [switch]$ResilienceOnly)  # -ResilienceOnly: just the engine kill/restart run
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $tip = Split-Path -Parent $here
@@ -77,12 +77,56 @@ timeout = 3.0
     }
 }
 
+# Third run: the engine is killed and restarted while the app is in use. The harness raises flag files and
+# this script plays the engine's part (see resilience_scenarios.h).
+function Invoke-Resilience {
+    $config = Join-Path $data "config.toml"
+    $dataDir = $data -replace '\\', '/'
+    Set-Content -Path $config -Encoding ascii -Value "[data]`ndir = '$dataDir'`n"
+    $flags = Join-Path $data "flags"
+    New-Item -ItemType Directory -Force $flags | Out-Null
+    $stdout = Join-Path $out "resilience.out"
+    $script:starts = 0
+    function Start-Engine {
+        $script:starts++
+        $log = Join-Path $out "engine-e2e-$script:starts.log"
+        Remove-Item $log -ErrorAction SilentlyContinue
+        $null = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "typer-engine", "--config", $config, "--no-tray", "--log-level", "DEBUG") -WindowStyle Hidden -RedirectStandardError $log
+        for ($i = 0; $i -lt 180 -and -not ((Test-Path $log) -and (Select-String -Path $log -Pattern "listening on" -Quiet)); $i++) { Start-Sleep -Milliseconds 500 }
+        if (-not (Select-String -Path $log -Pattern "listening on" -Quiet)) { throw "engine did not start" }
+    }
+    function Stop-Engine {
+        Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*typer-engine*" -and $_.CommandLine -like "*$data*" } |
+            ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+        Start-Sleep -Milliseconds 500
+    }
+    Start-Engine
+    Write-Host "=== engine killed and restarted mid-use ==="
+    $harness = Start-Process -FilePath $exe -ArgumentList (@("`"$dll`"", "`"$shots`"") + $unawareArg + @("resilience", "`"$flags`"")) -PassThru -NoNewWindow
+    try {
+        $deadline = (Get-Date).AddMinutes(3)
+        while (-not $harness.HasExited -and (Get-Date) -lt $deadline) {
+            if ((Test-Path "$flags\kill") -and -not (Test-Path "$flags\killed")) { Stop-Engine; New-Item "$flags\killed" -ItemType File | Out-Null }
+            if ((Test-Path "$flags\restart") -and -not (Test-Path "$flags\restarted")) { Start-Engine; New-Item "$flags\restarted" -ItemType File | Out-Null }
+            Start-Sleep -Milliseconds 100
+        }
+        if (-not $harness.HasExited) { Stop-Process -Id $harness.Id -Force; Write-Host "  FAIL resilience harness timed out"; $script:harnessExit = 1 } else { $script:harnessExit = $harness.ExitCode }
+    } finally {
+        # (the harness prints straight to the console)
+        Stop-Engine
+    }
+}
+
 $unawareArg = if ($Unaware) { @("unaware") } else { @() }
 $codes = @()
 try {
+    if (-not $ResilienceOnly) {
     Invoke-Run "words and Ctrl+Space (app not allow-listed)" "" $unawareArg
     $codes += $script:harnessExit
     Invoke-Run "automatic phrases (app allow-listed)" '"tsf_harness.exe"' (@("auto") + $unawareArg)
+    $codes += $script:harnessExit
+    }
+    Invoke-Resilience
     $codes += $script:harnessExit
 } finally {
     Stop-Process -Id $provider.Id -Force -ErrorAction SilentlyContinue

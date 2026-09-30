@@ -211,3 +211,14 @@ TEST(a_quiet_request_says_so) {
     loud.event = "keystroke";
     CHECK(BodyOf(EncodeRequest(loud)).find("quiet") == std::string::npos);
 }
+
+TEST(an_accept_request_can_name_its_kind) {
+    Request request;
+    request.event = "accept";
+    request.kind = "phrase_word";
+    request.accepted = L"the ";
+    CHECK(BodyOf(EncodeRequest(request)).find("\"kind\":\"phrase_word\"") != std::string::npos);
+    Request plain;
+    plain.event = "accept";
+    CHECK(BodyOf(EncodeRequest(plain)).find("kind") == std::string::npos);
+}

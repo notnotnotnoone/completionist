@@ -20,6 +20,7 @@ static bool WaitForPhraseRow(int baseline, DWORD timeoutMs = 4000) {
 }
 
 static void ResetText(auto& store) {
+    if (g_refocus) g_refocus();
     store.SetTextDirectly(L"", 0);
     Pump(150);
 }

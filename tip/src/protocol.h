@@ -26,6 +26,7 @@ struct Request {
     std::wstring before;
     std::wstring after;
     std::wstring accepted;  // for "accept": the word that was inserted
+    std::string kind;       // for "accept": "word" (default), "phrase" or "phrase_word"
     bool quiet = false;     // the popup is held back here, so the engine should not ask for phrases
 };
 
