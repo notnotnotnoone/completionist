@@ -5,7 +5,6 @@ import contextlib
 from uuid import uuid4
 
 from tests.fake_provider import Script, fake_provider
-from typer_engine.budget import DailyBudget, Prices
 from typer_engine.client import EngineClient
 from typer_engine.config import Config, PhraseConfig
 from typer_engine.engine import Engine
@@ -20,7 +19,7 @@ VOCAB = [("world", 5.8), ("work", 6.0), ("worry", 5.0)]
 @contextlib.asynccontextmanager
 async def serving_phrases(url: str, allow: frozenset[str] = frozenset({"notepad.exe"})):
     phrase = PhraseConfig(provider=ProviderSettings(base_url=url, timeout=1.0), debounce=0.05)
-    service = PhraseService(phrase, "key", DailyBudget(0.5, Prices()))
+    service = PhraseService(phrase, "key")
     engine = Engine(WordCompleter(VOCAB), Config(block=frozenset(), allow=allow, phrase=phrase), phrases=service)
     name = rf"\\.\pipe\typer-test-{uuid4().hex}"
     server = await start_server(engine, name)

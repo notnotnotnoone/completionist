@@ -663,6 +663,7 @@ private:
     }
 
     void OnReply(const typer::protocol::WordReply& reply) {
+        LogDebug(L"reply id=%u latest=%u words=%zu replace=%d typed=%zu wordsAllowed=%d", reply.id, latestId_, reply.words.size(), reply.replace, promptWord_.size(), wordsAllowed_);
         if (reply.id != latestId_) return;  // for text that has since changed
         if (reply.kind == typer::protocol::ReplyKind::Phrase) {
             phrase_ = phraseAllowed_ ? reply.phrase : std::wstring();

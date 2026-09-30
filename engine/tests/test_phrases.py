@@ -3,8 +3,8 @@ import asyncio
 import pytest
 
 from tests.fake_provider import Script, fake_provider
-from typer_engine.budget import DailyBudget, Prices
 from typer_engine.config import PhraseConfig
+from typer_engine.context import INSTRUCTIONS
 from typer_engine.phrase_provider import ProviderSettings
 from typer_engine.phrases import PhraseService
 from typer_engine.protocol import PhraseUpdate, Request
@@ -14,14 +14,13 @@ def req(request_id: int, before: str, after: str = "", event: str = "keystroke",
     return Request(id=request_id, event=event, app="notepad.exe", title=title, before=before, after=after)
 
 
-def make_service(url: str, *, key: str | None = "k", budget: float = 0.50, **overrides) -> PhraseService:
+def make_service(url: str, *, key: str | None = "k", **overrides) -> PhraseService:
     config = PhraseConfig(
         provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, fim=True),
         debounce=overrides.pop("debounce", 0.05),
         context_before=overrides.pop("context_before", 8000),
-        daily_budget_usd=budget,
     )
-    return PhraseService(config, key, DailyBudget(budget, Prices()))
+    return PhraseService(config, key)
 
 
 async def settle(pushes: list[PhraseUpdate], until=lambda p: p and p[-1].done, timeout=3.0):
@@ -49,22 +48,6 @@ def test_the_hotkey_streams_a_phrase_to_the_text_service():
     assert [p.done for p in pushes] == [False, False, True]
     assert {p.id for p in pushes} == {5}
 
-
-def test_usage_reported_by_the_provider_is_charged_to_the_budget():
-    async def scenario():
-        async with fake_provider(Script(usage={"prompt_cache_hit_tokens": 1000, "prompt_cache_miss_tokens": 500, "completion_tokens": 10})) as (url, _):
-            service = make_service(url)
-            pushes: list[PhraseUpdate] = []
-            session = service.open_session(pushes.append)
-            session.on_hotkey(req(1, "Hello wor", event="hotkey"), "hotkey")
-            await settle(pushes)
-            await asyncio.sleep(0.05)
-            return service.budget
-
-    budget = asyncio.run(scenario())
-    assert budget.requests_today == 1
-    assert budget.spent_today > 0
-    assert budget.cache_hit_rate == pytest.approx(1000 / 1500)
 
 
 def test_in_auto_mode_a_pause_starts_the_request():
@@ -130,7 +113,8 @@ def test_the_prompt_has_a_header_the_anchored_window_and_the_text_after_the_care
             return received[0].body
 
     body = asyncio.run(scenario())
-    assert "Inbox" in body["prompt"].splitlines()[0] and "notepad" in body["prompt"].splitlines()[0]
+    header = next(line for line in body["prompt"].splitlines() if line.startswith("[Text typed in"))
+    assert "Inbox" in header and "notepad" in header
     assert body["prompt"].endswith("Dear Sam, thanks for th")
     assert body["suffix"] == " meeting."
 
@@ -146,7 +130,7 @@ def test_a_long_text_is_windowed_to_the_configured_cap():
             session.close()
             return received[0].body["prompt"]
 
-    assert len(asyncio.run(scenario())) < 450
+    assert len(asyncio.run(scenario())) < 450 + len(INSTRUCTIONS)  # the window, a short header, and the fixed instructions
 
 
 def test_typing_along_trims_the_phrase_and_later_pushes_use_the_newest_request_id():
@@ -219,19 +203,6 @@ def test_repeated_failures_pause_requests_for_a_while():
     assert asyncio.run(scenario()) == 3  # three failures, then it stops hammering the provider
 
 
-def test_nothing_is_requested_when_the_budget_is_spent():
-    async def scenario():
-        async with fake_provider() as (url, received):
-            service = make_service(url, budget=0.0)
-            session = service.open_session(lambda _u: None)
-            update = session.on_hotkey(req(1, "Hello wor", event="hotkey"), "hotkey")
-            await asyncio.sleep(0.1)
-            session.close()
-            return update, received
-
-    update, received = asyncio.run(scenario())
-    assert update.phrase == "" and received == []
-
 
 def test_without_an_api_key_phrases_are_unavailable():
     async def scenario():
@@ -283,7 +254,7 @@ def test_sessions_are_independent():
     assert a and not b
 
 
-def test_reloading_the_config_switches_provider_and_budget_without_a_restart(monkeypatch):
+def test_reloading_the_config_switches_provider_without_a_restart(monkeypatch):
     from dataclasses import replace
 
     async def scenario():
@@ -293,7 +264,7 @@ def test_reloading_the_config_switches_provider_and_budget_without_a_restart(mon
             session = service.open_session(pushes.append)
             session.on_hotkey(req(1, "Hello wor", event="hotkey"), "hotkey")
             await settle(pushes)
-            new_config = replace(service.config, provider=replace(service.config.provider, base_url=url_b), daily_budget_usd=0.25)
+            new_config = replace(service.config, provider=replace(service.config.provider, base_url=url_b))
             service.reconfigure(new_config)
             session.on_hotkey(req(2, "Another sentence th", event="hotkey"), "hotkey")
             await settle(pushes, until=lambda p: bool(p) and p[-1].id == 2 and p[-1].done)
@@ -327,19 +298,6 @@ def test_reloading_can_switch_phrases_off_and_on():
     assert asyncio.run(scenario()) == 1
 
 
-def test_a_lower_budget_in_a_reloaded_config_takes_effect_at_once():
-    from dataclasses import replace
-
-    async def scenario():
-        async with fake_provider() as (url, received):
-            service = make_service(url)
-            service.budget.record(__import__("typer_engine.budget", fromlist=["Usage"]).Usage(uncached=1_000_000))
-            assert service.usable()
-            service.reconfigure(replace(service.config, daily_budget_usd=0.01))
-            return service.usable()
-
-    assert asyncio.run(scenario()) is False
-
 
 def test_naming_another_key_variable_picks_up_that_variable(monkeypatch):
     from dataclasses import replace
@@ -347,7 +305,7 @@ def test_naming_another_key_variable_picks_up_that_variable(monkeypatch):
     monkeypatch.setenv("KEY_TWO", "second")
     config = PhraseConfig(provider=ProviderSettings(api_key_env="KEY_ONE"))
     monkeypatch.delenv("KEY_ONE", raising=False)
-    service = PhraseService(config, None, DailyBudget(0.5, Prices()), key_from_env=True)
+    service = PhraseService(config, None, key_from_env=True)
     assert not service.available
     service.reconfigure(replace(config, provider=replace(config.provider, api_key_env="KEY_TWO")))
     assert service.available
@@ -355,7 +313,7 @@ def test_naming_another_key_variable_picks_up_that_variable(monkeypatch):
 
 def make_prefix_only_service(url: str) -> PhraseService:
     config = PhraseConfig(provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, fim=False), debounce=0.05)
-    return PhraseService(config, "k", DailyBudget(0.50, Prices()))
+    return PhraseService(config, "k")
 
 
 def test_without_fim_text_after_the_caret_on_the_same_line_holds_the_phrase_back():

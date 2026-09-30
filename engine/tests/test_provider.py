@@ -3,7 +3,6 @@ import asyncio
 import pytest
 
 from tests.fake_provider import Script, fake_provider
-from typer_engine.budget import Usage
 from typer_engine.phrase_provider import PhraseProvider, PhraseRequest, ProviderError, ProviderSettings
 
 
@@ -20,14 +19,13 @@ def run(coro):
     return asyncio.run(coro)
 
 
-def test_a_completion_streams_text_chunks_then_usage():
+def test_a_completion_streams_text_chunks():
     async def scenario():
         async with fake_provider() as (url, _):
             return await collect(PhraseProvider(settings(url), "key"), PhraseRequest(prompt="Hi"))
 
     events = run(scenario())
-    assert events[:2] == ["hello", " world"]
-    assert events[2] == Usage(cached=80, uncached=20, output=2)
+    assert events == ["hello", " world"]
 
 
 def test_the_request_is_an_openai_style_completion_with_a_bearer_key():
@@ -45,7 +43,6 @@ def test_the_request_is_an_openai_style_completion_with_a_bearer_key():
     assert request.body["stream"] is True
     assert request.body["max_tokens"] == 40
     assert request.body["stop"] == ["\n"]
-    assert request.body["stream_options"] == {"include_usage": True}
 
 
 def test_without_fim_the_suffix_is_not_sent():
@@ -65,15 +62,6 @@ def test_an_empty_suffix_is_not_sent_either():
 
     assert "suffix" not in run(scenario())
 
-
-def test_openai_style_usage_is_understood():
-    script = Script(usage={"prompt_tokens": 100, "completion_tokens": 5, "prompt_tokens_details": {"cached_tokens": 60}})
-
-    async def scenario():
-        async with fake_provider(script) as (url, _):
-            return await collect(PhraseProvider(settings(url), "k"), PhraseRequest(prompt="Hi"))
-
-    assert run(scenario())[-1] == Usage(cached=60, uncached=40, output=5)
 
 
 def test_a_reply_without_usage_ends_without_a_usage_event():

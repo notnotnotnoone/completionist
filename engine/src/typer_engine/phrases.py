@@ -6,7 +6,6 @@ import os
 import time
 from collections.abc import Callable
 
-from typer_engine.budget import DailyBudget, Usage
 from typer_engine.config import PhraseConfig
 from typer_engine.metrics import Metrics
 from typer_engine.context import anchored_window, build_prompt, trim_suffix
@@ -21,13 +20,12 @@ _PAUSE_SECONDS = 30.0
 
 
 class PhraseService:
-    """Shared by every connection: the provider, the daily budget and the health of the provider."""
+    """Shared by every connection: the provider and its health."""
 
     def __init__(
         self,
         config: PhraseConfig,
         api_key: str | None,
-        budget: DailyBudget,
         *,
         provider: PhraseProvider | None = None,
         clock: Callable[[], float] = time.monotonic,
@@ -38,7 +36,6 @@ class PhraseService:
         config that names another variable picks up that one."""
         self.config = config
         self.metrics = metrics
-        self.budget = budget
         self.clock = clock
         self._provider = provider
         self._api_key = api_key
@@ -50,17 +47,16 @@ class PhraseService:
 
     @property
     def available(self) -> bool:
-        return self.config.enabled and self._provider is not None and self.config.daily_budget_usd > 0
+        return self.config.enabled and self._provider is not None
 
     def usable(self) -> bool:
         """Whether a new request may start right now."""
-        return self.available and not self.budget.exhausted and self.clock() >= self._paused_until
+        return self.available and self.clock() >= self._paused_until
 
     def reconfigure(self, config: PhraseConfig) -> None:
-        """Apply reloaded settings: a new provider or model, budget, prices, debounce, or switching off."""
+        """Apply reloaded settings: a new provider or model, debounce, or switching off."""
         old = self.config
         self.config = config
-        self.budget.reconfigure(config.daily_budget_usd, config.prices)
         if self._key_from_env and config.provider.api_key_env != old.provider.api_key_env:
             self._api_key = os.environ.get(config.provider.api_key_env)
         if config.provider != old.provider or config.enabled != old.enabled:
@@ -83,9 +79,9 @@ class PhraseService:
             self._failures = 0
             logger.warning("phrase provider failed %d times in a row; pausing phrases for %ds", _FAILURES_BEFORE_PAUSE, _PAUSE_SECONDS)
 
-    def record_provider(self, ttft: float | None, total: float | None, ok: bool, cost: float) -> None:
+    def record_provider(self, ttft: float | None, total: float | None, ok: bool) -> None:
         if self.metrics is not None:
-            self.metrics.record_provider(self.config.provider.models[0], ttft, total, ok, cost)
+            self.metrics.record_provider(self.config.provider.models[0], ttft, total, ok)
 
     def open_session(self, push: Callable[[PhraseUpdate], None]) -> "PhraseSession":
         return PhraseSession(self, push)
@@ -204,22 +200,18 @@ class PhraseSession:
         service = self._service
         started = service.clock()
         first: float | None = None
-        cost = 0.0
         try:
-            async for event in service._stream(phrase_request):
-                if isinstance(event, Usage):
-                    cost = service.budget.record(event)
-                else:
-                    if first is None:
-                        first = service.clock() - started
-                    self._emit(self._scheduler.chunk(event, self._now()))
+            async for text in service._stream(phrase_request):
+                if first is None:
+                    first = service.clock() - started
+                self._emit(self._scheduler.chunk(text, self._now()))
             service.note_success()
-            service.record_provider(first, service.clock() - started, True, cost)
+            service.record_provider(first, service.clock() - started, True)
             self._emit(self._scheduler.finished())
         except ProviderError as err:
             logger.warning("phrase request failed: %s", err)
             service.note_failure()
-            service.record_provider(first, None, False, cost)
+            service.record_provider(first, None, False)
             self._emit(self._scheduler.failed())
         finally:
             if self._tasks.get(request.id) is task:

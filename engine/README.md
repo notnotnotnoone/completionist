@@ -24,11 +24,11 @@ Normally `..\scripts\install.ps1` starts it at logon, so you don't run it by han
 
 A phrase is a continuation of your sentence from a cheap cloud completion model, streamed into the popup's top row.
 
-- **Provider:** OpenRouter (`https://openrouter.ai/api/v1`), key in `OPENROUTER_API_KEY`. Name the models in `[phrase] models = ["a/model", "b/model"]`; the first is used, and the next only if it fails. Any model that accepts plain completions works; look up its price on the model card and set `price_*_per_m` so the daily budget counts right.
+- **Provider:** OpenRouter (`https://openrouter.ai/api/v1`), key in `OPENROUTER_API_KEY`. Name the models in `[phrase] models = ["a/model", "b/model"]`; the first is used, and the next only if it fails. Any model that accepts plain completions works.
 - **Context sent:** up to 8,000 characters before the caret (and 2,000 after, only if `fim = true`), cut at paragraph/sentence boundaries so the provider's prefix cache hits.
 - **Text after the caret:** OpenRouter has no fill-in-the-middle, so the model sees only the text before the caret, and phrases are held back while other text follows the caret on the same line. A provider that does take a `suffix` can be used by setting `fim = true`.
 - **When:** in apps listed under `[apps] allow`, a phrase is requested 350 ms after you pause. Everywhere else, only when you press Ctrl+Space.
-- **Cost:** spend is counted per day (`spend.json`); phrases stop for the day at `daily_budget_usd` (default $0.50). Three provider failures in a row pause phrases for 30 s.
+- **Cost:** Typer does not count spend. Set a limit on the key in OpenRouter. Three provider failures in a row (a spent limit shows up as HTTP errors) pause phrases for 30 s.
 - **Privacy:** nothing is sent from password fields or block-listed apps. Text goes only to the provider you configured.
 - **Key:** never stored in the config. Set the environment variable named by `api_key_env`.
 
@@ -36,7 +36,7 @@ A phrase is a continuation of your sentence from a cheap cloud completion model,
 
 - **Tray icon:** pause/resume, show stats, open the settings file, open the log folder, quit. Blue when on, grey when paused.
 - **Pause hotkey:** Ctrl+Alt+P by default (`[hotkeys] pause`, or `""` to turn it off). While paused, replies are empty and nothing is learned.
-- **Stats:** `metrics.sqlite` holds counts and timings only (shown, accepted, keystrokes saved, provider latency and cost per day, app and provider), never typed text. `typer-stats` prints a summary.
+- **Stats:** `metrics.sqlite` holds counts and timings only (shown, accepted, keystrokes saved, provider latency per day, app and provider), never typed text. `typer-stats` prints a summary.
 - **Logs:** `engine.log` (rotating). Requests slower than 25 ms and provider errors are logged.
 - **Hot reload:** edits to `config.toml` apply within a couple of seconds. A bad edit keeps the old settings and logs why. Changing `[data] dir` needs a restart.
 
@@ -49,7 +49,6 @@ All live in `%LOCALAPPDATA%\Typer` (change with `[data] dir` in the config).
 | `ngrams.sqlite` | `typer-build-ngrams` | Word counts and pruned bigram/trigram tables from a text corpus. Optional. |
 | `personal.sqlite` | the engine | Your word and word-pair counts. Saved every 10 s and on exit. |
 | `metrics.sqlite` | the engine | Usage counts and timings. |
-| `spend.json` | the engine | Today's phrase spend. |
 | `engine.log` | the engine | Log. |
 
 Build the n-gram file from any plain text (`.txt`, `.gz`, or folders of them):
@@ -88,10 +87,6 @@ timeout = 4.0
 debounce_ms = 350
 context_before = 8000
 context_after = 2000
-daily_budget_usd = 0.50
-price_input_per_m = 0.30      # dollars per million tokens, used for the budget
-price_cached_per_m = 0.006
-price_output_per_m = 1.20
 
 [hotkeys]
 pause = "ctrl+alt+p"

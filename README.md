@@ -28,7 +28,7 @@ Phrases (the greyed continuation) run through OpenRouter and need its key, set o
 setx OPENROUTER_API_KEY "your key"
 ```
 
-Then restart the engine from the tray icon. Phrases stop for the day once they've cost the daily budget (default $0.50).
+Then restart the engine from the tray icon. Typer doesn't count what phrases cost: set a spending limit on the key itself in OpenRouter.
 
 ## Using it
 

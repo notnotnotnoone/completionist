@@ -66,16 +66,15 @@ def test_the_summary_breaks_down_by_app():
     assert (per["notepad.exe"].shown, per["notepad.exe"].accepted) == (1, 0)
 
 
-def test_provider_latency_errors_and_cost_are_tracked():
+def test_provider_latency_and_errors_are_tracked():
     m = new()
     for ttft in (0.12, 0.15, 0.18, 0.40):
-        m.record_provider("deepseek", ttft=ttft, total=ttft + 0.1, ok=True, cost=0.0002)
-    m.record_provider("deepseek", ttft=None, total=None, ok=False, cost=0.0)
+        m.record_provider("deepseek", ttft=ttft, total=ttft + 0.1, ok=True)
+    m.record_provider("deepseek", ttft=None, total=None, ok=False)
     p = m.summary().providers["deepseek"]
     assert p.requests == 5 and p.errors == 1
     assert 0.10 <= p.ttft_p50 <= 0.20
     assert 0.35 <= p.ttft_p95 <= 0.50
-    assert p.cost == pytest.approx(0.0008)
     assert p.error_rate == pytest.approx(0.2)
 
 
@@ -94,7 +93,7 @@ def test_counts_survive_a_flush_and_reopen(tmp_path):
     m = new(path=path)
     m.record_shown("a.exe", "word")
     m.record_accept("a.exe", "word", chars=7)
-    m.record_provider("p", ttft=0.2, total=0.3, ok=True, cost=0.001)
+    m.record_provider("p", ttft=0.2, total=0.3, ok=True)
     m.flush()
     m.close()
     s = new(path=path).summary()
@@ -118,7 +117,7 @@ def test_the_file_holds_only_counts_and_timings_never_text(tmp_path):
     m = new(path=path)
     m.record_shown("discord.exe", "word")
     m.record_accept("discord.exe", "word", chars=6)
-    m.record_provider("p", ttft=0.2, total=0.3, ok=True, cost=0.001)
+    m.record_provider("p", ttft=0.2, total=0.3, ok=True)
     m.close()
     with sqlite3.connect(path) as db:
         for table in [r[0] for r in db.execute("select name from sqlite_master where type='table'")]:
@@ -142,7 +141,7 @@ def test_the_report_reads_like_a_summary():
         m.record_shown("discord.exe", "word")
     for chars in (8, 6, 9):
         m.record_accept("discord.exe", "word", chars=chars)
-    m.record_provider("deepseek", ttft=0.2, total=0.4, ok=True, cost=0.0003)
+    m.record_provider("deepseek", ttft=0.2, total=0.4, ok=True)
     report = format_summary(m.summary(days=7), days=7)
     assert "last 7 days" in report
     assert "keystrokes saved" in report and "20" in report  # (8-1)+(6-1)+(9-1)
@@ -152,3 +151,28 @@ def test_the_report_reads_like_a_summary():
 
 def test_an_empty_report_says_so():
     assert "nothing recorded" in format_summary(new().summary(), days=7).lower()
+
+
+def test_a_file_from_before_spend_was_dropped_still_opens_and_keeps_its_counts(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "metrics.sqlite"
+    db = sqlite3.connect(path)
+    db.executescript(
+        """
+        CREATE TABLE daily (day TEXT NOT NULL, app TEXT NOT NULL, kind TEXT NOT NULL,
+            count INTEGER NOT NULL, chars INTEGER NOT NULL, saved INTEGER NOT NULL, PRIMARY KEY (day, app, kind)) WITHOUT ROWID;
+        CREATE TABLE provider_daily (day TEXT NOT NULL, provider TEXT NOT NULL, requests INTEGER NOT NULL,
+            errors INTEGER NOT NULL, total_s REAL NOT NULL, cost REAL NOT NULL, PRIMARY KEY (day, provider)) WITHOUT ROWID;
+        CREATE TABLE ttft (day TEXT NOT NULL, provider TEXT NOT NULL, bucket INTEGER NOT NULL,
+            count INTEGER NOT NULL, PRIMARY KEY (day, provider, bucket)) WITHOUT ROWID;
+        INSERT INTO provider_daily VALUES ('2026-09-29', 'old-model', 7, 1, 3.0, 0.02);
+        """
+    )
+    db.commit()
+    db.close()
+    m = Metrics(path, today=lambda: date(2026, 9, 29))
+    m.record_provider("old-model", ttft=0.2, total=0.3, ok=True)
+    m.flush()
+    assert m.summary().providers["old-model"].requests == 8
+    m.close()

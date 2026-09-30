@@ -59,7 +59,7 @@ api_key_env = "TYPER_E2E_KEY"
 debounce_ms = 100
 timeout = 3.0
 "@
-    Remove-Item (Join-Path $data "personal.sqlite*"), (Join-Path $data "spend.json") -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $data "personal.sqlite*") -ErrorAction SilentlyContinue
     $log = Join-Path $out "engine-e2e.log"
     Remove-Item $log -ErrorAction SilentlyContinue
     $engine = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "typer-engine", "--config", $config) -PassThru -WindowStyle Hidden -RedirectStandardError $log

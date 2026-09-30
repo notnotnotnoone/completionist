@@ -463,14 +463,14 @@ window.TYPER_ROADMAP = {
         },
         {
           "id": "M3.5",
-          "title": "Daily budget cap and per-request cost tracking",
-          "status": "done",
+          "title": "Daily budget cap and per-request cost tracking (removed)",
+          "status": "dropped",
           "area": "engine",
           "stories": [
             60,
             61
           ],
-          "notes": "`DailyBudget` prices each request from the provider's cached, uncached and output token counts, saves the day's total in `spend.json`, resets at midnight and stops requests at `daily_budget_usd` (default 0.50). Only totals are stored.",
+          "notes": "Removed on the user's call: Typer no longer counts spend or prices. A spending limit is set on the OpenRouter key itself.",
           "refs": [
             "engine/src/typer_engine/budget.py"
           ]
@@ -544,7 +544,7 @@ window.TYPER_ROADMAP = {
           "stories": [
             30
           ],
-          "notes": "A provider error ends the phrase quietly (word suggestions carry on); three failures in a row pause phrases for 30 seconds; with no key, no budget or phrases switched off, nothing is ever requested.",
+          "notes": "A provider error ends the phrase quietly (word suggestions carry on); three failures in a row pause phrases for 30 seconds; with no key, no failure pause or phrases switched off, nothing is ever requested.",
           "refs": [
             "engine/src/typer_engine/phrases.py"
           ]
@@ -832,7 +832,7 @@ window.TYPER_ROADMAP = {
       "status": "planned",
       "title": "Phrase suggestions",
       "milestone": "M3",
-      "text": "The popup gains a greyed phrase row at the top, a continuation of your sentence written by a cheap and fast cloud completion model. In allow-listed apps it appears after a short pause and streams in as it is generated. It is highlighted by default, so Tab takes the whole phrase, and Ctrl+Right takes it one word at a time. In any other app, Ctrl+Space asks for a phrase on demand. Phrases come through OpenRouter from a list of cheap models you name in the config, each tried in turn if the one before fails. An anchored context window keeps requests cache-friendly so heavy use costs under fifty cents a day, and a daily cap enforces the limit. When the provider is slow or unavailable, Typer quietly falls back to words."
+      "text": "The popup gains a greyed phrase row at the top, a continuation of your sentence written by a cheap and fast cloud completion model. In allow-listed apps it appears after a short pause and streams in as it is generated. It is highlighted by default, so Tab takes the whole phrase, and Ctrl+Right takes it one word at a time. In any other app, Ctrl+Space asks for a phrase on demand. Phrases come through OpenRouter from a list of cheap models you name in the config, each tried in turn if the one before fails. An anchored context window keeps requests cache-friendly so heavy use stays cheap, and the spending limit is set on your OpenRouter key. When the provider is slow or unavailable, Typer quietly falls back to words."
     },
     {
       "version": "0.4.0",
@@ -848,7 +848,7 @@ window.TYPER_ROADMAP = {
       "essay": [
         "Typer 1.0 puts the suggestions of a code editor into every place you write English on Windows. Type a few letters in Discord, a browser text box or an email and a short list of completions appears just under the caret, ranked by the words before it and by the words you actually use. Tab takes the top one. In apps you choose, and on Ctrl+Space everywhere else, a greyed phrase appears above the list, a continuation of your sentence that you take whole with Tab or one word at a time with Ctrl+Right. Enter is never touched, and nothing in a password field is read or sent.",
         "The unusual decision is that Typer is a Text Services Framework text service, the mechanism Windows uses for input methods, and not a keyboard hook with a screen-scraping overlay. That choice cost a milestone of throwaway spiking and a C++ DLL that lives inside every app, but it is why the caret position, the surrounding text, the key handling and the insertion of accepted text all come from Windows itself and work the same in Notepad, Chrome, Edge, Discord and Teams. The DLL stays deliberately thin: it draws the popup, decides which keys it consumes, and talks over a named pipe to a Python engine, reconnecting quietly if the engine is gone. The key router is pure logic with native tests, and the whole DLL is exercised through real TSF against a simulated text field, including the engine being killed and restarted mid-typing.",
-        "Word ranking is local and instant. A 146,000-word frequency list gives the base order, bigram and trigram counts built from WikiText-103 re-rank by context, and a personal store of word and word-pair counts, never text, boosts what you use and adds names and slang after a few uses. Lookups take about a millisecond at the 95th percentile. Phrases are the only thing that leaves the machine, and they are built to be cheap: a plain completion request through OpenRouter to a low-cost model you choose from a list in the config, seeing only the text before the caret and held back when other text follows it on the same line, with the context cut at paragraph boundaries so the provider's prefix cache does the work, a debounce so it asks once per pause, and a hard daily budget of fifty cents after which phrases simply stop. The key lives in an environment variable and never in a config file.",
+        "Word ranking is local and instant. A 146,000-word frequency list gives the base order, bigram and trigram counts built from WikiText-103 re-rank by context, and a personal store of word and word-pair counts, never text, boosts what you use and adds names and slang after a few uses. Lookups take about a millisecond at the 95th percentile. Phrases are the only thing that leaves the machine, and they are built to be cheap: a plain completion request through OpenRouter to a low-cost model you choose from a list in the config, seeing only the text before the caret and held back when other text follows it on the same line, with the context cut at paragraph boundaries so the provider's prefix cache does the work, a debounce so it asks once per pause, and no spend counting of its own: you cap the key in OpenRouter, and when the cap is hit phrases quietly fall back to words. The key lives in an environment variable and never in a config file.",
         "It is not finished in every way, and this release is honest about that. The automated tests pass, but the checks that need a person at a real desktop are still open: registering the DLL and using it in real apps, a live phrase request with a real key, the tray icon and pause hotkey, and starting at logon after a reboot. Which OpenRouter models accept plain completions, and cleanly, is untested, so the default model is a starting guess to be swapped after real use. The n-gram corpus is encyclopedic, which suits formal writing more than chat. The harness that tests the real DLL needs the foreground window, so it only runs when nobody is using the machine.",
         "What 1.0 leaves out is as deliberate as what it includes. It does not read the conversation you are replying to, so a Discord phrase knows your sentence but not the message above it; that is the next release. It has no browser extension, no macOS or Linux, no languages other than English, and no cloud account, sync or telemetry: the only network traffic is the phrase request you configured, and the only record of your typing is a set of counts on your own disk. Those limits keep the promise small enough to keep, which is that Typer starts with Windows, stays out of the way, and shows you the numbers on whether it is paying for itself."
       ]
@@ -958,7 +958,7 @@ window.TYPER_ROADMAP = {
     },
     {
       "date": "2026-09-29",
-      "text": "Phrases come from cheap completion models through OpenRouter (the only key the user has), never premium chat models. Budget under $0.50 a day via a daily cap."
+      "text": "Phrases come from cheap models through OpenRouter (the only key the user has), never premium ones. Typer does not count spend; the user sets a limit on the key."
     },
     {
       "date": "2026-09-29",
@@ -997,6 +997,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "Removed the daily budget and price counting; the user limits the OpenRouter key instead. Metrics drop the cost column."
+    },
     {
       "date": "2026-09-29",
       "text": "Released 0.0.6: OpenRouter-only phrases merged into main."

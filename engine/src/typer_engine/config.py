@@ -26,10 +26,6 @@
     debounce_ms = 350           # pause before an automatic request
     context_before = 8000       # characters of text before the caret sent to the model
     context_after = 2000
-    daily_budget_usd = 0.50     # phrases stop for the day once this is spent
-    price_input_per_m = 0.30    # dollars per million tokens, used to count spend (one price for all models)
-    price_cached_per_m = 0.30
-    price_output_per_m = 0.90
 
     [hotkeys]
     pause = "ctrl+alt+p"        # pause / resume Typer from anywhere ("" turns the hotkey off)
@@ -41,7 +37,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from typer_engine.budget import Prices
 from typer_engine.hotkeys import parse_hotkey
 from typer_engine.phrase_provider import ProviderSettings
 
@@ -71,7 +66,7 @@ DEFAULT_ALLOW = frozenset({"obsidian.exe", "notepad.exe", "winword.exe", "outloo
 
 _PHRASE_KEYS = {
     "enabled", "base_url", "models", "api_key_env", "fim", "max_tokens", "temperature", "timeout", "debounce_ms",
-    "context_before", "context_after", "daily_budget_usd", "price_input_per_m", "price_cached_per_m", "price_output_per_m",
+    "context_before", "context_after",
 }  # fmt: skip
 _SCHEMA = {
     "apps": {"block", "allow"},
@@ -100,8 +95,6 @@ class PhraseConfig:
     debounce: float = 0.35  # seconds
     context_before: int = 8000
     context_after: int = 2000
-    daily_budget_usd: float = 0.50
-    prices: Prices = field(default_factory=Prices)
 
 
 @dataclass(frozen=True)
@@ -169,11 +162,6 @@ def _phrase(section: dict[str, Any]) -> PhraseConfig:
         timeout=get("timeout", p.timeout, _positive_number),
         stop=p.stop,
     )
-    prices = Prices(
-        input_per_m=get("price_input_per_m", base.prices.input_per_m, _non_negative_number),
-        cached_per_m=get("price_cached_per_m", base.prices.cached_per_m, _non_negative_number),
-        output_per_m=get("price_output_per_m", base.prices.output_per_m, _non_negative_number),
-    )
     debounce_ms = get("debounce_ms", base.debounce * 1000, _non_negative_number)
     return PhraseConfig(
         enabled=get("enabled", base.enabled, _boolean),
@@ -181,8 +169,6 @@ def _phrase(section: dict[str, Any]) -> PhraseConfig:
         debounce=debounce_ms / 1000,
         context_before=get("context_before", base.context_before, _positive_int),
         context_after=get("context_after", base.context_after, _non_negative_int),
-        daily_budget_usd=get("daily_budget_usd", base.daily_budget_usd, _non_negative_number),
-        prices=prices,
     )
 
 

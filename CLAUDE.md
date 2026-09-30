@@ -83,7 +83,7 @@ Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases
   - enabling or removing the keyboard (`Set-WinUserLanguageList`)
   - registry changes outside `regsvr32`
 - **Admin steps** (`regsvr32` via `register.ps1`) raise a UAC prompt the user approves.
-- **Phrases go through OpenRouter** (`[phrase] models = [...]`, tried in order). Use cheap completion models, never premium chat models. Heavy use must stay under $0.50/day.
+- **Phrases go through OpenRouter** (`[phrase] models = [...]`, tried in order). Use cheap models, never premium ones. Typer doesn't count spend; the user caps the OpenRouter key itself.
 - **No AI or vision for caret or screen tracking.** The caret comes from TSF only.
 - **uv:** the engine is standalone. Never run `uv init` or `uv sync` from the parent `Experiments` folder, which would turn it into a workspace and clobber its `.venv`. Use `--no-workspace` when creating projects.
 - **Git:** work on a branch per chunk of work. Ask before pushing to `main`.
