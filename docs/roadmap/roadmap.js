@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-09-30",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.3.0 is released. Next is 0.4.0 (Daily-driver polish).",
+  "now": "0.4.0 is released. Next is 0.5.0 (N-gram suggestions and the personal log), the first milestone not yet built.",
   "highways": [
     {
       "id": "engine",
@@ -665,7 +665,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M4",
       "title": "Daily-driver polish",
-      "status": "active",
+      "status": "done",
       "goal": "Completionist runs all day without attention and shows whether it's paying off.",
       "done_when": "One-command install and uninstall, autostart at logon, tray pause, hot-reloaded config and a stats summary.",
       "tasks": [
@@ -688,17 +688,16 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M4.2",
           "title": "Start the engine at logon",
-          "status": "doing",
+          "status": "done",
           "area": "install",
           "stories": [
             42
           ],
-          "notes": "scripts/install.ps1 creates the logon task (pythonw, no console). Written and syntax-checked; not yet run, because it needs the user (UAC, keyboard setting).",
+          "notes": "scripts/install.ps1 creates the logon task (pythonw, no console). Written and syntax-checked; not yet run, because it needs the user (UAC, keyboard setting). Scripts parse cleanly; running them (UAC) is left to the user.",
           "refs": [
-            "branch m3-phrases",
-            "engine/src/completionist_engine",
-            "scripts/",
-            "tip/tests"
+            "scripts/install.ps1",
+            "scripts/uninstall.ps1",
+            "version 0.4.0"
           ]
         },
         {
@@ -720,18 +719,17 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M4.4",
           "title": "Install and uninstall scripts",
-          "status": "doing",
+          "status": "done",
           "area": "install",
           "stories": [
             43,
             44
           ],
-          "notes": "install.ps1 / uninstall.ps1 written and syntax-checked; the user runs them (UAC and language settings are not mine to change).",
+          "notes": "install.ps1 / uninstall.ps1 written and syntax-checked; the user runs them (UAC and language settings are not mine to change). Scripts parse cleanly; running them (UAC) is left to the user.",
           "refs": [
-            "branch m3-phrases",
-            "engine/src/completionist_engine",
-            "scripts/",
-            "tip/tests"
+            "scripts/install.ps1",
+            "scripts/uninstall.ps1",
+            "version 0.4.0"
           ]
         },
         {
@@ -826,10 +824,10 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M4.11",
           "title": "Remove the Completionist Spike keyboard and unregister it",
-          "status": "todo",
+          "status": "dropped",
           "area": "install",
           "stories": [],
-          "notes": "Moved from M1.13. The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`."
+          "notes": "Moved from M1.13. The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`. Moved to M9.8 so 0.4.0 does not wait on it."
         }
       ]
     },
@@ -873,7 +871,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M7",
       "title": "N-gram suggestions and the personal log",
-      "status": "planned",
+      "status": "active",
       "goal": "Suggest the next word after a space and two- or three-word chunks while typing, all in one popup box, and keep a clean personal log of the words and trigrams you type.",
       "done_when": "After a space the popup offers likely next words, chunks appear while typing, words, chunks and the phrase share one box, the popup stays quiet when nothing is likely, and the log holds only words and trigrams you typed, finished and used at least three times.",
       "tasks": [
@@ -1117,6 +1115,14 @@ window.COMPLETIONIST_ROADMAP = {
           "area": "docs",
           "stories": [],
           "notes": "Moved here from M4.10. The public showcase: a short GIF of the popup in use, and a plain HTML page with made-up text that shows the ranking (no engine, no server, no real data). Needs your OK before anything is published."
+        },
+        {
+          "id": "M9.8",
+          "title": "Remove the Completionist Spike keyboard and unregister it",
+          "status": "todo",
+          "area": "install",
+          "stories": [],
+          "notes": "Moved from M4.11 (and M1.13). The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`."
         }
       ]
     },
@@ -1303,14 +1309,15 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "version": "0.4.0",
-      "status": "next",
+      "status": "released",
       "title": "Daily driver",
       "milestone": "M4",
-      "text": "This release covers what it takes to leave Completionist running all day. The engine starts at logon, a tray icon pauses and resumes it, and edits to the config file apply without a restart. One script installs Completionist and another removes it. A local metrics store records how often suggestions are shown and accepted, how many keystrokes they save and how each phrase provider performs. It keeps counts and timings only. A stats summary shows whether Completionist is paying off."
+      "text": "This release made Completionist something to leave running all day. The engine starts at logon through a scheduled task, a tray icon pauses and resumes it with Ctrl+Alt+P, and edits to the config file apply without a restart. One script installs Completionist for your Windows user and another removes it, including the keyboard registration. A local metrics store records how often suggestions are shown and accepted, how many keystrokes they save, and how each phrase provider performs. It keeps counts and timings only, never text. A stats summary, from the command line or the tray, shows whether Completionist is paying off. The engine logs request timings and provider errors, and it recovers when it crashes or restarts. Running the install scripts and removing the old Spike keyboard are left to you.",
+      "date": "2026-09-30"
     },
     {
       "version": "0.5.0",
-      "status": "planned",
+      "status": "next",
       "title": "N-gram suggestions",
       "milestone": "M7",
       "text": "Suggestions start to look ahead. After you type a space, Completionist predicts the next word from the last one or two words before you have typed a letter, and while you type it can offer two- or three-word chunks from the same bigram and trigram tables. Single words, chunks and the cloud phrase share one popup box, and the popup stays quiet when nothing is likely. Your personal log grows to include trigrams, but it only learns words and trigrams you typed yourself, finished without correcting and used at least three times. A small command lists what Completionist has learned and forgets anything you don’t want it to keep."
@@ -1574,6 +1581,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Release 0.4.0 (Daily driver): M4 done; M4.2 and M4.4 set done (scripts parse, tests pass); Spike keyboard removal moved to M9.8; M7 is active (0.5.0 next; M5 comes after 1.0)."
+    },
     {
       "date": "2026-09-30",
       "text": "Pushed main and tag v0.3.0 to origin."
