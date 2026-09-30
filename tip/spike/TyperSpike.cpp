@@ -41,6 +41,7 @@ const GUID kCategories[] = {
     GUID_TFCAT_TIP_KEYBOARD,
     GUID_TFCAT_TIPCAP_COMLESS,
     GUID_TFCAT_TIPCAP_SYSTRAYSUPPORT,
+    GUID_TFCAT_TIPCAP_IMMERSIVESUPPORT,  // without it, Settings won't list the keyboard
 };
 
 HINSTANCE g_module = nullptr;
