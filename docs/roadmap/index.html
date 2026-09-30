@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Typer Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Overpass:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800;1,900&family=Overpass+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+.map-sec { display: grid; gap: 1rem; padding-block: 1rem 0; }
+.map-ctl { display: flex; flex-wrap: wrap; gap: .4rem; }
+.ctl { font-weight: 800; font-size: var(--fs-xs); letter-spacing: .1em; text-transform: uppercase; padding: .5rem .85rem .4rem; border-radius: 999px; border: 2px solid var(--ink); background: var(--surface); cursor: pointer; }
+.ctl:hover { background: var(--ink); color: var(--paper); }
+.ctl[aria-pressed="true"] { background: var(--sign); color: var(--sign-ink); border-color: var(--sign); }
+.ctl-now { border-color: var(--accent); color: var(--accent-ink); }
+.hw-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.hw-chip { display: inline-flex; align-items: center; gap: .45rem; font-weight: 900; font-style: italic; font-size: var(--fs-s); text-transform: uppercase; letter-spacing: .04em; padding: .4rem .8rem .3rem; border-radius: 999px; border: 2px solid var(--hw); color: var(--ink); background: var(--surface); cursor: pointer; }
+.hw-chip i { width: 14px; height: 14px; border-radius: 50%; background: var(--hw); }
+.hw-chip[aria-pressed="true"] { background: var(--hw); color: var(--sign-ink); }
+.map-frame { position: relative; margin-inline: 16px; border-radius: 18px; border: 2px solid var(--line-strong); overflow: hidden;
+  background: linear-gradient(90deg, transparent 32.9%, rgb(0 0 0 / .045) 33.3%, transparent 33.8%, transparent 66.2%, rgb(0 0 0 / .045) 66.6%, transparent 67%), var(--paper-2);
+  box-shadow: 0 30px 60px -40px var(--shadow), inset 0 0 0 6px var(--surface); }
+@media (min-width: 760px) { .map-frame { margin-inline: 32px; } }
+.map-scroll { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; cursor: grab; }
+.map-scroll.dragging { cursor: grabbing; user-select: none; }
+.map-scroll:focus-visible { outline-offset: -4px; }
+.map-inner { position: relative; }
+.map-inner svg { position: absolute; inset: 0; overflow: visible; }
+.lane-tags { position: sticky; left: 0; width: 150px; z-index: 2; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.lane-tags.show { opacity: 1; }
+.lane-tag { position: absolute; left: 10px; background: var(--hw); color: var(--sign-ink); font-weight: 900; font-style: italic; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .04em; padding: .45rem .75rem .35rem; border-radius: 999px; box-shadow: 0 8px 18px -8px var(--shadow), 0 0 0 3px var(--surface); white-space: nowrap; }
+.fit .map-scroll { overflow: hidden; cursor: default; }
+.fit .map-inner { width: 100% !important; height: auto !important; }
+.fit .map-inner svg { position: static; width: 100%; height: auto; }
+.fit .lane-tags { display: none; }
+.stn { cursor: pointer; outline: none; }
+.stn .hit { transition: stroke .15s; }
+.stn:hover .hit, .stn:focus-visible .hit { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 3 3; }
+.stn.on .hit { stroke: var(--accent); stroke-width: 3; stroke-dasharray: none; }
+.dim { opacity: .18; transition: opacity .2s; }
+.halo { transform-box: fill-box; transform-origin: center; animation: halo 1.8s ease-out infinite; }
+@keyframes halo { from { opacity: .9; transform: scale(1); } to { opacity: 0; transform: scale(1.6); } }
+.pin-pulse { transform-box: fill-box; transform-origin: center; animation: halo 2.2s ease-out infinite; }
+/*PAGE-CSS*/
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="topbar">
+    <a class="brand" href="index.html" aria-label="Typer roadmap, map">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 36 8v12c0 9-7 15-16 18C11 35 4 29 4 20V8Z" style="fill:var(--sign);stroke:var(--sign-ink);stroke-width:2"/><text x="20" y="27" text-anchor="middle" style="fill:var(--sign-ink);font:900 17px var(--display)">T</text></svg>
+      <span class="brand-word">Typer<small>working name</small></span>
+    </a>
+    <div class="topbar-side">
+      <nav class="pages" aria-label="Roadmap pages"><a href="index.html" aria-current="page">Map</a><a href="tasks.html">Tasks</a></nav>
+      <p class="meta">Updated <time id="updated">…</time></p>
+      <button type="button" class="theme-btn" id="theme"></button>
+    </div>
+  </div>
+</header>
+<main>
+  <section class="map-sec" aria-labelledby="map-h">
+    <div class="wrap sec-head">
+      <div class="sec-title"><span class="lbl">Every release, every part of the app</span><h2 id="map-h">The <em>highway</em></h2></div>
+      <div class="map-ctl">
+        <button type="button" class="ctl" id="go-start">⇤ Start</button>
+        <button type="button" class="ctl ctl-now" id="go-now">You are here</button>
+        <button type="button" class="ctl" id="go-end">Future ⇥</button>
+        <button type="button" class="ctl" id="fit" aria-pressed="false">Whole map</button>
+      </div>
+    </div>
+    <div class="wrap"><div class="hw-chips" id="hw-chips" aria-label="Spotlight a highway"></div></div>
+    <div class="map-frame" id="map-frame">
+      <div class="map-scroll" id="map-scroll" tabindex="0" role="region" aria-label="Highway map of every release. Scrolls sideways.">
+        <div class="map-inner" id="map-inner">
+          <div class="lane-tags" id="lane-tags" aria-hidden="true"></div>
+          <svg id="map" role="group" aria-label="Releases on the highway map"></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="roadmap.js"></script>
+<script src="common.js"></script>
+<script src="map-layout.js"></script>
+<script src="map.js"></script>
+<script>
+  RM.bindThemeButton(document.getElementById("theme"));
+  const L = TyperMapLayout.layoutMap(RM.data);
+  const map = TyperMap.mount(document.getElementById("map-frame"), L, { onSelect: (id) => map.select(id) });
+  document.fonts.ready.then(() => map.redraw(TyperMapLayout.layoutMap(RM.data)));
+</script>
+</body>
+</html>

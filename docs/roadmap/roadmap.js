@@ -1058,6 +1058,10 @@ window.TYPER_ROADMAP = {
   "log": [
     {
       "date": "2026-09-29",
+      "text": "Map drawing (map.js): highways with casing, built/construction/planned/idle road, barricades, stations, exit and gantry signs, shields, cul-de-sacs, you-are-here pin, lane labels."
+    },
+    {
+      "date": "2026-09-29",
       "text": "Map geometry (map-layout.js) with node tests: events, lanes, interchange bundles, highway paths, road pieces by milestone progress, barricades, sign rows."
     },
     {
