@@ -22,10 +22,10 @@ It installs the engine's dependencies, builds and registers the DLL (one UAC pro
 .\scripts\uninstall.ps1              # add -DeleteData to remove %LOCALAPPDATA%\Typer too
 ```
 
-Phrases (the greyed continuation) need a cheap completion-model key, set once as a user environment variable. The key is never stored in Typer's config:
+Phrases (the greyed continuation) run through OpenRouter and need its key, set once as a user environment variable. The key is never stored in Typer's config:
 
 ```powershell
-setx DEEPSEEK_API_KEY "your key"
+setx OPENROUTER_API_KEY "your key"
 ```
 
 Then restart the engine from the tray icon. Phrases stop for the day once they've cost the daily budget (default $0.50).
@@ -51,7 +51,6 @@ The tray icon pauses and resumes, shows what Typer has saved you, and opens the 
 |---|---|
 | `engine/` | Python engine (uv project): pipe server, word completion, phrase provider, learning, metrics, tray |
 | `tip/` | C++ TSF text service DLL (adapted from Microsoft's SampleIME). The M0 spike is in `tip/spike/` |
-| `bench/` | Provider comparison (`typer-bench`): candidates file and how to run it |
 | `docs/roadmap/` | Roadmap data, task board and release timeline (open the HTML files from disk) |
 | `scripts/` | Roadmap checker, `install.ps1`, `uninstall.ps1` |
 

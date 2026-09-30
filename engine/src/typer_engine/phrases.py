@@ -85,7 +85,7 @@ class PhraseService:
 
     def record_provider(self, ttft: float | None, total: float | None, ok: bool, cost: float) -> None:
         if self.metrics is not None:
-            self.metrics.record_provider(self.config.provider.model, ttft, total, ok, cost)
+            self.metrics.record_provider(self.config.provider.models[0], ttft, total, ok, cost)
 
     def open_session(self, push: Callable[[PhraseUpdate], None]) -> "PhraseSession":
         return PhraseSession(self, push)

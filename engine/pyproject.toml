@@ -18,7 +18,6 @@ dependencies = [
 typer-engine = "typer_engine.app:main"
 typer-probe = "typer_engine.probe:main"
 typer-build-ngrams = "typer_engine.build_ngrams:main"
-typer-bench = "typer_engine.bench:main"
 typer-stats = "typer_engine.stats_cli:main"
 
 [build-system]

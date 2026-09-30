@@ -75,15 +75,15 @@ Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases
   - Don't drive the screen with computer use or screenshots unless asked.
 - **The TSF harness steals focus.** `tip/tests/tsf_e2e.ps1` pops a real window and needs the foreground for TSF focus. Run it only when the user says they are away, never while they work.
 - **Engine extras:** `typer-stats` (usage numbers), tray icon and Ctrl+Alt+P pause (`--no-tray` to skip), config hot reload, `engine.log` and `metrics.sqlite` in `%LOCALAPPDATA%\Typer`.
-- **Don't over-engineer.** Typer is a typing tool. Build what the user asked for, the simplest way. Don't add side tools, benchmarks, dashboards or config knobs on your own, and don't turn a choice (like which model) into a project or homework for the user: pick a sensible default, say so, and make it easy to swap. Ask before adding anything beyond the request. Existing extras (like `typer-bench`) stay, but don't grow them.
+- **Don't over-engineer.** Typer is a typing tool. Build what the user asked for, the simplest way. Don't add side tools, benchmarks, dashboards or config knobs on your own, and don't turn a choice (like which model) into a project or homework for the user: pick a sensible default, say so, and make it easy to swap. Ask before adding anything beyond the request.
 - **Never ask for API keys in chat.**
-  - Keys live in user environment variables that the user sets (e.g. `setx DEEPSEEK_API_KEY ...`).
+  - Keys live in user environment variables that the user sets (e.g. `setx OPENROUTER_API_KEY ...`).
   - Config only names the variable.
 - **Don't change Windows system settings yourself.** Give the user the command:
   - enabling or removing the keyboard (`Set-WinUserLanguageList`)
   - registry changes outside `regsvr32`
 - **Admin steps** (`regsvr32` via `register.ps1`) raise a UAC prompt the user approves.
-- **Phrase models must be cheap FIM/completion models** (DeepSeek-Flash FIM leads), never premium chat models. Heavy use must stay under $0.50/day.
+- **Phrases go through OpenRouter** (`[phrase] models = [...]`, tried in order). Use cheap completion models, never premium chat models. Heavy use must stay under $0.50/day.
 - **No AI or vision for caret or screen tracking.** The caret comes from TSF only.
 - **uv:** the engine is standalone. Never run `uv init` or `uv sync` from the parent `Experiments` folder, which would turn it into a workspace and clobber its `.venv`. Use `--no-workspace` when creating projects.
 - **Git:** work on a branch per chunk of work. Ask before pushing to `main`.

@@ -16,7 +16,7 @@ def req(request_id: int, before: str, after: str = "", event: str = "keystroke",
 
 def make_service(url: str, *, key: str | None = "k", budget: float = 0.50, **overrides) -> PhraseService:
     config = PhraseConfig(
-        provider=ProviderSettings(base_url=url, model="m", timeout=1.0),
+        provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, fim=True),
         debounce=overrides.pop("debounce", 0.05),
         context_before=overrides.pop("context_before", 8000),
         daily_budget_usd=budget,
@@ -354,7 +354,7 @@ def test_naming_another_key_variable_picks_up_that_variable(monkeypatch):
 
 
 def make_prefix_only_service(url: str) -> PhraseService:
-    config = PhraseConfig(provider=ProviderSettings(base_url=url, model="m", timeout=1.0, fim=False), debounce=0.05)
+    config = PhraseConfig(provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, fim=False), debounce=0.05)
     return PhraseService(config, "k", DailyBudget(0.50, Prices()))
 
 
