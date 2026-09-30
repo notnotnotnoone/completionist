@@ -18,6 +18,7 @@ Release/
 *.ipch
 *.pdb
 *.ilk
+out/
 
 # Generated data (n-gram tables live in %LOCALAPPDATA%\Typer, not in git)
 data/out/
