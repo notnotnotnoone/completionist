@@ -16,6 +16,7 @@ class ProviderError(Exception):
 class ProviderSettings:
     base_url: str = "https://openrouter.ai/api/v1"
     models: tuple[str, ...] = ("mistralai/codestral-2508",)  # tried in order: the next only if the one before fails
+    provider_order: tuple[str, ...] = ()  # OpenRouter providers to try first, e.g. ("DeepInfra",); others stay as fallbacks
     api_key_env: str = "OPENROUTER_API_KEY"
     fim: bool = False  # send the text after the caret as `suffix` (fill-in-the-middle); OpenRouter documents none
     max_tokens: int = 40
@@ -68,6 +69,8 @@ class PhraseProvider:
             "stream": True,
             "stop": list(s.stop),
         }
+        if s.provider_order:
+            payload["provider"] = {"order": list(s.provider_order)}
         if s.fim and request.suffix:
             payload["suffix"] = request.suffix
         url = s.base_url.rstrip("/") + "/completions"

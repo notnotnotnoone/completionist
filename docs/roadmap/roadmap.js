@@ -1392,6 +1392,10 @@ window.COMPLETIONIST_ROADMAP = {
   "decisions": [
     {
       "date": "2026-09-30",
+      "text": "The phrase prompt changed again, to a version that adds a \"do not over-complete\" section: stop before details only the writer knows, so Tab saves typing without writing the person's thoughts. It supersedes the 30-rule prompt from earlier today. Provider preference is `[phrase] provider_order`, sent to OpenRouter as `provider.order`; fallbacks stay on, so it prefers a provider and never requires one."
+    },
+    {
+      "date": "2026-09-30",
       "text": "The phrase system prompt is the owner's own 30-rule version with two worked examples, kept at the start of every request so providers can cache it. It is much longer than before, so a model that still answers instead of continuing, or a provider that charges by prompt length, is worth checking in the live phrase test (M3.11)."
     },
     {
@@ -1502,6 +1506,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "On branch prompt-and-provider-order (not merged yet, so no release): replaced the phrase prompt with the owner's shorter \"do not over-complete\" version (ends with a TEXT TO CONTINUE label; build_prompt adds the header and text), and added `[phrase] provider_order` so the config can ask OpenRouter to prefer providers."
+    },
     {
       "date": "2026-09-30",
       "text": "Released 0.0.9: replaced the phrase system prompt (`INSTRUCTIONS` in context.py) with the owner's 30-rule prompt and two examples, without the trailing header line since build_prompt adds it; merged the M7 to M10 plan into main."

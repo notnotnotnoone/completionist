@@ -54,6 +54,24 @@ def test_without_fim_the_suffix_is_not_sent():
     assert "suffix" not in run(scenario())
 
 
+def test_a_preferred_openrouter_provider_order_is_sent_when_configured():
+    async def scenario():
+        async with fake_provider() as (url, received):
+            await collect(PhraseProvider(settings(url, provider_order=("DeepInfra", "Fireworks")), "k"), PhraseRequest(prompt="Hi"))
+            return received[0].body
+
+    assert run(scenario())["provider"] == {"order": ["DeepInfra", "Fireworks"]}
+
+
+def test_without_a_provider_order_no_routing_preference_is_sent():
+    async def scenario():
+        async with fake_provider() as (url, received):
+            await collect(PhraseProvider(settings(url), "k"), PhraseRequest(prompt="Hi"))
+            return received[0].body
+
+    assert "provider" not in run(scenario())
+
+
 def test_an_empty_suffix_is_not_sent_either():
     async def scenario():
         async with fake_provider() as (url, received):

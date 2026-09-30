@@ -24,7 +24,7 @@ Normally `..\scripts\install.ps1` starts it at logon, so you don't run it by han
 
 A phrase is a continuation of your sentence from a cheap cloud completion model, streamed into the popup's top row.
 
-- **Provider:** OpenRouter (`https://openrouter.ai/api/v1`), key in `OPENROUTER_API_KEY`. Name the models in `[phrase] models = ["a/model", "b/model"]`; the first is used, and the next only if it fails. Any model that accepts plain completions works.
+- **Provider:** OpenRouter (`https://openrouter.ai/api/v1`), key in `OPENROUTER_API_KEY`. Name the models in `[phrase] models = ["a/model", "b/model"]`; the first is used, and the next only if it fails. Any model that accepts plain completions works. To prefer an OpenRouter provider (the company that hosts the model), add `provider_order = ["DeepInfra"]`; OpenRouter tries those first, in order, and still falls back to the others if they fail.
 - **Context sent:** up to 8,000 characters before the caret (and 2,000 after, only if `fim = true`), cut at paragraph/sentence boundaries so the provider's prefix cache hits.
 - **Text after the caret:** OpenRouter has no fill-in-the-middle, so the model sees only the text before the caret, and phrases are held back while other text follows the caret on the same line. A provider that does take a `suffix` can be used by setting `fim = true`.
 - **When:** in apps listed under `[apps] allow`, a phrase is requested 350 ms after you pause. Everywhere else, only when you press Ctrl+Space.
@@ -79,6 +79,7 @@ promote_after = 3
 enabled = true
 base_url = "https://openrouter.ai/api/v1"
 models = ["mistralai/codestral-2508"]
+provider_order = []         # e.g. ["DeepInfra"]: OpenRouter providers to try first
 api_key_env = "OPENROUTER_API_KEY"
 fim = false
 max_tokens = 40

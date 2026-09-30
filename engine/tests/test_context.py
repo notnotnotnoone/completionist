@@ -65,8 +65,10 @@ def test_the_prompt_tells_the_model_to_continue_the_text_not_answer_it():
     assert INSTRUCTIONS.startswith("You are a text autocomplete engine")
     assert "You must continue the person's text rather than respond to it" in INSTRUCTIONS
     assert "Never answer questions contained in the text." in INSTRUCTIONS
-    assert "Output ONLY that continuation" in INSTRUCTIONS
+    assert "IMPORTANT: DO NOT OVER-COMPLETE." in INSTRUCTIONS
     assert "[Text typed in" not in INSTRUCTIONS  # the header is added by build_prompt, once
+    assert "{test text}" not in INSTRUCTIONS  # the text itself is added by build_prompt, once
+    assert INSTRUCTIONS.endswith("TEXT TO CONTINUE:")
 
 
 def test_the_prompt_has_a_stable_prefix_naming_the_app_and_window():

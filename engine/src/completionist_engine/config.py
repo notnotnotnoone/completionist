@@ -18,6 +18,7 @@
     enabled = true
     base_url = "https://openrouter.ai/api/v1"    # OpenRouter, or any OpenAI-compatible /completions endpoint
     models = ["mistralai/codestral-2508"]        # tried in order; the next only if the one before fails
+    provider_order = ["DeepInfra"]               # OpenRouter providers to prefer, in order (others stay as fallbacks)
     api_key_env = "OPENROUTER_API_KEY"           # name of the environment variable holding the key
     fim = false                 # send the text after the caret too (fill-in-the-middle); OpenRouter has none
     max_tokens = 40
@@ -68,7 +69,7 @@ DEFAULT_BLOCK = frozenset(
 DEFAULT_ALLOW = frozenset({"obsidian.exe", "notepad.exe", "winword.exe", "outlook.exe", "olk.exe"})
 
 _PHRASE_KEYS = {
-    "enabled", "base_url", "models", "api_key_env", "fim", "max_tokens", "temperature", "timeout", "debounce_ms",
+    "enabled", "base_url", "models", "provider_order", "api_key_env", "fim", "max_tokens", "temperature", "timeout", "debounce_ms",
     "context_before", "context_after",
 }  # fmt: skip
 _SCHEMA = {
@@ -177,6 +178,7 @@ def _phrase(section: dict[str, Any]) -> PhraseConfig:
     provider = ProviderSettings(
         base_url=get("base_url", p.base_url, _text),
         models=get("models", p.models, _model_list),
+        provider_order=get("provider_order", p.provider_order, _provider_list),
         api_key_env=get("api_key_env", p.api_key_env, _text),
         fim=get("fim", p.fim, _boolean),
         max_tokens=get("max_tokens", p.max_tokens, _positive_int),
@@ -244,6 +246,12 @@ def _text(value: Any, name: str) -> str:
 def _model_list(value: Any, name: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not value or not all(isinstance(m, str) and m.strip() for m in value):
         raise ConfigError(f"{name} must be a non-empty list of model names")
+    return tuple(m.strip() for m in value)
+
+
+def _provider_list(value: Any, name: str) -> tuple[str, ...]:
+    if not isinstance(value, list) or not all(isinstance(m, str) and m.strip() for m in value):
+        raise ConfigError(f"{name} must be a list of OpenRouter provider names")
     return tuple(m.strip() for m in value)
 
 
