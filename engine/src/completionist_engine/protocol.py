@@ -73,7 +73,7 @@ class Request:
     quiet: bool = False
     """The text service is holding its popup back here, so there's no point asking for a phrase."""
     kind: str = "word"
-    """For `accept` events: "word", "phrase" (all of it) or "phrase_word" (one word of it)."""
+    """For `accept` events: "word", "chunk", "next", "phrase" (all of it) or "phrase_word" (one word of it)."""
 
 
 def parse_request(message: dict[str, Any]) -> Request:
@@ -90,7 +90,7 @@ def parse_request(message: dict[str, Any]) -> Request:
             raise ProtocolError(f"{field} must be a string, got {type(value).__name__}")
         strings[field] = value
     kind = message.get("kind", "word")
-    if kind not in ("word", "phrase", "phrase_word"):
+    if kind not in ("word", "chunk", "next", "phrase", "phrase_word"):
         raise ProtocolError(f"unknown accept kind {kind!r}")
     quiet = message.get("quiet", False)
     if not isinstance(quiet, bool):
@@ -106,6 +106,8 @@ class WordReply:
     id: int
     replace: int
     words: tuple[str, ...]
+    kinds: tuple[str, ...] = ()
+    """What each of `words` is: "word", "chunk" (two or three words) or "next" (offered before a letter is typed). Empty means all words."""
     phrase: str = ""
     """The phrase continuation to show as the top row, if one is ready."""
     phrase_done: bool = True
@@ -115,6 +117,8 @@ class WordReply:
 
     def to_message(self) -> dict[str, Any]:
         message: dict[str, Any] = {"id": self.id, "type": "words", "replace": self.replace, "words": list(self.words)}
+        if len(self.kinds) == len(self.words) and any(kind != "word" for kind in self.kinds):
+            message["kinds"] = list(self.kinds)
         if self.phrase_mode != "off":
             message["phrase_mode"] = self.phrase_mode
         if self.phrase or not self.phrase_done:

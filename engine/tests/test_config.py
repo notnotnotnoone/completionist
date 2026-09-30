@@ -232,3 +232,10 @@ def test_next_words_can_be_switched_on_and_the_threshold_set_or_switched_off(tmp
 def test_invalid_next_word_settings_are_rejected(tmp_path, text):
     with pytest.raises(ConfigError):
         load_config(write(tmp_path, text))
+
+
+def test_chunks_are_off_by_default_and_can_be_switched_on(tmp_path):
+    assert Config().chunks is False
+    assert load_config(write(tmp_path, "[words]\nchunks = true\n")).chunks is True
+    with pytest.raises(ConfigError):
+        load_config(write(tmp_path, "[words]\nchunks = 3\n"))

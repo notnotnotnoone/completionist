@@ -947,17 +947,22 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.6",
           "title": "Protocol: each suggestion carries its kind (word, chunk or next)",
-          "status": "next",
+          "status": "done",
           "area": "engine",
           "stories": [
             64
           ],
-          "notes": "The field is covered by tests on both the engine and DLL sides, like the `accept` event was."
+          "notes": "The field is covered by tests on both the engine and DLL sides, like the `accept` event was.",
+          "refs": [
+            "engine/src/completionist_engine/protocol.py",
+            "tip/src/protocol.cpp",
+            "branch m7-kinds"
+          ]
         },
         {
           "id": "M7.7",
           "title": "Popup shows words, chunks and the phrase in one box",
-          "status": "todo",
+          "status": "next",
           "area": "dll",
           "stories": [
             64
@@ -1608,6 +1613,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M7.6 done: replies carry a kind per suggestion (word, chunk or next) and accept events may name chunk or next; engine and DLL both tested. Chunks are behind [words] chunks (off until M7.7)."
+    },
     {
       "date": "2026-09-30",
       "text": "Pushed main and tag v0.4.1 to origin; engine tests pass on main (422)."

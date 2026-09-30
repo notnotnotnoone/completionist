@@ -7,6 +7,7 @@
     [words]
     limit = 5                   # words shown in the popup
     next = false                # offer likely next words after a space
+    chunks = false              # offer two- or three-word chunks while typing
     next_threshold = 0.05       # how likely a next word must be (0 to 1); 0 offers the best few whatever the odds
 
     [learning]
@@ -76,7 +77,7 @@ _PHRASE_KEYS = {
 }  # fmt: skip
 _SCHEMA = {
     "apps": {"block", "allow"},
-    "words": {"limit", "next", "next_threshold"},
+    "words": {"limit", "next", "next_threshold", "chunks"},
     "learning": {"enabled", "promote_after"},
     "data": {"dir"},
     "phrase": _PHRASE_KEYS,
@@ -109,6 +110,7 @@ class Config:
     allow: frozenset[str] = DEFAULT_ALLOW
     word_limit: int = 5
     next_words: bool = False
+    chunks: bool = False
     next_threshold: float = 0.05
     learning: bool = True
     promote_after: int = 3
@@ -161,6 +163,7 @@ def load_config(path: Path) -> Config:
         allow=_app_names(apps["allow"], "apps.allow") if "allow" in apps else config.allow,
         word_limit=_positive_int(words["limit"], "words.limit") if "limit" in words else config.word_limit,
         next_words=_boolean(words["next"], "words.next") if "next" in words else config.next_words,
+        chunks=_boolean(words["chunks"], "words.chunks") if "chunks" in words else config.chunks,
         next_threshold=(
             _probability(words["next_threshold"], "words.next_threshold") if "next_threshold" in words else config.next_threshold
         ),

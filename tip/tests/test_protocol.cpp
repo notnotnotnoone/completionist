@@ -222,3 +222,40 @@ TEST(an_accept_request_can_name_its_kind) {
     plain.event = "accept";
     CHECK(BodyOf(EncodeRequest(plain)).find("kind") == std::string::npos);
 }
+
+TEST(a_words_reply_names_the_kind_of_each_suggestion) {
+    auto reply = ParseWordReply(R"({"id":4,"type":"words","replace":2,"words":["know about","know","known"],"kinds":["chunk","word","word"]})");
+    CHECK(reply.has_value());
+    CHECK_EQ(reply->kinds.size(), 3u);
+    CHECK_EQ(reply->kinds[0], std::string("chunk"));
+    CHECK_EQ(reply->kinds[1], std::string("word"));
+    auto next = ParseWordReply(R"({"id":4,"type":"words","replace":0,"words":["be"],"kinds":["next"]})");
+    CHECK(next.has_value() && next->kinds.size() == 1 && next->kinds[0] == "next");
+}
+
+TEST(a_words_reply_without_kinds_means_every_suggestion_is_a_word) {
+    auto reply = ParseWordReply(R"({"id":4,"type":"words","replace":3,"words":["world","work"]})");
+    CHECK(reply.has_value());
+    CHECK_EQ(reply->kinds.size(), 2u);
+    CHECK_EQ(reply->kinds[0], std::string("word"));
+    CHECK_EQ(reply->kinds[1], std::string("word"));
+    auto none = ParseWordReply(R"({"id":4,"type":"words","replace":0,"words":[]})");
+    CHECK(none.has_value() && none->kinds.empty());
+}
+
+TEST(malformed_kinds_are_rejected) {
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["a","b"],"kinds":["word"]})").has_value());         // too few
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["a"],"kinds":["sentence"]})").has_value());         // unknown
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["a"],"kinds":[1]})").has_value());                  // not text
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["a"],"kinds":"word"})").has_value());               // not a list
+}
+
+TEST(an_accept_request_can_name_a_chunk_or_next_word) {
+    for (const char* kind : {"chunk", "next"}) {
+        Request request;
+        request.event = "accept";
+        request.accepted = L"know about";
+        request.kind = kind;
+        CHECK(BodyOf(EncodeRequest(request)).find(std::string("\"kind\":\"") + kind + "\"") != std::string::npos);
+    }
+}

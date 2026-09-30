@@ -369,6 +369,16 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
         if (word.type != Json::Type::String) return std::nullopt;
         reply.words.push_back(FromUtf8(word.string));
     }
+    if (const Json* kinds = document->Find("kinds")) {
+        if (kinds->type != Json::Type::Array || kinds->array.size() != reply.words.size()) return std::nullopt;
+        for (const Json& kind : kinds->array) {
+            if (kind.type != Json::Type::String || (kind.string != "word" && kind.string != "chunk" && kind.string != "next"))
+                return std::nullopt;
+            reply.kinds.push_back(kind.string);
+        }
+    } else {
+        reply.kinds.assign(reply.words.size(), "word");
+    }
     if (const Json* phrase = document->Find("phrase")) {
         if (phrase->type != Json::Type::String) return std::nullopt;
         reply.phrase = FromUtf8(phrase->string);
