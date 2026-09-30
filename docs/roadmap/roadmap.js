@@ -228,6 +228,28 @@ window.TYPER_ROADMAP = {
           ]
         },
         {
+          "id": "M1.14",
+          "title": "TSF harness: real DLL, real engine, simulated app",
+          "status": "done",
+          "area": "test",
+          "stories": [
+            1,
+            2,
+            4,
+            5,
+            6,
+            7,
+            8,
+            31,
+            51
+          ],
+          "notes": "`tip/tests/tsf_e2e.ps1` runs the unregistered DLL through real TSF against a stand-in text field (`ITextStoreACP`), with the real engine and n-gram data. 31 checks: popup under the caret, Down/Up/Tab/Esc, Enter never consumed, Tab left alone when the popup is closed or stale, no popup mid-word / with a selection / where keyboards are disabled, learned words offered, fast typing. Also passes as a DPI-unaware app. Key events go straight to the DLL's key interface because TSF only routes keys to a registered text service.",
+          "refs": [
+            "tip/tests/tsf_harness.cpp",
+            "tip/tests/tsf_e2e.ps1"
+          ]
+        },
+        {
           "id": "M1.10",
           "title": "Popup rendering at the caret",
           "status": "doing",
@@ -237,7 +259,7 @@ window.TYPER_ROADMAP = {
             3,
             36
           ],
-          "notes": "Built: word rows, typed prefix highlighted, never takes focus, click-through, per-window DPI, flips above the caret or slides left to stay on the caret's monitor. Waiting for your look at 100% and 150% scaling and on a second monitor.",
+          "notes": "Built and checked in the harness: word rows, typed prefix highlighted in blue, highlight row moves, popup opens just under the caret (screenshots reviewed), never takes focus, click-through, per-window DPI. Still needs your look on a second monitor and in a real app at 150% scaling.",
           "refs": [
             "tip/src/popup.cpp"
           ]
@@ -266,7 +288,7 @@ window.TYPER_ROADMAP = {
             31,
             36
           ],
-          "notes": "Notepad, Chrome (textarea, contenteditable, long text, password field, after `chrome://restart`), Edge, Discord, Slack, Obsidian, an older Electron app. 100% and 150% scaling. Enter still sends in Discord. The user tests; give a checklist and read the logs."
+          "notes": "Notepad, Chrome (textarea, contenteditable, long text, password field, after `chrome://restart`), Edge, Discord, Slack, Obsidian, an older Electron app. 100% and 150% scaling. Enter still sends in Discord. The harness (M1.14) already covers the logic; this checks each app's own quirks. Switch to the Typer keyboard first, so the old Typer Spike keyboard isn't also active."
         },
         {
           "id": "M1.13",
@@ -844,6 +866,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "Added a TSF harness that runs the real DLL through real TSF with the real engine and a simulated text field: 31 checks pass, popup rendering reviewed from screenshots. Real-app checks (M1.12, M2.7) still need the DLL registered, which needs your UAC click."
+    },
     {
       "date": "2026-09-29",
       "text": "M2 engine work done on branch m1-tsf-dll: n-gram tables built from WikiText-103, bigram/trigram ranking, misspelling filter, personal learning and accept events. 197 engine tests pass; p95 lookup 1.2 ms. Waiting on your live checks (M1.10-M1.12, M2.7) before merging."
