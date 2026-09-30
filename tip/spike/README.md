@@ -40,4 +40,16 @@ About 830 inspections across Notepad, Discord, Chrome (Reddit, Google Docs, Goog
 - Replacing text works with a plain `ITfRange::SetText`; the composition fallback wasn't needed anywhere.
 - `RequestEditSession` occasionally returns `E_FAIL` in Chromium apps (47 times), apparently during focus changes. The real DLL must treat that as "try again on the next edit".
 - The input scope came back as "no property" everywhere. That was a spike bug: input scope is an *app* property (`GetAppProperty`, not `GetProperty`). Fixed for round 2, which also logs `GUID_COMPARTMENT_KEYBOARD_DISABLED`.
+### Round 2 (2026-09-29)
+
+- **Long text in Electron:** Discord exposed **2,239 characters** before the caret, which is the whole long paste. Electron/Chromium doesn't truncate context to a small window.
+- **Input scope fix confirmed:** Discord now reports `IS_DEFAULT` via `GetAppProperty`. `GUID_COMPARTMENT_KEYBOARD_DISABLED` read as 0 in normal fields.
+- **Tab + replace** worked again in Discord (5 times) and Notepad, all via direct `SetText`. The user reports everything working in Chrome, Edge and Teams, and no popup in password fields.
+- **Not captured:** Chrome kept running the round-1 DLL (it stays alive in the background after its windows close), so Chrome long-text and password-field *log data* is missing. Re-check with the real DLL after `chrome://restart`.
+- `RequestEditSession` → `E_FAIL` again showed up occasionally (92 times across Claude, Chrome and Discord): treat it as transient.
+
+**Verdict: TSF works for Typer.** The caret rect, reading the real surrounding text, swallowing keys and inserting text all work in Notepad and in Chromium/Electron apps. Proceed to Milestone 1 with the real DLL.
+
+### Registration notes
+
 - Registration: the keyboard must be registered for the user's English variant (this machine is en-CA). Settings still doesn't list it, even with `IMMERSIVESUPPORT`, probably because there's no icon, so it was enabled with `Set-WinUserLanguageList`. The real DLL needs an icon and an installer step that enables it.
