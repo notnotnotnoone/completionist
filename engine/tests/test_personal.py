@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from typer_engine.personal import PersonalStore
+from completionist_engine.personal import PersonalStore
 
 
 @pytest.fixture
@@ -84,14 +84,14 @@ def test_counts_survive_a_flush_and_reopen(tmp_path):
     first = PersonalStore(path)
     first.record_typed("linqi", ("hey",))
     first.record_typed("linqi", ("hey",))
-    first.record_accepted("typer", ())
+    first.record_accepted("completionist", ())
     first.flush()
     first.close()
 
     second = PersonalStore(path)
     assert second.counts((), "lin").words["linqi"] == 2
     assert second.counts(("hey",), "lin").words["linqi"] == 2
-    assert second.counts((), "ty").words["typer"] == 1
+    assert second.counts((), "comp").words["completionist"] == 1
     assert second.counts((), "").total == 3
     second.close()
 

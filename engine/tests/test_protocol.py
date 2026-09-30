@@ -1,6 +1,6 @@
 import pytest
 
-from typer_engine.protocol import (
+from completionist_engine.protocol import (
     MAX_FRAME_BYTES,
     FrameDecoder,
     ProtocolError,
@@ -96,7 +96,7 @@ def test_word_reply_serialises_to_wire_shape():
 
 
 def test_a_word_reply_carries_phrase_fields_only_when_relevant():
-    from typer_engine.protocol import PhraseUpdate
+    from completionist_engine.protocol import PhraseUpdate
 
     plain = WordReply(id=1, replace=0, words=())
     assert "phrase" not in plain.to_message() and "phrase_mode" not in plain.to_message()
@@ -113,7 +113,7 @@ def test_a_word_reply_carries_phrase_fields_only_when_relevant():
 
 
 def test_a_quiet_flag_is_parsed_and_defaults_to_false():
-    from typer_engine.protocol import parse_request
+    from completionist_engine.protocol import parse_request
 
     assert parse_request({"id": 1, "event": "keystroke"}).quiet is False
     assert parse_request({"id": 1, "event": "keystroke", "quiet": True}).quiet is True

@@ -16,10 +16,10 @@
 
 namespace {
 LRESULT CALLBACK Proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    if (message == typer::WM_TYPER_REPLY) {
-        std::unique_ptr<typer::protocol::WordReply> reply(reinterpret_cast<typer::protocol::WordReply*>(lParam));
+    if (message == completionist::WM_COMPLETIONIST_REPLY) {
+        std::unique_ptr<completionist::protocol::WordReply> reply(reinterpret_cast<completionist::protocol::WordReply*>(lParam));
         std::string words;
-        for (auto& w : reply->words) words += (words.empty() ? "" : ",") + typer::protocol::ToUtf8(w);
+        for (auto& w : reply->words) words += (words.empty() ? "" : ",") + completionist::protocol::ToUtf8(w);
         std::printf("  reply id=%u replace=%d words=%s\n", reply->id, reply->replace, words.c_str());
         std::fflush(stdout);
         return 0;
@@ -39,11 +39,11 @@ int wmain(int argc, wchar_t** argv) {
     WNDCLASSW wc = {};
     wc.lpfnWndProc = Proc;
     wc.hInstance = GetModuleHandleW(nullptr);
-    wc.lpszClassName = L"TyperProbe";
+    wc.lpszClassName = L"CompletionistProbe";
     RegisterClassW(&wc);
-    HWND window = CreateWindowExW(0, L"TyperProbe", L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, wc.hInstance, nullptr);
+    HWND window = CreateWindowExW(0, L"CompletionistProbe", L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, wc.hInstance, nullptr);
 
-    auto& client = typer::EngineClient::Instance();
+    auto& client = completionist::EngineClient::Instance();
     client.SetPipeName(argv[1]);
     client.Acquire();
 
@@ -53,7 +53,7 @@ int wmain(int argc, wchar_t** argv) {
         MSG msg;
         while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) DispatchMessageW(&msg);
         if (GetTickCount64() >= nextSend) {
-            typer::protocol::Request request;
+            completionist::protocol::Request request;
             request.id = client.NextId();
             request.event = "keystroke";
             request.app = L"probe.exe";

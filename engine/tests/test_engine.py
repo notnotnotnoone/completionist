@@ -1,9 +1,9 @@
 import pytest
 
-from typer_engine.config import Config
-from typer_engine.engine import Engine
-from typer_engine.protocol import Request, WordReply
-from typer_engine.words import WordCompleter
+from completionist_engine.config import Config
+from completionist_engine.engine import Engine
+from completionist_engine.protocol import Request, WordReply
+from completionist_engine.words import WordCompleter
 
 VOCAB = [("world", 5.8), ("work", 6.0), ("worry", 5.0), ("worse", 5.2)]
 CONFIG = Config(block=frozenset({"code.exe"}), allow=frozenset(), word_limit=2)
@@ -41,7 +41,7 @@ def test_accept_and_dismiss_need_no_reply(engine, event):
 
 # --- learning ---------------------------------------------------------------------------------
 
-from typer_engine.personal import PersonalStore  # noqa: E402
+from completionist_engine.personal import PersonalStore  # noqa: E402
 
 LEARNING_CONFIG = Config(block=frozenset({"code.exe"}), allow=frozenset(), word_limit=5)
 

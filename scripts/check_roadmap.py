@@ -17,7 +17,7 @@ RISK_STATUSES = {"open", "mitigated", "retired"}
 RELEASE_STATUSES = {"released", "next", "planned"}
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}$")
 VERSION = re.compile(r"(\d+)\.(\d+)\.(\d+)$")
-ASSIGNMENT = re.compile(r"window\.TYPER_ROADMAP\s*=\s*(\{.*\})\s*;\s*$", re.S)
+ASSIGNMENT = re.compile(r"window\.COMPLETIONIST_ROADMAP\s*=\s*(\{.*\})\s*;\s*$", re.S)
 SENTENCE_BREAK = re.compile(r"(?<=[.!?])[\"”’)]*\s+(?=[\"“(]?[A-Z0-9])")
 
 # Writing rules per release tier: patch = one sentence, minor = one paragraph, major = an essay.
@@ -30,7 +30,7 @@ MAJOR_MIN_WORDS = 450
 def load(path: Path = ROADMAP) -> dict:
     match = ASSIGNMENT.search(path.read_text(encoding="utf-8"))
     if not match:
-        raise ValueError("expected `window.TYPER_ROADMAP = { ... };`")
+        raise ValueError("expected `window.COMPLETIONIST_ROADMAP = { ... };`")
     return json.loads(match.group(1))
 
 

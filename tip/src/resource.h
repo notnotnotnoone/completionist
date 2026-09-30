@@ -1,3 +1,3 @@
 #pragma once
 
-#define IDI_TYPER 101
+#define IDI_COMPLETIONIST 101

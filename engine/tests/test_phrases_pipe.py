@@ -5,14 +5,14 @@ import contextlib
 from uuid import uuid4
 
 from tests.fake_provider import Script, fake_provider
-from typer_engine.budget import DailyBudget, Prices
-from typer_engine.client import EngineClient
-from typer_engine.config import Config, PhraseConfig
-from typer_engine.engine import Engine
-from typer_engine.phrase_provider import ProviderSettings
-from typer_engine.phrases import PhraseService
-from typer_engine.server import start_server
-from typer_engine.words import WordCompleter
+from completionist_engine.budget import DailyBudget, Prices
+from completionist_engine.client import EngineClient
+from completionist_engine.config import Config, PhraseConfig
+from completionist_engine.engine import Engine
+from completionist_engine.phrase_provider import ProviderSettings
+from completionist_engine.phrases import PhraseService
+from completionist_engine.server import start_server
+from completionist_engine.words import WordCompleter
 
 VOCAB = [("world", 5.8), ("work", 6.0), ("worry", 5.0)]
 
@@ -22,7 +22,7 @@ async def serving_phrases(url: str, allow: frozenset[str] = frozenset({"notepad.
     phrase = PhraseConfig(provider=ProviderSettings(base_url=url, timeout=1.0), debounce=0.05)
     service = PhraseService(phrase, "key", DailyBudget(0.5, Prices()))
     engine = Engine(WordCompleter(VOCAB), Config(block=frozenset(), allow=allow, phrase=phrase), phrases=service)
-    name = rf"\\.\pipe\typer-test-{uuid4().hex}"
+    name = rf"\\.\pipe\completionist-test-{uuid4().hex}"
     server = await start_server(engine, name)
     try:
         yield name, service

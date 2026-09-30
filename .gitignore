@@ -20,5 +20,5 @@ Release/
 *.ilk
 out/
 
-# Generated data (n-gram tables live in %LOCALAPPDATA%\Typer, not in git)
+# Generated data (n-gram tables live in %LOCALAPPDATA%\Completionist, not in git)
 data/out/

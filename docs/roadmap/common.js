@@ -1,10 +1,10 @@
 // Shared helpers for the roadmap pages (index.html = highway map, tasks.html = task board).
-// Reads window.TYPER_ROADMAP from roadmap.js and exposes window.RM.
+// Reads window.COMPLETIONIST_ROADMAP from roadmap.js and exposes window.RM.
 (() => {
-  const data = window.TYPER_ROADMAP;
+  const data = window.COMPLETIONIST_ROADMAP;
 
   // Day/night: an explicit choice is kept per viewer; otherwise the system setting wins.
-  const THEME_KEY = "typer-roadmap:theme";
+  const THEME_KEY = "completionist-roadmap:theme";
   try { const t = localStorage.getItem(THEME_KEY); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
   function isDark() {
     const t = document.documentElement.dataset.theme;

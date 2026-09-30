@@ -3,8 +3,8 @@ import time
 
 import pytest
 
-from typer_engine.vocabulary import load_wordfreq_vocabulary
-from typer_engine.words import WordCompleter
+from completionist_engine.vocabulary import load_wordfreq_vocabulary
+from completionist_engine.words import WordCompleter
 
 
 @pytest.fixture(scope="module")

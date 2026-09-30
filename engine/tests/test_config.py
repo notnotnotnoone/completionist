@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from typer_engine.config import Config, ConfigError, default_config_path, load_config
+from completionist_engine.config import Config, ConfigError, default_config_path, load_config
 
 
 def write(tmp_path: Path, text: str) -> Path:
@@ -64,7 +64,7 @@ def test_invalid_config_is_rejected(tmp_path, text):
 
 def test_default_path_is_under_appdata(monkeypatch, tmp_path):
     monkeypatch.setenv("APPDATA", str(tmp_path))
-    assert default_config_path() == tmp_path / "Typer" / "config.toml"
+    assert default_config_path() == tmp_path / "Completionist" / "config.toml"
 
 
 def test_learning_defaults_on_with_promotion_after_three_uses():
@@ -91,7 +91,7 @@ def test_invalid_learning_or_data_settings_are_rejected(tmp_path, text):
 
 def test_data_dir_defaults_under_localappdata_and_can_move(monkeypatch, tmp_path):
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
-    assert Config().data_dir == tmp_path / "Typer"
+    assert Config().data_dir == tmp_path / "Completionist"
     moved = load_config(write(tmp_path, f"[data]\ndir = '{tmp_path / 'elsewhere'}'\n"))
     assert moved.data_dir == tmp_path / "elsewhere"
 
@@ -170,3 +170,34 @@ def test_the_pause_hotkey_defaults_to_ctrl_alt_p_and_can_change_or_be_turned_off
 def test_a_bad_pause_hotkey_is_rejected(tmp_path, line):
     with pytest.raises(ConfigError):
         load_config(write(tmp_path, f"[hotkeys]\n{line}\n"))
+
+
+def test_legacy_typer_folders_move_to_the_new_name(tmp_path):
+    from completionist_engine.config import migrate_legacy_dirs
+
+    local, roaming = tmp_path / "local", tmp_path / "roaming"
+    (local / "Typer").mkdir(parents=True)
+    (local / "Typer" / "personal.sqlite").write_text("mine")
+    (roaming / "Typer").mkdir(parents=True)
+    (roaming / "Typer" / "config.toml").write_text("[words]\nlimit = 7\n")
+
+    migrate_legacy_dirs(local, roaming)
+
+    assert (local / "Completionist" / "personal.sqlite").read_text() == "mine"
+    assert (roaming / "Completionist" / "config.toml").exists()
+    assert not (local / "Typer").exists() and not (roaming / "Typer").exists()
+
+
+def test_legacy_migration_never_overwrites_the_new_folder(tmp_path):
+    from completionist_engine.config import migrate_legacy_dirs
+
+    local, roaming = tmp_path / "local", tmp_path / "roaming"
+    (local / "Typer").mkdir(parents=True)
+    (local / "Typer" / "old.txt").write_text("old")
+    (local / "Completionist").mkdir()
+    (local / "Completionist" / "new.txt").write_text("new")
+
+    migrate_legacy_dirs(local, roaming)
+
+    assert (local / "Completionist" / "new.txt").exists()
+    assert (local / "Typer" / "old.txt").exists()

@@ -1,6 +1,6 @@
 import pytest
 
-from typer_engine.learning import TypingLearner
+from completionist_engine.learning import TypingLearner
 
 
 def type_text(learner: TypingLearner, text: str):

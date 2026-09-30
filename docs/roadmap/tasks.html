@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Typer Tasks</title>
+<title>Completionist Tasks</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Overpass:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800;1,900&family=Overpass+Mono:wght@400;600;700&display=swap">
@@ -141,9 +141,9 @@
 <div class="wrap">
   <header class="hero">
     <div class="topbar">
-      <a class="brand" href="index.html" aria-label="Typer roadmap, map">
-        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 36 8v12c0 9-7 15-16 18C11 35 4 29 4 20V8Z" style="fill:var(--sign);stroke:var(--sign-ink);stroke-width:2"/><text x="20" y="27" text-anchor="middle" style="fill:var(--sign-ink);font:900 17px var(--display)">T</text></svg>
-        <span class="brand-word">Typer<small>working name</small></span>
+      <a class="brand" href="index.html" aria-label="Completionist roadmap, map">
+        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 36 8v12c0 9-7 15-16 18C11 35 4 29 4 20V8Z" style="fill:var(--sign);stroke:var(--sign-ink);stroke-width:2"/><text x="20" y="27" text-anchor="middle" style="fill:var(--sign-ink);font:900 17px var(--display)">C</text></svg>
+        <span class="brand-word">Completionist<small>autocomplete</small></span>
       </a>
       <div class="topbar-side">
         <nav class="pages" aria-label="Roadmap pages"><a href="index.html">Map</a><a href="tasks.html" aria-current="page">Tasks</a></nav>
@@ -217,7 +217,7 @@
     docs: "Docs", repo: "Repo", toolchain: "Toolchain", extension: "Extension" };
   const COVER = { done: "Delivered", partial: "In progress", planned: "Planned", none: "No task yet" };
   const FILTERS = [["all", "All"], ["open", "Open"], ["doing", "Doing"], ["next", "Next"], ["blocked", "Blocked"], ["done", "Done"]];
-  const STORE = "typer-roadmap:view";
+  const STORE = "completionist-roadmap:view";
   const LOG_SHOWN = 5;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -226,7 +226,7 @@
   const rich = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
   const areaName = (a) => AREA[a] || a;
 
-  const data = window.TYPER_ROADMAP;
+  const data = window.COMPLETIONIST_ROADMAP;
   if (!data) {
     $("#tasks").innerHTML = `<div class="error"><strong>Couldn't load roadmap.js.</strong>
       <p>It must sit next to this page. If it's there, it probably has a syntax error: run <code>python scripts/check_roadmap.py</code> to find it.</p></div>`;

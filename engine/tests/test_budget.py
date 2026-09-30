@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from typer_engine.budget import DailyBudget, Prices, Usage, cost
+from completionist_engine.budget import DailyBudget, Prices, Usage, cost
 
 PRICES = Prices(input_per_m=0.30, cached_per_m=0.006, output_per_m=1.20)
 

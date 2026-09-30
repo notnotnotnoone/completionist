@@ -4,7 +4,7 @@
 # a local fake phrase provider, no API key needed):
 #   1. this app NOT allow-listed: word scenarios plus the Ctrl+Space phrase scenarios
 #   2. this app allow-listed: phrases arrive on their own after a pause
-# Saves popup screenshots as PNGs in out\shots. Refuses to run if a typer-engine is already running.
+# Saves popup screenshots as PNGs in out\shots. Refuses to run if a completionist-engine is already running.
 # The phrase scenarios press Ctrl for real (SendInput) for a few milliseconds at a time.
 param([switch]$Unaware, [switch]$ResilienceOnly)  # -ResilienceOnly: just the engine kill/restart run
 $ErrorActionPreference = "Stop"
@@ -12,11 +12,11 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $tip = Split-Path -Parent $here
 $repo = Split-Path -Parent $tip
 $out = Join-Path $tip "out"
-$dll = Join-Path $out "TyperTip.dll"
+$dll = Join-Path $out "CompletionistTip.dll"
 $exe = Join-Path $out "tsf_harness.exe"
 $shots = Join-Path $out "shots"
 if (-not (Test-Path $dll)) { throw "Build first: $dll not found" }
-if (Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*typer-engine*" -and $_.Name -match "python|uv" }) { throw "A typer-engine is already running; stop it first." }
+if (Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*completionist-engine*" -and $_.Name -match "python|uv" }) { throw "A completionist-engine is already running; stop it first." }
 
 $build = @"
 call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul
@@ -28,9 +28,9 @@ Remove-Item $exe -ErrorAction SilentlyContinue
 cmd /c "`"$buildCmd`" >nul 2>nul"
 if (-not (Test-Path $exe)) { throw "harness failed to build (run $buildCmd to see why)" }
 
-$data = Join-Path $env:TEMP "typer-e2e-data-$PID"
+$data = Join-Path $env:TEMP "completionist-e2e-data-$PID"
 New-Item -ItemType Directory -Force $data, $shots | Out-Null
-$ngrams = Join-Path $env:LOCALAPPDATA "Typer\ngrams.sqlite"
+$ngrams = Join-Path $env:LOCALAPPDATA "Completionist\ngrams.sqlite"
 if (Test-Path $ngrams) { Copy-Item $ngrams $data } else { Write-Host "note: no n-gram file, ranking by frequency only" }
 Remove-Item "$shots\*" -ErrorAction SilentlyContinue
 
@@ -41,7 +41,7 @@ $provider = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$r
 for ($i = 0; $i -lt 120 -and -not ((Test-Path $providerLog) -and (Get-Content $providerLog -ErrorAction SilentlyContinue | Select-String "http://")); $i++) { Start-Sleep -Milliseconds 500 }
 $providerUrl = (Get-Content $providerLog | Select-String "http://" | Select-Object -First 1).ToString().Trim()
 if (-not $providerUrl) { throw "fake provider did not start" }
-$env:TYPER_E2E_KEY = "test-key"
+$env:COMPLETIONIST_E2E_KEY = "test-key"
 
 function Invoke-Run($label, $allow, $extraArgs) {
     $config = Join-Path $data "config.toml"
@@ -55,14 +55,14 @@ dir = '$dataDir'
 
 [phrase]
 base_url = "$providerUrl"
-api_key_env = "TYPER_E2E_KEY"
+api_key_env = "COMPLETIONIST_E2E_KEY"
 debounce_ms = 100
 timeout = 3.0
 "@
     Remove-Item (Join-Path $data "personal.sqlite*"), (Join-Path $data "spend.json") -ErrorAction SilentlyContinue
     $log = Join-Path $out "engine-e2e.log"
     Remove-Item $log -ErrorAction SilentlyContinue
-    $engine = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "typer-engine", "--config", $config) -PassThru -WindowStyle Hidden -RedirectStandardError $log
+    $engine = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "completionist-engine", "--config", $config) -PassThru -WindowStyle Hidden -RedirectStandardError $log
     try {
         for ($i = 0; $i -lt 180 -and -not ((Test-Path $log) -and (Select-String -Path $log -Pattern "listening on" -Quiet)); $i++) { Start-Sleep -Milliseconds 500 }
         if (-not (Select-String -Path $log -Pattern "listening on" -Quiet)) { throw ("engine did not start: " + (Get-Content $log -Tail 5)) }
@@ -71,7 +71,7 @@ timeout = 3.0
         & $exe $dll $shots @extraArgs | Out-Host
         $script:harnessExit = $LASTEXITCODE
     } finally {
-        Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*typer-engine*" -and $_.CommandLine -like "*$data*" } |
+        Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*completionist-engine*" -and $_.CommandLine -like "*$data*" } |
             ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
         Start-Sleep -Milliseconds 500
     }
@@ -91,12 +91,12 @@ function Invoke-Resilience {
         $script:starts++
         $log = Join-Path $out "engine-e2e-$script:starts.log"
         Remove-Item $log -ErrorAction SilentlyContinue
-        $null = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "typer-engine", "--config", $config, "--no-tray", "--log-level", "DEBUG") -WindowStyle Hidden -RedirectStandardError $log
+        $null = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "completionist-engine", "--config", $config, "--no-tray", "--log-level", "DEBUG") -WindowStyle Hidden -RedirectStandardError $log
         for ($i = 0; $i -lt 180 -and -not ((Test-Path $log) -and (Select-String -Path $log -Pattern "listening on" -Quiet)); $i++) { Start-Sleep -Milliseconds 500 }
         if (-not (Select-String -Path $log -Pattern "listening on" -Quiet)) { throw "engine did not start" }
     }
     function Stop-Engine {
-        Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*typer-engine*" -and $_.CommandLine -like "*$data*" } |
+        Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*completionist-engine*" -and $_.CommandLine -like "*$data*" } |
             ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
         Start-Sleep -Milliseconds 500
     }

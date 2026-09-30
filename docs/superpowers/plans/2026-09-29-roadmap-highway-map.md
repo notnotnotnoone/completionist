@@ -17,7 +17,7 @@
 
 ## Global constraints
 
-- **Work in the worktree** `C:\projects\Experiments\typer\.claude\worktrees\roadmap-map` on branch `worktree-roadmap-map`. Never switch branches in the main checkout, because another session works there.
+- **Work in the worktree** `C:\projects\Experiments\completionist\.claude\worktrees\roadmap-map` on branch `worktree-roadmap-map`. Never switch branches in the main checkout, because another session works there.
 - **Every commit stages `docs/roadmap/roadmap.js`**, with a new line at the top of `log`, dated today, saying what that commit did. Run `python scripts/check_roadmap.py`, which must print `roadmap ok`, before every commit. This is a rule in CLAUDE.md.
 - **Don't edit M4 tasks** or any roadmap entry other than M1.15, `log`, `updated` and `decisions`. Another session owns the rest.
 - **Colors:** only the CSS variables from `theme.css`. No new hex values in pages. SVG colors go in `style="fill:var(--x)"` or `style="stroke:var(--x)"`, not in presentation attributes. No orange, and no blue brand color.
@@ -25,7 +25,7 @@
 - **No `localStorage`** except the theme key that `common.js` already uses.
 - **Layout:** it must work at 375 px wide with no horizontal page scroll. Only `.map-scroll` scrolls sideways.
 - **Checking your work:** open pages with the built-in browser pane (`mcp__Claude_Browser__*`) at
-  `file:///C:/projects/Experiments/typer/.claude/worktrees/roadmap-map/docs/roadmap/index.html` (and `tasks.html`), and check light, dark, 1440 px and 375 px. That browser pane is fine to use. Don't use computer use on the user's desktop.
+  `file:///C:/projects/Experiments/completionist/.claude/worktrees/roadmap-map/docs/roadmap/index.html` (and `tasks.html`), and check light, dark, 1440 px and 375 px. That browser pane is fine to use. Don't use computer use on the user's desktop.
 - **Writing style** in page copy, commit messages and docs: plain, standard English, sentence case except for road-sign lettering, which is uppercase in CSS.
 - **Commit messages** end with the Co-Authored-By line the session gives you.
 
@@ -36,7 +36,7 @@
 | `docs/roadmap/tasks.html` | The task board, moved from `index.html` and restyled | 1 |
 | `docs/roadmap/map-layout.js` | Pure geometry: `layoutMap(data)`, returns the layout (no DOM) | 2 |
 | `scripts/map_layout.test.mjs` | Node tests for `layoutMap` on a small fixture | 2 |
-| `docs/roadmap/map.js` | Draws the SVG from the layout; selection, spotlight, pan, fit (`window.TyperMap`) | 3 |
+| `docs/roadmap/map.js` | Draws the SVG from the layout; selection, spotlight, pan, fit (`window.CompletionistMap`) | 3 |
 | `docs/roadmap/index.html` | Map page markup and page-specific CSS | 3, 4 |
 | `docs/roadmap/page.js` | Masthead, now sign, posts, travel guide, road work, itinerary, hash routing | 4 |
 | `docs/roadmap/releases.html` | Deleted | 5 |
@@ -64,7 +64,7 @@ git mv docs/roadmap/index.html docs/roadmap/tasks.html
 
 - [ ] **Step 2: Swap the head for the Evergreen one.** In `tasks.html`:
   - Replace the Google Fonts `<link>` with the three lines in the spec's Typography section.
-  - Set `<title>Typer Tasks</title>`.
+  - Set `<title>Completionist Tasks</title>`.
   - After `<script src="roadmap.js"></script>`, add `<script src="common.js"></script>`.
 
 - [ ] **Step 3: Rename the old tokens in the page `<style>`.** The only tokens are the ones `theme.css` defines. Mapping:
@@ -89,9 +89,9 @@ grep -nE "var\(--(bg|body|pop[a-z-]*)\)" docs/roadmap/tasks.html
 
 ```html
 <div class="topbar">
-  <a class="brand" href="index.html" aria-label="Typer roadmap, map">
+  <a class="brand" href="index.html" aria-label="Completionist roadmap, map">
     <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 36 8v12c0 9-7 15-16 18C11 35 4 29 4 20V8Z" style="fill:var(--sign);stroke:var(--sign-ink);stroke-width:2"/><text x="20" y="27" text-anchor="middle" style="fill:var(--sign-ink);font:900 17px var(--display)">T</text></svg>
-    <span class="brand-word">Typer<small>working name</small></span>
+    <span class="brand-word">Completionist<small>autocomplete</small></span>
   </a>
   <div class="topbar-side">
     <nav class="pages" aria-label="Roadmap pages"><a href="index.html">Map</a><a href="tasks.html" aria-current="page">Tasks</a></nav>
@@ -142,7 +142,7 @@ const strip = (m) => `<span class="hw-strip">${RM.highways.map((h) => { const n 
   - `.caret` gets `background: var(--accent)`.
 
 - [ ] **Step 9: Check in the browser.**
-  - Open `file:///C:/projects/Experiments/typer/.claude/worktrees/roadmap-map/docs/roadmap/tasks.html`.
+  - Open `file:///C:/projects/Experiments/completionist/.claude/worktrees/roadmap-map/docs/roadmap/tasks.html`.
   - Check that the milestones, filters (status, highway, area, search, story) and story coverage work, as do opening a task via `#M1.8`, and the decisions, risks and log.
   - Toggle Day/Night.
   - Resize to 375 px wide and check there's no horizontal page scroll.
@@ -168,7 +168,7 @@ git commit -m "Roadmap: task board moves to tasks.html, restyled in Evergreen"
 
 **Interfaces:**
 - Produces:
-  - `TyperMapLayout.layoutMap(data) -> Layout`, which is `window.TyperMapLayout` in the page and `module.exports` in node.
+  - `CompletionistMapLayout.layoutMap(data) -> Layout`, which is `window.CompletionistMapLayout` in the page and `module.exports` in node.
   - `Layout = { G, width, height, roadEnd, events, lanes, paths, pieces, barriers, now }`, where:
     - `events[]`: `{ id, kind: "major"|"minor"|"patch"|"now"|"end", version, release, status, fix, lanes: [hwId], x, width, start?, bundle?: {hwId: y}, row?: "gantry"|"A"|"B" }`
     - `lanes[]`: `{ id, y, opensX, opensId }`
@@ -293,10 +293,10 @@ Expected: FAIL with `Cannot find module '../docs/roadmap/map-layout.js'`.
 
 ```js
 // Pure geometry for the roadmap highway map: no DOM, no styling.
-// Used by map.js in the page (window.TyperMapLayout) and by scripts/map_layout.test.mjs under node.
+// Used by map.js in the page (window.CompletionistMapLayout) and by scripts/map_layout.test.mjs under node.
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
-  else root.TyperMapLayout = factory();
+  else root.CompletionistMapLayout = factory();
 })(typeof self !== "undefined" ? self : this, function () {
   const G = {
     left: 190, laneTop: 250, laneGap: 116, bundleGap: 18, curve: 80, joint: 12, bottom: 140, tail: 40,
@@ -423,7 +423,7 @@ Expected: all 9 tests pass. If a number is off, fix the code, not the test. The 
 - [ ] **Step 5: Run it against the real data**
 
 ```bash
-node -e "global.window={};require('./docs/roadmap/roadmap.js');const L=require('./docs/roadmap/map-layout.js').layoutMap(window.TYPER_ROADMAP);console.log(L.width,L.height,L.events.map(e=>e.id).join(' '))"
+node -e "global.window={};require('./docs/roadmap/roadmap.js');const L=require('./docs/roadmap/map-layout.js').layoutMap(window.COMPLETIONIST_ROADMAP);console.log(L.width,L.height,L.events.map(e=>e.id).join(' '))"
 ```
 
 Expected: the width is about 2,200 or more. The events are `0.0.0 0.0.1 0.0.2 0.0.3 0.0.4 0.0.5 now 0.1.0 0.2.0 0.3.0 0.4.0 1.0.0 1.1.0 1.2.0 end` (more if releases were added since).
@@ -447,8 +447,8 @@ git commit -m "Roadmap map: pure layout with node tests"
 - Modify: `docs/roadmap/roadmap.js` (log)
 
 **Interfaces:**
-- Consumes: `TyperMapLayout.layoutMap` (Task 2) and `window.RM` (`esc`, `hwById`, `RELEASE_STATUS`, `tierOf`).
-- Produces: `window.TyperMap.mount(frameEl, layout, { onSelect(id) })`, which returns `{ select(id), spotlight(hwId|null), scrollToX(x, smooth), fit(on), redraw(layout), xOf(id) }`. `onSelect` fires with the station id (a version, or `"0.0.0"`) when a station is clicked or activated from the keyboard. `select` only marks the station; it doesn't call `onSelect`.
+- Consumes: `CompletionistMapLayout.layoutMap` (Task 2) and `window.RM` (`esc`, `hwById`, `RELEASE_STATUS`, `tierOf`).
+- Produces: `window.CompletionistMap.mount(frameEl, layout, { onSelect(id) })`, which returns `{ select(id), spotlight(hwId|null), scrollToX(x, smooth), fit(on), redraw(layout), xOf(id) }`. `onSelect` fires with the station id (a version, or `"0.0.0"`) when a station is clicked or activated from the keyboard. `select` only marks the station; it doesn't call `onSelect`.
 
 - [ ] **Step 1: Create `index.html` with the map frame only.** Page sections come in Task 4. Use this structure:
 
@@ -458,7 +458,7 @@ git commit -m "Roadmap map: pure layout with node tests"
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Typer Roadmap</title>
+<title>Completionist Roadmap</title>
 <!-- the three Google Fonts lines from the spec -->
 <link rel="stylesheet" href="theme.css">
 <style>/* page CSS: Step 3 below, then Task 4 */</style>
@@ -493,9 +493,9 @@ git commit -m "Roadmap map: pure layout with node tests"
 <script src="map.js"></script>
 <script>
   RM.bindThemeButton(document.getElementById("theme"));
-  const L = TyperMapLayout.layoutMap(RM.data);
-  const map = TyperMap.mount(document.getElementById("map-frame"), L, { onSelect: (id) => map.select(id) });
-  document.fonts.ready.then(() => map.redraw(TyperMapLayout.layoutMap(RM.data)));
+  const L = CompletionistMapLayout.layoutMap(RM.data);
+  const map = CompletionistMap.mount(document.getElementById("map-frame"), L, { onSelect: (id) => map.select(id) });
+  document.fonts.ready.then(() => map.redraw(CompletionistMapLayout.layoutMap(RM.data)));
 </script>
 </body>
 </html>
@@ -506,8 +506,8 @@ git commit -m "Roadmap map: pure layout with node tests"
 - [ ] **Step 2: Write `docs/roadmap/map.js`.** Every color goes through `style=` with CSS variables, so changing the theme needs no redraw.
 
 ```js
-// Draws the roadmap highway map from TyperMapLayout.layoutMap(data) and handles selection, spotlight, panning and fit.
-// Exposes window.TyperMap.mount(frameEl, layout, { onSelect }).
+// Draws the roadmap highway map from CompletionistMapLayout.layoutMap(data) and handles selection, spotlight, panning and fit.
+// Exposes window.CompletionistMap.mount(frameEl, layout, { onSelect }).
 (() => {
   let ctx;
   const width = (text, font) => { ctx ||= document.createElement("canvas").getContext("2d"); ctx.font = font; return ctx.measureText(text).width; };
@@ -728,7 +728,7 @@ git commit -m "Roadmap map: pure layout with node tests"
     return api;
   }
 
-  window.TyperMap = { mount };
+  window.CompletionistMap = { mount };
 })();
 ```
 
@@ -802,16 +802,16 @@ git commit -m "Roadmap map: draw the highway map"
 - Modify: `docs/roadmap/index.html`, `docs/roadmap/roadmap.js` (log)
 
 **Interfaces:**
-- Consumes: `RM` (spec), `TyperMapLayout.layoutMap`, and `TyperMap.mount(...)` returning `{ select, spotlight, scrollToX, fit, redraw, xOf }`.
+- Consumes: `RM` (spec), `CompletionistMapLayout.layoutMap`, and `CompletionistMap.mount(...)` returning `{ select, spotlight, scrollToX, fit, redraw, xOf }`.
 - Produces: `location.hash` values `#v<version>` (and `#v0.0.0`), plus task links to `tasks.html#<taskId>`.
 
 - [ ] **Step 1: Add the page sections to `index.html`** in the order the spec gives under "Pages → index.html". Put the masthead, now sign and mile-marker posts before the map section. Put the travel guide, road work and itinerary after it, then the footer. Use these ids, which `page.js` fills in:
 
 ```html
-<section class="wrap hero" aria-label="Where Typer is">
-  <span class="exit-tab">Unnamed assistant · working name</span>
+<section class="wrap hero" aria-label="Where Completionist is">
+  <span class="exit-tab">Autocomplete for Windows</span>
   <div class="sign hero-sign"><span class="hero-ghost" id="hero-ghost" aria-hidden="true"></span>
-    <h1 class="hero-name">Typer</h1><p class="hero-tag" id="hero-tag"></p><ul class="hero-arrows" id="hero-arrows"></ul></div>
+    <h1 class="hero-name">Completionist</h1><p class="hero-tag" id="hero-tag"></p><ul class="hero-arrows" id="hero-arrows"></ul></div>
   <div class="vms" role="status"><span class="vms-lbl">Now</span><p class="vms-text" id="vms-text"></p></div>
   <ul class="posts" id="posts" aria-label="Progress"></ul>
 </section>
@@ -865,7 +865,7 @@ function guide(id) {
   - **Start-up:**
     - If `!RM.data`, put the error box in `#guide` and stop. If `!RM.data.highways?.length`, do the same.
     - Call `RM.bindThemeButton(#theme)`.
-    - Build `L = TyperMapLayout.layoutMap(RM.data)` and `map = TyperMap.mount(frame, L, { onSelect: (id) => select(id, false) })`.
+    - Build `L = CompletionistMapLayout.layoutMap(RM.data)` and `map = CompletionistMap.mount(frame, L, { onSelect: (id) => select(id, false) })`.
     - Pick the first station: the hash if it names a release (`#v...`), otherwise the `next` release, otherwise the latest. Call `select(first)`, then `map.scrollToX(map.xOf("now"), false)`.
     - Wire the controls:
       - `#go-start` scrolls to 0.
@@ -873,7 +873,7 @@ function guide(id) {
       - `#go-end` scrolls to `xOf("end")`.
       - `#fit` toggles `aria-pressed` and calls `map.fit`.
     - Handle `hashchange`.
-    - Call `document.fonts.ready.then(() => map.redraw(TyperMapLayout.layoutMap(RM.data)))`.
+    - Call `document.fonts.ready.then(() => map.redraw(CompletionistMapLayout.layoutMap(RM.data)))`.
 
 - [ ] **Step 3: Style it maximalist.** Add these page styles. The spec lists the full inventory. These are the rules that set the look:
 
@@ -1061,5 +1061,5 @@ git commit -m "Roadmap: M1.15 done"
   - colors and type: `theme.css` (done), used by Tasks 1, 3 and 4
   - accessibility: Tasks 3, 4 and 7
   - the every-commit rule: in each task's commit step
-- **Names used across tasks:** `layoutMap`, `TyperMap.mount`, `select`, `spotlight`, `scrollToX`, `fit`, `redraw`, `xOf`, and the station id `"0.0.0"` for the start.
+- **Names used across tasks:** `layoutMap`, `CompletionistMap.mount`, `select`, `spotlight`, `scrollToX`, `fit`, `redraw`, `xOf`, and the station id `"0.0.0"` for the start.
 - **Layout constants:** `G.rows` (gantry 24, A 100, B 168) is defined in Task 2 and used in Task 3.

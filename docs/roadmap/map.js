@@ -1,5 +1,5 @@
-// Draws the roadmap highway map from TyperMapLayout.layoutMap(data) and handles selection, spotlight, panning and fit.
-// Exposes window.TyperMap.mount(frameEl, layout, { onSelect }).
+// Draws the roadmap highway map from CompletionistMapLayout.layoutMap(data) and handles selection, spotlight, panning and fit.
+// Exposes window.CompletionistMap.mount(frameEl, layout, { onSelect }).
 (() => {
   let ctx;
   const width = (text, font) => { ctx ||= document.createElement("canvas").getContext("2d"); ctx.font = font; return ctx.measureText(text).width; };
@@ -221,5 +221,5 @@
     return api;
   }
 
-  window.TyperMap = { mount };
+  window.CompletionistMap = { mount };
 })();

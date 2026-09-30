@@ -3,11 +3,11 @@ import asyncio
 import pytest
 
 from tests.fake_provider import Script, fake_provider
-from typer_engine.budget import DailyBudget, Prices
-from typer_engine.config import PhraseConfig
-from typer_engine.phrase_provider import ProviderSettings
-from typer_engine.phrases import PhraseService
-from typer_engine.protocol import PhraseUpdate, Request
+from completionist_engine.budget import DailyBudget, Prices
+from completionist_engine.config import PhraseConfig
+from completionist_engine.phrase_provider import ProviderSettings
+from completionist_engine.phrases import PhraseService
+from completionist_engine.protocol import PhraseUpdate, Request
 
 
 def req(request_id: int, before: str, after: str = "", event: str = "keystroke", title: str = "Notes") -> Request:
@@ -333,7 +333,7 @@ def test_a_lower_budget_in_a_reloaded_config_takes_effect_at_once():
     async def scenario():
         async with fake_provider() as (url, received):
             service = make_service(url)
-            service.budget.record(__import__("typer_engine.budget", fromlist=["Usage"]).Usage(uncached=1_000_000))
+            service.budget.record(__import__("completionist_engine.budget", fromlist=["Usage"]).Usage(uncached=1_000_000))
             assert service.usable()
             service.reconfigure(replace(service.config, daily_budget_usd=0.01))
             return service.usable()

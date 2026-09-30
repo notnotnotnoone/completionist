@@ -1,8 +1,8 @@
 // Pure geometry for the roadmap highway map: no DOM, no styling.
-// Used by map.js in the page (window.TyperMapLayout) and by scripts/map_layout.test.mjs under node.
+// Used by map.js in the page (window.CompletionistMapLayout) and by scripts/map_layout.test.mjs under node.
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
-  else root.TyperMapLayout = factory();
+  else root.CompletionistMapLayout = factory();
 })(typeof self !== "undefined" ? self : this, function () {
   const G = {
     left: 190, laneTop: 250, laneGap: 116, bundleGap: 18, curve: 80, joint: 12, bottom: 140, tail: 40,

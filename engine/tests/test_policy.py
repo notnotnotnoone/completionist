@@ -1,7 +1,7 @@
 import pytest
 
-from typer_engine.config import Config
-from typer_engine.policy import Mode, decide
+from completionist_engine.config import Config
+from completionist_engine.policy import Mode, decide
 
 CONFIG = Config(block=frozenset({"code.exe"}), allow=frozenset({"obsidian.exe"}))
 OFF = Mode(words=False, phrase="off")

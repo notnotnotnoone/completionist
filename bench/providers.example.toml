@@ -1,6 +1,6 @@
-# Candidates for `typer-bench`. Copy to providers.toml, set each API key in an environment variable
+# Candidates for `completionist-bench`. Copy to providers.toml, set each API key in an environment variable
 # (setx NAME "value" in a terminal, then open a new one), and run:
-#   cd engine && uv run typer-bench ../bench/providers.toml --json ../bench/results.json
+#   cd engine && uv run completionist-bench ../bench/providers.toml --json ../bench/results.json
 #
 # The provider must speak the OpenAI-style POST {base_url}/completions with streaming. DeepSeek's FIM
 # endpoint (under /beta) does. Providers that only offer chat endpoints, or a different FIM path,

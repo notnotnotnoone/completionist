@@ -1,4 +1,4 @@
-from typer_engine.context import anchored_window, build_prompt, trim_suffix
+from completionist_engine.context import anchored_window, build_prompt, trim_suffix
 
 PARAGRAPHS = ["The quick brown fox jumps over the lazy dog and keeps on running for a good while. " * 2 for _ in range(60)]
 TEXT = "\n\n".join(PARAGRAPHS)

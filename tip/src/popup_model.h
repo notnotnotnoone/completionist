@@ -15,7 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace typer {
+namespace completionist {
 
 enum class Key { Tab, Up, Down, Left, Right, Space, Escape, Enter, Other };
 
@@ -143,4 +143,4 @@ private:
     std::uint64_t armedAt_ = 0;
 };
 
-}  // namespace typer
+}  // namespace completionist

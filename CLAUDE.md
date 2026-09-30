@@ -1,6 +1,6 @@
-# Typer: agent guide
+# Completionist: agent guide
 
-System-wide, VS Code-style English autocomplete for Windows. A C++ TSF text service (`tip/`) runs inside every app and talks to a Python engine (`engine/`) over the named pipe `\\.\pipe\typer-engine` using length-prefixed JSON. The spec is the PRD in [issue #1](https://github.com/notnotnotnoone/typer/issues/1).
+System-wide, VS Code-style English autocomplete for Windows. A C++ TSF text service (`tip/`) runs inside every app and talks to a Python engine (`engine/`) over the named pipe `\\.\pipe\completionist-engine` using length-prefixed JSON. The spec is the PRD in [issue #1](https://github.com/notnotnotnoone/typer/issues/1).
 
 ## The roadmap: keep it current (required)
 
@@ -9,7 +9,7 @@ System-wide, VS Code-style English autocomplete for Windows. A C++ TSF text serv
 - `docs/roadmap/index.html`: the highway map. Every release on highways, one for each part of the app, with the release writing, the road work and the itinerary.
 - `docs/roadmap/tasks.html`: the task board by milestone, with filters, story coverage, decisions, risks and the log.
 
-`roadmap.js` is `window.TYPER_ROADMAP = { ... };` where everything after the `=` must be strict JSON: double quotes, no comments, no trailing commas.
+`roadmap.js` is `window.COMPLETIONIST_ROADMAP = { ... };` where everything after the `=` must be strict JSON: double quotes, no comments, no trailing commas.
 
 **Updating the roadmap is part of every task, not a follow-up.** A session that changes code, plans or findings without updating the roadmap is not finished.
 
@@ -43,7 +43,7 @@ Task statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. Milestone 
 
 ### Releases and versions
 
-Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases` gets writing whose length matches its size, in plain, standard English prose:
+Completionist uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases` gets writing whose length matches its size, in plain, standard English prose:
 
 | Release | Example | Writing | Field |
 |---|---|---|---|
@@ -77,7 +77,7 @@ Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases
 
 - **C++ builds** use the VS 2022 Build Tools from the command line: `vcvars64.bat`, then `cl`, with the static CRT (`/MT`), x64 only. See `tip/spike/build.cmd` for the pattern.
 - **A loaded DLL is locked.** Rename it aside before rebuilding. Apps (Chrome especially: use `chrome://restart`) must restart to pick up a new build.
-- **Logs** go to `%LOCALAPPDATA%\Typer\`.
+- **Logs** go to `%LOCALAPPDATA%\Completionist\`.
 
 ## Working agreements
 
@@ -86,7 +86,7 @@ Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases
   - Give a short checklist, then read the logs.
   - Don't drive the screen with computer use or screenshots unless asked.
 - **The TSF harness steals focus.** `tip/tests/tsf_e2e.ps1` pops a real window and needs the foreground for TSF focus. Run it only when the user says they are away, never while they work.
-- **Engine extras:** `typer-stats` (usage numbers), tray icon and Ctrl+Alt+P pause (`--no-tray` to skip), config hot reload, `engine.log` and `metrics.sqlite` in `%LOCALAPPDATA%\Typer`.
+- **Engine extras:** `completionist-stats` (usage numbers), tray icon and Ctrl+Alt+P pause (`--no-tray` to skip), config hot reload, `engine.log` and `metrics.sqlite` in `%LOCALAPPDATA%\Completionist`.
 - **Never ask for API keys in chat.**
   - Keys live in user environment variables that the user sets (e.g. `setx DEEPSEEK_API_KEY ...`).
   - Config only names the variable.

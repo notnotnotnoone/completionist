@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Typer Roadmap</title>
+<title>Completionist Roadmap</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Overpass:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800;1,900&family=Overpass+Mono:wght@400;600;700&display=swap">
@@ -46,7 +46,7 @@
 .hero { display: grid; gap: 1.1rem; padding-block: .5rem 2.5rem; }
 .hero .exit-tab { justify-self: start; margin-bottom: -1.1rem; margin-left: 1.5rem; position: relative; z-index: 1; }
 .hero-sign { padding: clamp(1.75rem, 5vw, 3.5rem); overflow: hidden; display: grid; gap: .9rem; }
-.hero-name { font-weight: 900; font-size: clamp(3.5rem, 13vw, 8rem); line-height: .85; letter-spacing: -.045em; position: relative; }
+.hero-name { font-weight: 900; font-size: clamp(2.1rem, 9.6vw, 6.4rem); line-height: .9; letter-spacing: -.045em; overflow-wrap: anywhere; position: relative; }
 .hero-tag { font-family: var(--serif); font-style: italic; font-size: clamp(1.1rem, 2.6vw, 1.6rem); max-width: 36rem; position: relative; }
 .hero-ghost { position: absolute; right: -1rem; bottom: -3.5rem; font-weight: 900; font-size: clamp(7rem, 26vw, 16rem); line-height: 1; letter-spacing: -.06em; color: transparent; -webkit-text-stroke: 2px var(--sign-dim); opacity: .28; pointer-events: none; }
 .hero-arrows { list-style: none; margin: .5rem 0 0; padding: 1rem 0 0; border-top: 2px solid var(--sign-dim); display: grid; gap: .45rem; font-weight: 800; font-size: clamp(1rem, 2.4vw, 1.35rem); position: relative; }
@@ -126,9 +126,9 @@
 <body>
 <header class="wrap">
   <div class="topbar">
-    <a class="brand" href="index.html" aria-label="Typer roadmap, map">
-      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 36 8v12c0 9-7 15-16 18C11 35 4 29 4 20V8Z" style="fill:var(--sign);stroke:var(--sign-ink);stroke-width:2"/><text x="20" y="27" text-anchor="middle" style="fill:var(--sign-ink);font:900 17px var(--display)">T</text></svg>
-      <span class="brand-word">Typer<small>working name</small></span>
+    <a class="brand" href="index.html" aria-label="Completionist roadmap, map">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 36 8v12c0 9-7 15-16 18C11 35 4 29 4 20V8Z" style="fill:var(--sign);stroke:var(--sign-ink);stroke-width:2"/><text x="20" y="27" text-anchor="middle" style="fill:var(--sign-ink);font:900 17px var(--display)">C</text></svg>
+      <span class="brand-word">Completionist<small>autocomplete</small></span>
     </a>
     <div class="topbar-side">
       <nav class="pages" aria-label="Roadmap pages"><a href="index.html" aria-current="page">Map</a><a href="tasks.html">Tasks</a></nav>
@@ -138,10 +138,10 @@
   </div>
 </header>
 <main>
-  <section class="wrap hero" aria-label="Where Typer is">
-    <span class="exit-tab">Unnamed assistant · working name</span>
+  <section class="wrap hero" aria-label="Where Completionist is">
+    <span class="exit-tab">Autocomplete for Windows</span>
     <div class="sign hero-sign"><span class="hero-ghost" id="hero-ghost" aria-hidden="true"></span>
-      <h1 class="hero-name">Typer</h1><p class="hero-tag" id="hero-tag"></p><ul class="hero-arrows" id="hero-arrows"></ul></div>
+      <h1 class="hero-name">Completionist</h1><p class="hero-tag" id="hero-tag"></p><ul class="hero-arrows" id="hero-arrows"></ul></div>
     <div class="vms" role="status"><span class="vms-lbl">Now</span><p class="vms-text" id="vms-text"></p></div>
     <ul class="posts" id="posts" aria-label="Progress"></ul>
   </section>

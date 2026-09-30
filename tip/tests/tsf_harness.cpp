@@ -1,9 +1,9 @@
-// A stand-in for an app's text field, hosting the real TyperTip.dll through real TSF (no registration,
+// A stand-in for an app's text field, hosting the real CompletionistTip.dll through real TSF (no registration,
 // no admin, no settings changes). It implements ITextStoreACP, "types" characters into it the way an
 // app would, sends keys through ITfKeystrokeMgr like an app's key handler, and checks what the text
 // service did: popup shown, keys consumed, words inserted. Needs the engine running on the default pipe.
 //
-//   tsf_harness.exe <path-to-TyperTip.dll> <screenshot-folder> [unaware]
+//   tsf_harness.exe <path-to-CompletionistTip.dll> <screenshot-folder> [unaware]
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -16,7 +16,7 @@
 #include <string>
 
 // {71B17AFC-9D1A-4E42-A7C3-2F4151AC6ABF}
-constexpr CLSID CLSID_TyperService = {0x71b17afc, 0x9d1a, 0x4e42, {0xa7, 0xc3, 0x2f, 0x41, 0x51, 0xac, 0x6a, 0xbf}};
+constexpr CLSID CLSID_CompletionistService = {0x71b17afc, 0x9d1a, 0x4e42, {0xa7, 0xc3, 0x2f, 0x41, 0x51, 0xac, 0x6a, 0xbf}};
 
 static int g_failures = 0;
 static void Check(bool ok, const char* what) {
@@ -244,7 +244,7 @@ static void Pump(DWORD ms) {
     }
 }
 
-static HWND PopupWindow() { return FindWindowW(L"TyperPopup", nullptr); }
+static HWND PopupWindow() { return FindWindowW(L"CompletionistPopup", nullptr); }
 static bool PopupVisible() {
     HWND popup = PopupWindow();
     return popup && IsWindowVisible(popup);
@@ -345,7 +345,7 @@ static LRESULT CALLBACK HostProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 int wmain(int argc, wchar_t** argv) {
     if (argc < 3) {
-        std::printf("usage: tsf_harness <TyperTip.dll> <screenshot-folder> [unaware]\n");
+        std::printf("usage: tsf_harness <CompletionistTip.dll> <screenshot-folder> [unaware]\n");
         return 2;
     }
     std::wstring shots = argv[2];
@@ -359,9 +359,9 @@ int wmain(int argc, wchar_t** argv) {
         if (std::wstring(argv[i]) == L"resilience" && i + 1 < argc) resilienceFlags = argv[i + 1];
     }
     if (!unaware) SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-    std::printf("spike at start: %s\n", GetModuleHandleW(L"TyperSpike.dll") ? "YES" : "no");
+    std::printf("spike at start: %s\n", GetModuleHandleW(L"CompletionistSpike.dll") ? "YES" : "no");
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-    std::printf("spike after CoInitialize: %s\n", GetModuleHandleW(L"TyperSpike.dll") ? "YES" : "no");
+    std::printf("spike after CoInitialize: %s\n", GetModuleHandleW(L"CompletionistSpike.dll") ? "YES" : "no");
 
     // Activate our thread manager first, before any window exists: creating a window makes Windows
     // activate the machine's selected keyboard (e.g. the old spike) on this thread.
@@ -382,10 +382,10 @@ int wmain(int argc, wchar_t** argv) {
     WNDCLASSW wc = {};
     wc.lpfnWndProc = HostProc;
     wc.hInstance = GetModuleHandleW(nullptr);
-    wc.lpszClassName = L"TyperHarnessHost";
+    wc.lpszClassName = L"CompletionistHarnessHost";
     wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
     RegisterClassW(&wc);
-    g_window = CreateWindowExW(0, L"TyperHarnessHost", L"Typer harness", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 200, 200, 640, 260,
+    g_window = CreateWindowExW(0, L"CompletionistHarnessHost", L"Completionist harness", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 200, 200, 640, 260,
                                nullptr, nullptr, wc.hInstance, nullptr);
     ShowWindow(g_window, SW_SHOWNORMAL);
     BringToFront(g_window);
@@ -395,16 +395,16 @@ int wmain(int argc, wchar_t** argv) {
     if (!dll) return std::printf("cannot load the DLL\n"), 1;
     auto getClass = reinterpret_cast<HRESULT(STDAPICALLTYPE*)(REFCLSID, REFIID, void**)>(GetProcAddress(dll, "DllGetClassObject"));
     IClassFactory* factory = nullptr;
-    getClass(CLSID_TyperService, IID_IClassFactory, reinterpret_cast<void**>(&factory));
+    getClass(CLSID_CompletionistService, IID_IClassFactory, reinterpret_cast<void**>(&factory));
 
-    std::printf("spike loaded after thread manager activation: %s\n", GetModuleHandleW(L"TyperSpike.dll") ? "YES" : "no");
+    std::printf("spike loaded after thread manager activation: %s\n", GetModuleHandleW(L"CompletionistSpike.dll") ? "YES" : "no");
     ITfTextInputProcessorEx* tip = nullptr;
     factory->CreateInstance(nullptr, IID_ITfTextInputProcessorEx, reinterpret_cast<void**>(&tip));
     // Each text service has its own client id, which TSF hands out per CLSID (as it does when it activates a TIP).
     TfClientId tipClient = 0;
     ITfClientId* clientIds = nullptr;
     if (SUCCEEDED(threadMgr->QueryInterface(IID_ITfClientId, reinterpret_cast<void**>(&clientIds)))) {
-        clientIds->GetClientId(CLSID_TyperService, &tipClient);
+        clientIds->GetClientId(CLSID_CompletionistService, &tipClient);
         clientIds->Release();
     }
     HRESULT activateHr = tip->ActivateEx(threadMgr, tipClient, 0);
@@ -439,7 +439,7 @@ int wmain(int argc, wchar_t** argv) {
     bool focusOk = g_refocus();
     Pump(300);
     std::printf("harness has TSF focus: %s\n", focusOk ? "yes" : "NO (something else keeps the foreground; results will be unreliable, so stop using the PC while this runs)");
-    std::printf("spike loaded after focus: %s\n", GetModuleHandleW(L"TyperSpike.dll") ? "YES" : "no");
+    std::printf("spike loaded after focus: %s\n", GetModuleHandleW(L"CompletionistSpike.dll") ? "YES" : "no");
 
     ITfKeyEventSink* keySink = nullptr;
     tip->QueryInterface(IID_ITfKeyEventSink, reinterpret_cast<void**>(&keySink));

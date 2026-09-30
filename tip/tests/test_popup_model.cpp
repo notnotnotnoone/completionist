@@ -1,10 +1,10 @@
 #include "../src/popup_model.h"
 #include "test_harness.h"
 
-using typer::Action;
-using typer::Key;
-using typer::Modifiers;
-using typer::PopupModel;
+using completionist::Action;
+using completionist::Key;
+using completionist::Modifiers;
+using completionist::PopupModel;
 
 namespace {
 constexpr Modifiers kNone{};

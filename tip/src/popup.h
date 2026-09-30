@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-namespace typer {
+namespace completionist {
 
 struct PopupContent {
     std::vector<std::wstring> words;
@@ -55,4 +55,4 @@ private:
     bool shown_ = false;
 };
 
-}  // namespace typer
+}  // namespace completionist

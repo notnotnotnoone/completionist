@@ -6,7 +6,7 @@
 
 ## Goal
 
-Replace the two roadmap pages with one much clearer, heavily styled **highway map** of every release, plus the existing task board restyled to match. Make **Evergreen** the official color scheme of the assistant. The product is still unnamed, and "Typer" is its working name. Write `CONTEXT.md` as the project's reference for everything important.
+Replace the two roadmap pages with one much clearer, heavily styled **highway map** of every release, plus the existing task board restyled to match. Make **Evergreen** the official color scheme of the assistant. The product was named Completionist after this spec was written; it was called Typer (a working name) before that. Write `CONTEXT.md` as the project's reference for everything important.
 
 The user asked for a **maximalist** style. Be bold and rich: signs, shields, textures, big type and small details everywhere. It still has to be readable and accessible.
 
@@ -117,19 +117,19 @@ sign rows (top y): gantry 24 · exit row A 100 · exit row B 168
 
 ### `index.html`: the highway map (new)
 
-Files: `index.html` (markup and page CSS), `map-layout.js` (pure geometry), `map.js` (SVG drawing and map interaction, exposes `window.TyperMap`), `page.js` (everything else on the page, plus the wiring). Scripts load in this order at the end of `<body>`: `roadmap.js`, `common.js`, `map-layout.js`, `map.js`, `page.js`.
+Files: `index.html` (markup and page CSS), `map-layout.js` (pure geometry), `map.js` (SVG drawing and map interaction, exposes `window.CompletionistMap`), `page.js` (everything else on the page, plus the wiring). Scripts load in this order at the end of `<body>`: `roadmap.js`, `common.js`, `map-layout.js`, `map.js`, `page.js`.
 
 Sections, top to bottom:
 
 1. **Top bar** (`.topbar` in `theme.css`):
    - a brand mark: an SVG shield in `--sign` with a white "T"
-   - "Typer", with the small caps line "working name" underneath
+   - "Completionist", with the small caps line "autocomplete" underneath
    - `nav.pages` with Map and Tasks (Map is current)
    - "Updated <date>" in mono
    - a `#theme` Day/Night button, wired with `RM.bindThemeButton`
 2. **Masthead**: a full-width `.sign` panel, the biggest element on the page.
-   - An `.exit-tab` above it reading "UNNAMED ASSISTANT · WORKING NAME".
-   - The name "Typer" in huge Overpass 900 type (clamp from 3.5rem to 8rem), with `tagline` under it.
+   - An `.exit-tab` above it reading "AUTOCOMPLETE FOR WINDOWS".
+   - The name "Completionist" in huge Overpass 900 type (clamp from 3.5rem to 8rem), with `tagline` under it.
    - Two road-sign arrow lines. One is "↑ NEXT EXIT 0.1.0 · Words everywhere", taken from the release with status `next`. The other is "→ 1.0 · Autocomplete for everything you type", the next major release.
    - Behind the text, the latest version drawn huge (about 16rem) in outline only (`-webkit-text-stroke` in `--sign-dim` at about 25% opacity).
 3. **Now sign**: a dark `--vms` panel with `--vms-ink` text in Overpass Mono, like an electronic road sign. It has a "NOW" label and shows `data.now`, with LED dots drawn on top (a small repeating radial-gradient mask). Show the text exactly as it is in the data.
@@ -179,7 +179,7 @@ Move the current `index.html` here with `git mv` so its history is kept, then:
 - Add a highway filter: chips alongside the status chips. Keep the area selector.
 - The "Ships as vX" and "Shipped in vX" links go to `index.html#vX`.
 - Remove every link to `releases.html`.
-- Keep the "Up next" candidate popup (the Typer motif), restyled with `--sign` and `--vms` tones.
+- Keep the "Up next" candidate popup (the Completionist motif), restyled with `--sign` and `--vms` tones.
 - Give milestone cards a highway-colored progress strip: one segment per highway, sized by that highway's share of the milestone's tasks.
 
 ### `releases.html`
@@ -274,10 +274,10 @@ SVG text measuring (label wrapping) must wait for `document.fonts.ready`, then d
 
 ## What CONTEXT.md contains
 
-1. **Name.** The product is unnamed. "Typer" is the working name, and it currently appears in:
-   - the repo, the `TYPER_ROADMAP` global, and the engine package `typer_engine`
-   - the CLI commands `typer-engine`, `typer-probe`, `typer-stats`, `typer-build-ngrams` and `typer-bench`
-   - the pipe `\\.\pipe\typer-engine`, `%LOCALAPPDATA%\Typer\`, `%APPDATA%\Typer\config.toml` and `TyperTip.dll`
+1. **Name.** The product is called Completionist (first called Typer). List where the name appears, and the one-time move of the old `Typer` folders.
+   - the repo, the `COMPLETIONIST_ROADMAP` global, and the engine package `completionist_engine`
+   - the CLI commands `completionist-engine`, `completionist-probe`, `completionist-stats`, `completionist-build-ngrams` and `completionist-bench`
+   - the pipe `\\.\pipe\completionist-engine`, `%LOCALAPPDATA%\Completionist\`, `%APPDATA%\Completionist\config.toml` and `CompletionistTip.dll`
    - the keyboard name in Settings
 
    All of those change if the product gets a real name.
@@ -294,8 +294,8 @@ SVG text measuring (label wrapping) must wait for `document.fonts.ready`, then d
    - The C++ TSF text service DLL runs inside every app. It's thin: popup, key router, context reader and pipe client.
    - It talks to the Python engine over the named pipe, using length-prefixed JSON (a 4-byte little-endian length, UTF-8, 1 MB cap).
    - The engine handles word ranking, phrases, learning, metrics, the tray and hot reload.
-   - Data lives in `%LOCALAPPDATA%\Typer`: `ngrams.sqlite`, `personal.sqlite`, `metrics.sqlite`, `spend.json`, `engine.log` and `tip.log`.
-   - The config is `%APPDATA%\Typer\config.toml`.
+   - Data lives in `%LOCALAPPDATA%\Completionist`: `ngrams.sqlite`, `personal.sqlite`, `metrics.sqlite`, `spend.json`, `engine.log` and `tip.log`.
+   - The config is `%APPDATA%\Completionist\config.toml`.
 5. **How words are ranked:** word frequency, then the previous one or two words (n-grams from WikiText-103), then your own habits (counts only, and a new word is learned after 3 uses).
 6. **How phrases work:**
    - They come from cheap FIM completion models, never premium chat models. DeepSeek is the default.

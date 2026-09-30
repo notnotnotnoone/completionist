@@ -1,9 +1,9 @@
 from datetime import date
 
-from typer_engine.assemble import METRICS_FILE
-from typer_engine.metrics import Metrics
-from typer_engine.stats_cli import main
-from typer_engine.tray import icon_image, pause_label, stats_line
+from completionist_engine.assemble import METRICS_FILE
+from completionist_engine.metrics import Metrics
+from completionist_engine.stats_cli import main
+from completionist_engine.tray import icon_image, pause_label, stats_line
 
 
 def test_the_stats_command_prints_the_summary(tmp_path, capsys):
@@ -38,7 +38,7 @@ def test_the_tray_icon_is_blue_when_on_and_grey_when_paused():
 
 
 def test_the_pause_menu_item_says_what_clicking_it_does():
-    assert pause_label(False) == "Pause Typer" and pause_label(True) == "Resume Typer"
+    assert pause_label(False) == "Pause Completionist" and pause_label(True) == "Resume Completionist"
 
 
 def test_the_stats_notification_is_a_single_readable_line():

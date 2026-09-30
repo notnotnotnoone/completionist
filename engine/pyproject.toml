@@ -1,7 +1,7 @@
 [project]
-name = "typer-engine"
+name = "completionist-engine"
 version = "0.1.0"
-description = "Typer engine: word and phrase suggestions served to the TSF text service over a named pipe"
+description = "Completionist engine: word and phrase suggestions served to the TSF text service over a named pipe"
 readme = "README.md"
 authors = [
     { name = "Daniel", email = "lidaniel645@gmail.com" }
@@ -15,11 +15,11 @@ dependencies = [
 ]
 
 [project.scripts]
-typer-engine = "typer_engine.app:main"
-typer-probe = "typer_engine.probe:main"
-typer-build-ngrams = "typer_engine.build_ngrams:main"
-typer-bench = "typer_engine.bench:main"
-typer-stats = "typer_engine.stats_cli:main"
+completionist-engine = "completionist_engine.app:main"
+completionist-probe = "completionist_engine.probe:main"
+completionist-build-ngrams = "completionist_engine.build_ngrams:main"
+completionist-bench = "completionist_engine.bench:main"
+completionist-stats = "completionist_engine.stats_cli:main"
 
 [build-system]
 requires = ["uv_build>=0.11.3,<0.12.0"]

@@ -1,7 +1,7 @@
-# Builds and runs load_test.exe against out\TyperTip.dll (build the DLL first with ..\build.cmd).
+# Builds and runs load_test.exe against out\CompletionistTip.dll (build the DLL first with ..\build.cmd).
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $out = Join-Path $here "..\out"
-$dll = Join-Path $out "TyperTip.dll"
+$dll = Join-Path $out "CompletionistTip.dll"
 if (-not (Test-Path $dll)) { throw "Build first: $dll not found" }
 $build = @"
 call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul

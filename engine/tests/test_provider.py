@@ -3,8 +3,8 @@ import asyncio
 import pytest
 
 from tests.fake_provider import Script, fake_provider
-from typer_engine.budget import Usage
-from typer_engine.phrase_provider import PhraseProvider, PhraseRequest, ProviderError, ProviderSettings
+from completionist_engine.budget import Usage
+from completionist_engine.phrase_provider import PhraseProvider, PhraseRequest, ProviderError, ProviderSettings
 
 
 def settings(url: str, **overrides) -> ProviderSettings:

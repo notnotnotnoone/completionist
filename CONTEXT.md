@@ -2,14 +2,14 @@ Reference for anyone working on this project. CLAUDE.md is how agents work; this
 
 ## 1. Name
 
-The product is unnamed. **Typer** is the working name, and it currently appears in:
+The product is called **Completionist**. It was first called Typer (the working name through 0.0.5); the engine moves a leftover `%LOCALAPPDATA%\Typer` and `%APPDATA%\Typer` folder to the new name on its first start. The name appears in:
 
-- the repo, the `TYPER_ROADMAP` global in `roadmap.js`, and the engine package `typer_engine`
-- the CLI commands `typer-engine`, `typer-probe`, `typer-stats` and `typer-build-ngrams`
-- the pipe `\\.\pipe\typer-engine`, the folder `%LOCALAPPDATA%\Typer\`, the config `%APPDATA%\Typer\config.toml` and `TyperTip.dll`
+- the `COMPLETIONIST_ROADMAP` global in `roadmap.js`, and the engine package `completionist_engine`
+- the CLI commands `completionist-engine`, `completionist-probe`, `completionist-stats` and `completionist-build-ngrams`
+- the pipe `\.\pipe\completionist-engine`, the folder `%LOCALAPPDATA%\Completionist\`, the config `%APPDATA%\Completionist\config.toml` and `CompletionistTip.dll`
 - the keyboard name in Windows Settings
 
-All of those change if the product gets a real name. The roadmap pages say "working name" wherever the name is shown.
+The GitHub repository and the local checkout folder are still named `typer`; renaming them is up to the owner.
 
 ## 2. What it is
 
@@ -26,16 +26,16 @@ It is built as a **Text Services Framework (TSF) text service**, the same mechan
 | Ctrl+Right | Accept the next word of the phrase |
 | Ctrl+Space | Ask for a phrase now (in apps where phrases aren't automatic) |
 | Esc | Dismiss until the next word |
-| Ctrl+Alt+P | Pause or resume Typer everywhere |
+| Ctrl+Alt+P | Pause or resume Completionist everywhere |
 
 **Enter is never used**, so chat messages still send.
 
 ## 4. Architecture
 
-- **The DLL** (`tip/`, C++, `TyperTip.dll`) is loaded by Windows into every app with text input. It is thin: the popup window, the key router, the context reader and the pipe client. Pipe I/O is on a worker thread, so it never blocks the app's UI thread. No exception crosses a COM boundary. If the engine isn't running, nothing happens and the DLL reconnects on its own.
-- **The pipe** is `\\.\pipe\typer-engine`. Messages are length-prefixed JSON: a 4-byte little-endian length, then UTF-8, with a 1 MB cap. The DLL checks that the engine runs as the same user.
+- **The DLL** (`tip/`, C++, `CompletionistTip.dll`) is loaded by Windows into every app with text input. It is thin: the popup window, the key router, the context reader and the pipe client. Pipe I/O is on a worker thread, so it never blocks the app's UI thread. No exception crosses a COM boundary. If the engine isn't running, nothing happens and the DLL reconnects on its own.
+- **The pipe** is `\\.\pipe\completionist-engine`. Messages are length-prefixed JSON: a 4-byte little-endian length, then UTF-8, with a 1 MB cap. The DLL checks that the engine runs as the same user.
 - **The engine** (`engine/`, Python, a standalone uv project) does word ranking, phrases, learning, metrics, the tray icon, the pause hotkey and config hot reload.
-- **Data** lives in `%LOCALAPPDATA%\Typer` (change it with `[data] dir`):
+- **Data** lives in `%LOCALAPPDATA%\Completionist` (change it with `[data] dir`):
 
 | File | What |
 |---|---|
@@ -46,7 +46,7 @@ It is built as a **Text Services Framework (TSF) text service**, the same mechan
 | `engine.log` | Engine log (rotating) |
 | `tip.log` | DLL log. An empty file named `verbose` next to it turns on debug lines |
 
-- **The config** is `%APPDATA%\Typer\config.toml`. All of it is optional, and edits apply within a couple of seconds. A bad edit keeps the old settings and logs why.
+- **The config** is `%APPDATA%\Completionist\config.toml`. All of it is optional, and edits apply within a couple of seconds. A bad edit keeps the old settings and logs why.
 
 ## 5. How words are ranked
 
@@ -77,24 +77,24 @@ It is built as a **Text Services Framework (TSF) text service**, the same mechan
 | Term | Meaning |
 |---|---|
 | TSF | Text Services Framework: the Windows API IMEs use to read and edit text in any app |
-| Text service, TIP | The COM component (`TyperTip.dll`) that plugs into TSF. TIP means text input processor |
-| IME | Input method editor. Typer is registered the way an IME is, but it never changes what you type unless you accept |
-| Input scope | A hint an app gives Windows about a field (password, URL, email, number). Typer stays silent in those |
-| Edit session | The TSF mechanism for reading or changing text. Chromium apps sometimes fail it during focus changes, so Typer retries |
+| Text service, TIP | The COM component (`CompletionistTip.dll`) that plugs into TSF. TIP means text input processor |
+| IME | Input method editor. Completionist is registered the way an IME is, but it never changes what you type unless you accept |
+| Input scope | A hint an app gives Windows about a field (password, URL, email, number). Completionist stays silent in those |
+| Edit session | The TSF mechanism for reading or changing text. Chromium apps sometimes fail it during focus changes, so Completionist retries |
 | Engine | The Python process behind the DLL |
-| Pipe | The named pipe `\\.\pipe\typer-engine` between the DLL and the engine |
+| Pipe | The named pipe `\\.\pipe\completionist-engine` between the DLL and the engine |
 | Word completion | The dropdown of likely words at the caret |
 | Phrase | A greyed continuation of the sentence, shown in the top row of the popup |
 | Phrase row | The top row of the popup, where the phrase streams in |
 | FIM | Fill-in-the-middle: a completion mode where the model also sees the text after the caret |
 | Anchored context | Context cut at fixed boundaries so the provider's prefix cache hits and cost stays low |
 | Allow-list, block-list | `[apps] allow` lists apps where phrases appear on their own. `[apps] block` lists apps with no suggestions |
-| Silent field | A field where Typer shows and sends nothing, and learns nothing |
+| Silent field | A field where Completionist shows and sends nothing, and learns nothing |
 | Personal store | `personal.sqlite`: your word and word-pair counts |
 | Promotion | Adding a word to your vocabulary after 3 uses |
 | N-gram table | Counts of word pairs and triples (`ngrams.sqlite`) used to rank by context |
 | Budget | The daily spend cap for phrases ($0.50) |
-| Metrics | Counts and timings in `metrics.sqlite`, shown by `typer-stats` |
+| Metrics | Counts and timings in `metrics.sqlite`, shown by `completionist-stats` |
 | Harness | The scripts under `tip/tests` that drive the real DLL through real TSF. `tsf_e2e.ps1` steals focus |
 | Spike | The throwaway M0 experiment in `tip/spike/` that proved the TSF approach |
 | Milestone | A group of tasks (M0, M1, ...). Each minor release is one milestone |
@@ -200,7 +200,7 @@ The Google Fonts link goes in the `<head>` of every roadmap page, before `theme.
 
 From `roadmap.js` `decisions`:
 
-- **Build Typer as a TSF text service.** The spike confirmed the caret rectangle, real context, key capture and insertion in Notepad and in Chromium and Electron apps.
+- **Build Completionist as a TSF text service.** The spike confirmed the caret rectangle, real context, key capture and insertion in Notepad and in Chromium and Electron apps.
 - **A thin C++ DLL, with all intelligence in one Python engine process**, joined by a named pipe with length-prefixed JSON.
 - **Phrases come from cheap completion models, never premium chat models.** The budget is under $0.50 a day, through anchored context and a daily cap.
 - **No AI or vision for caret or screen tracking.** TSF gives the caret. UI Automation reads context after v1.
@@ -218,7 +218,7 @@ From the working agreements in `CLAUDE.md`:
 - **The user does hands-on app testing.** Give a short checklist, then read the logs. Don't drive the screen unless asked.
 - **The TSF harness steals focus.** Run `tip/tests/tsf_e2e.ps1` only when the user is away.
 - **Don't change Windows system settings.** Give the user the command instead (the keyboard list, the registry). `regsvr32` raises a UAC prompt the user approves.
-- **Don't over-engineer.** Typer is a typing tool. Build what was asked, the simplest way, and pick sensible defaults.
+- **Don't over-engineer.** Completionist is a typing tool. Build what was asked, the simplest way, and pick sensible defaults.
 - **Branch per chunk of work.** Ask before pushing to `main`.
 
 ## 13. Where things live
@@ -236,5 +236,5 @@ From the working agreements in `CLAUDE.md`:
 | `README.md` | Install and use |
 | `CLAUDE.md` | How agents work on this repo |
 | `CONTEXT.md` | This file |
-| `%LOCALAPPDATA%\Typer\` | Engine and DLL data and logs |
-| `%APPDATA%\Typer\config.toml` | User config |
+| `%LOCALAPPDATA%\Completionist\` | Engine and DLL data and logs |
+| `%APPDATA%\Completionist\config.toml` | User config |

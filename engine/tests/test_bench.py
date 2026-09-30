@@ -2,10 +2,10 @@ import asyncio
 import json
 
 from tests.fake_provider import Script, fake_provider
-from typer_engine.bench import BenchProvider, Sample, format_report, load_providers, main, run_bench
+from completionist_engine.bench import BenchProvider, Sample, format_report, load_providers, main, run_bench
 
 
-def provider(url: str, name: str = "fake", key_env: str = "TYPER_TEST_KEY", **kwargs) -> BenchProvider:
+def provider(url: str, name: str = "fake", key_env: str = "COMPLETIONIST_TEST_KEY", **kwargs) -> BenchProvider:
     return BenchProvider(name=name, base_url=url, model="m", api_key_env=key_env, **kwargs)
 
 
@@ -13,7 +13,7 @@ SAMPLES = [Sample("chat", "hey are you free to grab", " later?"), Sample("email"
 
 
 def test_each_provider_is_timed_on_each_sample(monkeypatch):
-    monkeypatch.setenv("TYPER_TEST_KEY", "secret")
+    monkeypatch.setenv("COMPLETIONIST_TEST_KEY", "secret")
 
     async def scenario():
         async with fake_provider(Script(chunks=["a", "b", "c"], delay=0.02)) as (url, received):
@@ -30,7 +30,7 @@ def test_each_provider_is_timed_on_each_sample(monkeypatch):
 
 
 def test_a_provider_without_a_key_is_skipped_and_reported(monkeypatch):
-    monkeypatch.delenv("TYPER_TEST_KEY", raising=False)
+    monkeypatch.delenv("COMPLETIONIST_TEST_KEY", raising=False)
 
     async def scenario():
         async with fake_provider() as (url, received):
@@ -38,11 +38,11 @@ def test_a_provider_without_a_key_is_skipped_and_reported(monkeypatch):
 
     results, received = asyncio.run(scenario())
     assert received == []
-    assert all(r.error == "no API key (set TYPER_TEST_KEY)" for r in results)
+    assert all(r.error == "no API key (set COMPLETIONIST_TEST_KEY)" for r in results)
 
 
 def test_a_failing_provider_is_recorded_and_the_others_still_run(monkeypatch):
-    monkeypatch.setenv("TYPER_TEST_KEY", "secret")
+    monkeypatch.setenv("COMPLETIONIST_TEST_KEY", "secret")
 
     async def scenario():
         async with fake_provider(Script(status=500)) as (bad, _), fake_provider() as (good, _):
@@ -54,7 +54,7 @@ def test_a_failing_provider_is_recorded_and_the_others_still_run(monkeypatch):
 
 
 def test_a_context_sweep_sends_prompts_of_growing_size(monkeypatch):
-    monkeypatch.setenv("TYPER_TEST_KEY", "secret")
+    monkeypatch.setenv("COMPLETIONIST_TEST_KEY", "secret")
 
     async def scenario():
         async with fake_provider() as (url, received):
@@ -67,7 +67,7 @@ def test_a_context_sweep_sends_prompts_of_growing_size(monkeypatch):
 
 
 def test_a_clean_completion_is_flagged_and_a_chatty_one_is_not(monkeypatch):
-    monkeypatch.setenv("TYPER_TEST_KEY", "secret")
+    monkeypatch.setenv("COMPLETIONIST_TEST_KEY", "secret")
 
     async def scenario(chunks):
         async with fake_provider(Script(chunks=chunks)) as (url, _):
@@ -79,7 +79,7 @@ def test_a_clean_completion_is_flagged_and_a_chatty_one_is_not(monkeypatch):
 
 
 def test_the_report_summarises_each_provider(monkeypatch):
-    monkeypatch.setenv("TYPER_TEST_KEY", "secret")
+    monkeypatch.setenv("COMPLETIONIST_TEST_KEY", "secret")
 
     async def scenario():
         async with fake_provider(Script(chunks=["a", "b"], delay=0.01)) as (url, _):
@@ -103,12 +103,12 @@ def test_providers_load_from_a_toml_file(tmp_path):
 
 
 def test_the_command_line_runs_and_can_write_json(tmp_path, monkeypatch, capsys):
-    monkeypatch.setenv("TYPER_TEST_KEY", "secret")
+    monkeypatch.setenv("COMPLETIONIST_TEST_KEY", "secret")
 
     async def serve_and_run():
         async with fake_provider() as (url, _):
             path = tmp_path / "p.toml"
-            path.write_text(f'[[provider]]\nname = "f"\nbase_url = "{url}"\nmodel = "m"\napi_key_env = "TYPER_TEST_KEY"\n', encoding="utf-8")
+            path.write_text(f'[[provider]]\nname = "f"\nbase_url = "{url}"\nmodel = "m"\napi_key_env = "COMPLETIONIST_TEST_KEY"\n', encoding="utf-8")
             out = tmp_path / "out.json"
             code = await asyncio.to_thread(main, [str(path), "--json", str(out), "--contexts", "150"])
             return code, out

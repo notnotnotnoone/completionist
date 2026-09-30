@@ -1,5 +1,5 @@
-from typer_engine.ngrams import UnigramStat
-from typer_engine.vocabulary import filter_vocabulary
+from completionist_engine.ngrams import UnigramStat
+from completionist_engine.vocabulary import filter_vocabulary
 
 # (word, weight): higher weight = more common. Rank = position by weight.
 VOCAB = [("the", 9.0), ("tomorrow", 8.0), ("january", 7.0), ("recommend", 6.0), ("tomorow", 3.0), ("updike", 2.0), ("lol", 1.5), ("zzzz", 1.0)]

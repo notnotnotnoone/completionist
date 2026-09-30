@@ -1,6 +1,6 @@
 import pytest
 
-from typer_engine.words import Completion, WordCompleter, current_word
+from completionist_engine.words import Completion, WordCompleter, current_word
 
 VOCAB = [
     ("the", 7.7),

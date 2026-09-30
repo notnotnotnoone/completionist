@@ -1,4 +1,4 @@
-// Loads out\TyperTip.dll without registering it, activates the text service on a real TSF thread
+// Loads out\CompletionistTip.dll without registering it, activates the text service on a real TSF thread
 // manager and tears it down, many times. Catches crashes, hangs and leaks in the lifecycle (popup
 // window, engine client thread, sinks) that would otherwise take down every app the user types in.
 #define WIN32_LEAN_AND_MEAN
@@ -9,7 +9,7 @@
 #include <cstdio>
 
 // {71B17AFC-9D1A-4E42-A7C3-2F4151AC6ABF}
-constexpr CLSID CLSID_TyperService = {0x71b17afc, 0x9d1a, 0x4e42, {0xa7, 0xc3, 0x2f, 0x41, 0x51, 0xac, 0x6a, 0xbf}};
+constexpr CLSID CLSID_CompletionistService = {0x71b17afc, 0x9d1a, 0x4e42, {0xa7, 0xc3, 0x2f, 0x41, 0x51, 0xac, 0x6a, 0xbf}};
 
 static void Pump(DWORD ms) {
     ULONGLONG end = GetTickCount64() + ms;
@@ -30,7 +30,7 @@ static void Pump(DWORD ms) {
 
 int wmain(int argc, wchar_t** argv) {
     if (argc < 2) {
-        std::printf("usage: load_test <path-to-TyperTip.dll> [cycles]\n");
+        std::printf("usage: load_test <path-to-CompletionistTip.dll> [cycles]\n");
         return 2;
     }
     int cycles = argc > 2 ? _wtoi(argv[2]) : 30;
@@ -43,7 +43,7 @@ int wmain(int argc, wchar_t** argv) {
     REQUIRE(getClassObject && canUnload);
 
     IClassFactory* factory = nullptr;
-    REQUIRE(SUCCEEDED(getClassObject(CLSID_TyperService, IID_IClassFactory, reinterpret_cast<void**>(&factory))));
+    REQUIRE(SUCCEEDED(getClassObject(CLSID_CompletionistService, IID_IClassFactory, reinterpret_cast<void**>(&factory))));
 
     ITfThreadMgr* threadMgr = nullptr;
     REQUIRE(SUCCEEDED(CoCreateInstance(CLSID_TF_ThreadMgr, nullptr, CLSCTX_INPROC_SERVER, IID_ITfThreadMgr, reinterpret_cast<void**>(&threadMgr))));

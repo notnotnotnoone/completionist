@@ -1,5 +1,5 @@
 // The highway-map page: masthead, now sign, mile-marker posts, spotlight chips, legend, travel guide,
-// road work and itinerary, plus the wiring to the map (TyperMap) and to location.hash (#v0.1.0).
+// road work and itinerary, plus the wiring to the map (CompletionistMap) and to location.hash (#v0.1.0).
 (() => {
   const $ = (s) => document.querySelector(s);
   const R = window.RM;
@@ -170,8 +170,8 @@
   }
 
   // ---- wiring
-  const L = TyperMapLayout.layoutMap(data);
-  const map = TyperMap.mount($("#map-frame"), L, { onSelect: (id) => select(id, false) });
+  const L = CompletionistMapLayout.layoutMap(data);
+  const map = CompletionistMap.mount($("#map-frame"), L, { onSelect: (id) => select(id, false) });
 
   function select(id, scroll) {
     map.select(id);
@@ -197,5 +197,5 @@
   $("#fit").addEventListener("click", (e) => { const on = e.currentTarget.getAttribute("aria-pressed") !== "true"; e.currentTarget.setAttribute("aria-pressed", String(on)); map.fit(on); });
   document.addEventListener("click", (e) => { const b = e.target.closest("[data-go]"); if (b) select(b.dataset.go, true); });
   addEventListener("hashchange", () => { const id = fromHash(); if (id) select(id, true); });
-  document.fonts.ready.then(() => map.redraw(TyperMapLayout.layoutMap(data)));
+  document.fonts.ready.then(() => map.redraw(CompletionistMapLayout.layoutMap(data)));
 })();
