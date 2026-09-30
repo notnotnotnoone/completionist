@@ -13,6 +13,17 @@ System-wide, VS Code-style English autocomplete for Windows. A C++ TSF text serv
 
 **Updating the roadmap is part of every task, not a follow-up.** A session that changes code, plans or findings without updating the roadmap is not finished.
 
+**Every commit updates the roadmap. No exceptions.** Every single commit, including small fixes, docs and merges, stages `docs/roadmap/roadmap.js` with at least a new line at the top of `log` saying what that commit did, and `python scripts/check_roadmap.py` must print `roadmap ok` before you commit. If a commit has nothing else to change in the roadmap, the log line is still required.
+
+**Highways (the roadmap map).** The map draws each part of the app as a highway (`highways` in `roadmap.js`), and a task's `area` decides which highway it's on.
+- Every task area must belong to exactly one highway. A new area means adding it to a highway's `areas`.
+- Every patch release names the highways it touched: `"highways": ["engine"]`. Minor releases get theirs from their milestone's tasks, and major releases take every open highway.
+- A bug-fix patch adds `"kind": "fix"` and is drawn as a cul-de-sac. Other patches leave `kind` out.
+- A highway with `"opens": "X.0.0"` starts at that major release. Nothing before that version may name it.
+- The checker enforces all of this.
+
+The design for the map pages, and the plan to build them, are in `docs/superpowers/specs/2026-09-29-roadmap-highway-map-design.md` and `docs/superpowers/plans/2026-09-29-roadmap-highway-map.md`.
+
 1. **At the start of a session**, read `roadmap.js`. Unless the user asks for something else, work on the tasks marked `doing` or `next`, and tell the user which one you're picking up.
 2. **When you start a task**, set its status to `doing`.
 3. **When you finish a task**, set it to `done` and add `refs` (branch, key files, version). Promote the next task(s) to `next`.
@@ -26,7 +37,7 @@ System-wide, VS Code-style English autocomplete for Windows. A C++ TSF text serv
 6. **Record decisions and findings.** Add them to `decisions`, and add or re-status entries in `risks` (`open`, `mitigated`, `retired`).
 7. **With every change**, set `updated` to today's date and add a one-line entry at the **top** of `log`: what changed and why.
 8. **Validate** with `python scripts/check_roadmap.py`. It must print `roadmap ok`. It also enforces the writing lengths below.
-9. **Commit** `roadmap.js` in the same commit as the work it describes.
+9. **Commit** `roadmap.js` in the same commit as the work it describes. Every commit has a `roadmap.js` change (see the rule above).
 
 Task statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. Milestone statuses: `planned`, `active`, `done`. Task ids are `<milestone>.<n>` (e.g. `M1.8`); never reuse or renumber them.
 

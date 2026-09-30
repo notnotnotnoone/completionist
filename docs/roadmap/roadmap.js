@@ -1,14 +1,55 @@
-// Typer roadmap data, read by index.html (tasks) and releases.html (release timeline).
+// Typer roadmap data, read by index.html (the highway map) and tasks.html (the task board).
 // Everything after the `=` is strict JSON: double quotes, no comments, no trailing commas.
 // Update it with every change (see CLAUDE.md), then run: python scripts/check_roadmap.py
 window.TYPER_ROADMAP = {
-  "schema": 2,
+  "schema": 3,
   "project": "Typer",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
   "updated": "2026-09-29",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
   "now": "Try the real text service and learning in real apps (your checklist), then merge branch m1-tsf-dll to main as 0.0.5",
+  "highways": [
+    {
+      "id": "engine",
+      "title": "Engine",
+      "blurb": "Python: words, phrases, learning, metrics",
+      "areas": [
+        "engine",
+        "data",
+        "bench"
+      ]
+    },
+    {
+      "id": "tsf",
+      "title": "Text service",
+      "blurb": "C++ TSF DLL inside every app",
+      "areas": [
+        "dll"
+      ]
+    },
+    {
+      "id": "tooling",
+      "title": "Tooling",
+      "blurb": "Install, tests, docs and the repo",
+      "areas": [
+        "install",
+        "test",
+        "docs",
+        "repo",
+        "toolchain"
+      ]
+    },
+    {
+      "id": "browser",
+      "title": "Browser extension",
+      "blurb": "Chrome, over Native Messaging",
+      "areas": [
+        "extension"
+      ],
+      "opens": "1.0.0"
+    }
+  ],
   "milestones": [
     {
       "id": "M0",
@@ -297,6 +338,19 @@ window.TYPER_ROADMAP = {
           "area": "install",
           "stories": [],
           "notes": "The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`."
+        },
+        {
+          "id": "M1.15",
+          "title": "Roadmap as a highway map, in the Evergreen color scheme",
+          "status": "doing",
+          "area": "docs",
+          "stories": [],
+          "notes": "Done: highways in the data, checker rules, Evergreen `theme.css`, shared `common.js`, the CLAUDE.md commit rule. To build: the map page (`index.html` + `map.js`), the restyled task board (`tasks.html`), retiring `releases.html`, and CONTEXT.md, following the spec and plan in `docs/superpowers/`.",
+          "refs": [
+            "branch worktree-roadmap-map",
+            "docs/superpowers/specs/2026-09-29-roadmap-highway-map-design.md",
+            "docs/superpowers/plans/2026-09-29-roadmap-highway-map.md"
+          ]
         }
       ]
     },
@@ -770,6 +824,9 @@ window.TYPER_ROADMAP = {
       "status": "released",
       "date": "2026-09-29",
       "title": "Repository scaffold",
+      "highways": [
+        "tooling"
+      ],
       "text": "The Typer repository started with a README, a gitignore and a standalone uv project for the Python engine."
     },
     {
@@ -777,6 +834,9 @@ window.TYPER_ROADMAP = {
       "status": "released",
       "date": "2026-09-29",
       "title": "Engine word completion",
+      "highways": [
+        "engine"
+      ],
       "text": "The engine completes words from a 146,000-word frequency list and answers over a named pipe in under 10 ms at the 95th percentile, backed by 74 tests."
     },
     {
@@ -784,6 +844,9 @@ window.TYPER_ROADMAP = {
       "status": "released",
       "date": "2026-09-29",
       "title": "TSF spike",
+      "highways": [
+        "tsf"
+      ],
       "milestone": "M0",
       "text": "A throwaway text service proved that the Text Services Framework gives Typer the exact caret position, the real surrounding text and clean key handling in Notepad, Discord, Chrome, Edge and Teams."
     },
@@ -792,12 +855,20 @@ window.TYPER_ROADMAP = {
       "status": "released",
       "date": "2026-09-29",
       "title": "Roadmap pages",
+      "highways": [
+        "tooling"
+      ],
       "text": "The engine and spike branches were merged into main, and the project gained a task board and a left-to-right release timeline that agents keep current under the rules in CLAUDE.md."
     },
     {
       "version": "0.0.5",
       "status": "released",
       "title": "Text service, phrases and daily-driver polish",
+      "highways": [
+        "engine",
+        "tsf",
+        "tooling"
+      ],
       "text": "The real Typer text service, context-aware and learning word ranking, streamed cloud phrases with a daily budget, a tray icon, pause hotkey, stats and install scripts are all built and covered by automated tests, with checks in real apps still to do.",
       "date": "2026-09-29"
     },
@@ -922,6 +993,10 @@ window.TYPER_ROADMAP = {
   "decisions": [
     {
       "date": "2026-09-29",
+      "text": "The roadmap is drawn as a highway map. Each part of the app is a highway (a task's area picks it), major releases are interchanges where every highway meets, minor releases are stations across the highways their milestone touched, patches are stops, and bug-fix patches (`\"kind\": \"fix\"`) are cul-de-sacs. The official color scheme is Evergreen: pine-green signs and highways, with magenta marking now and next (values in the design spec, and in CONTEXT.md once it is written)."
+    },
+    {
+      "date": "2026-09-29",
       "text": "N-gram corpus is WikiText-103 (encyclopedic English, from Hugging Face; the original S3 link is gone). It helps formal writing most; a chat-style corpus such as subtitles would help casual text and can be added later."
     },
     {
@@ -981,6 +1056,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "Started the highway-map roadmap (M1.15): highways in the data and on patch releases, checker rules for them, the Evergreen theme.css, shared common.js, a CLAUDE.md rule that every commit updates this file, and a spec plus plan for the map page, restyled task board and CONTEXT.md."
+    },
     {
       "date": "2026-09-29",
       "text": "Released 0.0.5: merged m3-phrases (M1-M4 code) into main. Live checks in real apps remain open."
