@@ -44,7 +44,7 @@ The file is `%APPDATA%\Completionist\config.toml` and the key sits in it as plai
 
 Enter is never touched. Nothing is shown or sent from password fields.
 
-The tray icon pauses and resumes, shows what Completionist has saved you, and opens the settings file and logs. "Open viewer" opens a page in your browser, served to this computer only, where you can see the words Completionist has learned and remove any, see your stats, and change settings (you can type the phrase key there too; the page can save it but never shows it back). `completionist-stats` (in `engine/`) prints the same numbers in the terminal.
+The tray icon pauses and resumes, shows what Completionist has saved you, and opens the settings file and logs. "Open viewer" opens a page in your browser, served to this computer only, where you can see the words and three-word phrases Completionist has learned and remove any, see your stats, and change settings (you can type the phrase key there too; the page can save it but never shows it back). `completionist-stats` (in `engine/`) prints the same numbers in the terminal.
 
 ## Layout
 

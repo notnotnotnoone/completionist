@@ -293,3 +293,37 @@ def test_unsaved_counts_for_a_forgotten_word_are_not_written_later(tmp_path):
     store.forget("linqi")
     store.close()
     assert PersonalStore(path).words() == []
+
+
+def test_trigrams_are_listed_most_used_first_and_can_be_searched(store):
+    for words, times in [(("thank", "you", "so"), 4), (("thank", "you", "very"), 2), (("see", "you", "soon"), 3)]:
+        for _ in range(times):
+            store.record_typed(words[2], words[:2])
+    assert store.trigrams() == [(("thank", "you", "so"), 4), (("see", "you", "soon"), 3), (("thank", "you", "very"), 2)]
+    assert [t for t, _ in store.trigrams("thank you")] == [("thank", "you", "so"), ("thank", "you", "very")]
+    assert store.trigrams("SOON") == [(("see", "you", "soon"), 3)]
+    assert store.trigrams(limit=1) == [(("thank", "you", "so"), 4)]
+
+
+def test_forgetting_a_trigram_leaves_its_words_and_pairs(store):
+    for _ in range(3):
+        store.record_typed("so", ("thank", "you"))
+    store.record_typed("very", ("thank", "you"))
+    assert store.forget_trigram("Thank", "you", "so") is True
+    assert store.trigrams() == [(("thank", "you", "very"), 1)]
+    assert store.counts(("thank", "you"), "").total == 1  # the context total follows
+    assert dict(store.counts(("you",), "").words) == {"so": 3, "very": 1}  # the two-word pair keeps its counts
+    assert ("so", 3) in store.words()
+    assert store.forget_trigram("thank", "you", "so") is False
+
+
+def test_a_forgotten_trigram_stays_forgotten_in_the_file(tmp_path):
+    path = tmp_path / "personal.sqlite"
+    store = PersonalStore(path)
+    store.record_typed("so", ("thank", "you"))
+    store.record_typed("very", ("thank", "you"))
+    store.flush()
+    store.record_typed("much", ("thank", "you"))  # not saved yet when it is forgotten
+    assert store.forget_trigram("thank", "you", "so") and store.forget_trigram("thank", "you", "much")
+    store.close()
+    assert [t for t, _ in PersonalStore(path).trigrams()] == [("thank", "you", "very")]

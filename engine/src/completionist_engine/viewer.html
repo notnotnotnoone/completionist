@@ -3,235 +3,521 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Completionist viewer</title>
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0A5A3D">
+<title>Completionist Viewer</title>
 <style>
-/* Evergreen tokens from CONTEXT.md; this page is self-contained because the server allows no outside files. */
+/* Evergreen tokens from CONTEXT.md. The server allows no outside files, so this page carries its own CSS and JS
+   and uses the system font stack. */
 :root {
   --paper: #EEF2EC; --paper-2: #E3EAE1; --surface: #FBFCF8; --ink: #16221C; --muted: #55635B;
-  --line: #D5DDD6; --line-strong: #B7C3BA; --sign: #0A5A3D; --sign-deep: #06402B; --sign-ink: #FFFFFF; --sign-dim: #CFE6DA;
+  --line: #D5DDD6; --line-strong: #B7C3BA;
+  --sign: #0A5A3D; --sign-deep: #06402B; --sign-ink: #FFFFFF; --sign-dim: #CFE6DA;
   --accent: #AB3F84; --accent-ink: #9A3576; --accent-soft: #F4E1EC; --on-accent: #FFFFFF;
   --ok: #1F6B45; --ok-soft: #DCEDE2; --bad: #B3261E; --bad-soft: #F8DEDA;
-  color-scheme: light;
+  --bar: #0B6E4B; --bar-soft: #CFE1D6;
+  --shadow: 0 1px 2px rgb(12 30 20 / .08), 0 8px 24px rgb(12 30 20 / .08);
+  --enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --paper: #0E1512; --paper-2: #121B17; --surface: #141C18; --ink: #E4EBE6; --muted: #97A69D;
-    --line: #25302A; --line-strong: #34423A; --sign: #0F6B48; --sign-deep: #094A31; --sign-ink: #FFFFFF; --sign-dim: #BFE3CF;
+    --line: #25302A; --line-strong: #34423A;
+    --sign: #0F6B48; --sign-deep: #094A31; --sign-ink: #FFFFFF; --sign-dim: #BFE3CF;
     --accent: #C0188D; --accent-ink: #EE8FC6; --accent-soft: #3A1830; --on-accent: #FFFFFF;
     --ok: #5FCB8E; --ok-soft: #15301F; --bad: #FF8C7E; --bad-soft: #3A1916;
-    color-scheme: dark;
+    --bar: #079461; --bar-soft: #1E3A2D;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 8px 24px rgb(0 0 0 / .4);
   }
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 "Overpass", "Segoe UI", system-ui, sans-serif; }
-header { background: var(--sign); color: var(--sign-ink); border-bottom: 4px solid var(--sign-deep); padding: 14px 20px 0; }
-header h1 { margin: 0 0 2px; font-size: 1.25rem; }
-header p { margin: 0 0 10px; color: var(--sign-dim); font-size: .8125rem; }
-nav { display: flex; gap: 4px; }
-nav button { border: 0; border-radius: 8px 8px 0 0; padding: 8px 16px; background: transparent; color: var(--sign-dim); font: inherit; cursor: pointer; }
-nav button[aria-selected="true"] { background: var(--paper); color: var(--ink); }
-main { max-width: 860px; margin: 0 auto; padding: 20px; }
-h2 { font-size: 1.125rem; margin: 0 0 4px; }
-.hint { color: var(--muted); font-size: .8125rem; margin: 0 0 14px; }
-.bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-input[type=text], input[type=number], select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 10px; }
-input[type=password] { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 10px; }
-input:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-button.act { font: inherit; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 5px 12px; cursor: pointer; }
-button.primary { background: var(--sign); border-color: var(--sign-deep); color: var(--sign-ink); }
-button.danger { color: var(--bad); }
-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); }
-th { background: var(--paper-2); font-size: .8125rem; color: var(--muted); font-weight: 600; }
-td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
-tr:last-child td { border-bottom: 0; }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 18px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
-.card b { display: block; font-size: 1.5rem; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 16px; }
+body {
+  margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink);
+  font: 15px/1.55 var(--font); -webkit-font-smoothing: antialiased; touch-action: manipulation;
+}
+h1, h2, h3, p { margin: 0; }
+h2 { font-size: 1.25rem; line-height: 1.3; text-wrap: balance; }
+h3 { font-size: .9375rem; }
+p { text-wrap: pretty; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.skip { position: absolute; left: 16px; top: -64px; z-index: 30; background: var(--surface); color: var(--ink); padding: 8px 14px; border-radius: 8px; box-shadow: var(--shadow); }
+.skip:focus { top: 12px; }
+.num, .tnum { font-variant-numeric: tabular-nums; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---- the guide sign: title and sections */
+.sign { background: var(--sign); color: var(--sign-ink); border-bottom: 4px solid var(--sign-deep); padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); }
+.sign-in { max-width: 920px; margin: 0 auto; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 16px 0 12px; }
+.brand svg { flex: none; }
+.brand h1 { font-size: 1.125rem; line-height: 1.2; letter-spacing: .01em; }
+.brand p { font-size: .8125rem; color: var(--sign-dim); }
+.local { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; padding: 4px 10px; border-radius: 99px; background: rgb(255 255 255 / .12); color: var(--sign-ink); white-space: nowrap; }
+.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 0 4px; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: none; min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px 10px 0 0; background: transparent;
+  color: var(--sign-dim); cursor: pointer; font-weight: 500; transition: background-color 160ms ease, color 160ms ease;
+}
+.tab[aria-selected="true"] { background: var(--paper); color: var(--ink); font-weight: 600; }
+@media (hover: hover) and (pointer: fine) { .tab[aria-selected="false"]:hover { background: rgb(255 255 255 / .12); color: var(--sign-ink); } }
+
+/* ---- page */
+main { max-width: 920px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) 120px max(16px, env(safe-area-inset-left)); outline: none; }
+.panel.enter { animation: rise 200ms var(--enter) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.head { margin-bottom: 16px; display: grid; gap: 4px; }
+.head p { color: var(--muted); font-size: .875rem; max-width: 62ch; }
+.banner { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; background: var(--bad-soft); color: var(--bad); border: 1px solid currentColor; }
+.banner button { margin-left: auto; }
+
+/* ---- controls */
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.search { position: relative; flex: 1 1 240px; }
+.search svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; color: var(--muted); pointer-events: none; }
+.field, select.field { min-height: 44px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); padding: 0 12px; transition: border-color 160ms ease, box-shadow 160ms ease; }
+.search .field { width: 100%; padding-left: 38px; }
+.field::placeholder { color: var(--muted); opacity: .8; }
+.field:hover { border-color: var(--muted); }
+.field:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+textarea.field { padding: 10px 12px; min-height: 84px; width: 100%; resize: vertical; line-height: 1.45; }
+select.field { padding-right: 8px; cursor: pointer; }
+.btn {
+  min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface);
+  cursor: pointer; font-weight: 500; transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms var(--enter);
+}
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--sign); border-color: var(--sign-deep); color: var(--sign-ink); }
+.btn.quiet { background: transparent; }
+.btn[disabled] { opacity: .55; cursor: default; }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not([disabled]) { background: var(--paper-2); }
+  .btn.primary:hover:not([disabled]) { background: var(--sign-deep); }
+}
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button { min-height: 44px; padding: 0 14px; border: 0; background: transparent; cursor: pointer; transition: background-color 160ms ease, color 160ms ease; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--sign); color: var(--sign-ink); }
+@media (hover: hover) and (pointer: fine) { .seg button[aria-pressed="false"]:hover { background: var(--paper-2); } }
+
+/* ---- rows: words and phrases */
+.rows { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(4ch, max-content) auto; gap: 16px; align-items: center; padding: 0 8px 0 16px; min-height: 52px; border-bottom: 1px solid var(--line); transition: opacity 160ms ease, transform 160ms ease, background-color 160ms ease; }
+.row:last-child { border-bottom: 0; }
+.row.out { opacity: 0; transform: translateX(16px); }
+.row.in { animation: rise 200ms var(--enter) both; animation-delay: var(--d, 0ms); }
+@media (hover: hover) and (pointer: fine) { .row:hover { background: var(--paper-2); } }
+.label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.meter { height: 8px; border-radius: 99px; background: var(--bar-soft); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 100%; border-radius: 99px; background: var(--bar); transform-origin: left center; transform: scaleX(var(--v, 0)); transition: transform 400ms var(--enter); transition-delay: var(--d, 0ms); }
+.row .count { text-align: right; color: var(--muted); }
+.rm { min-height: 44px; min-width: 44px; padding: 0 12px; border: 0; background: transparent; border-radius: 10px; color: var(--muted); cursor: pointer; font-size: .875rem; transition: background-color 160ms ease, color 160ms ease; }
+@media (hover: hover) and (pointer: fine) { .rm:hover { color: var(--bad); background: var(--bad-soft); } }
+.rm.armed { background: var(--bad); color: #fff; font-weight: 600; }
+@media (hover: hover) and (pointer: fine) { .rm.armed:hover { background: var(--bad); color: #fff; } }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--muted); font-size: .875rem; }
+.empty { padding: 40px 24px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 14px; }
+.empty strong { display: block; color: var(--ink); margin-bottom: 4px; }
+@media (max-width: 560px) { .row { grid-template-columns: minmax(0, 1fr) minmax(4ch, max-content) auto; } .row .meter { display: none; } .local { display: none; } }
+
+/* ---- stats */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; animation: rise 240ms var(--enter) both; animation-delay: var(--d, 0ms); }
+.card b { display: block; font-size: 1.75rem; line-height: 1.2; letter-spacing: -.01em; }
 .card span { color: var(--muted); font-size: .8125rem; }
-fieldset { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; margin: 0 0 14px; padding: 10px 14px 12px; }
-legend { font-weight: 600; padding: 0 6px; }
-label.row { display: grid; grid-template-columns: 210px 1fr; gap: 10px; align-items: center; margin: 8px 0; }
-label.row small { display: block; color: var(--muted); font-size: .75rem; }
-textarea { font: inherit; width: 100%; min-height: 70px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 10px; }
-.msg { padding: 8px 12px; border-radius: 8px; margin: 10px 0; }
-.msg.ok { background: var(--ok-soft); color: var(--ok); }
-.msg.bad { background: var(--bad-soft); color: var(--bad); }
-.tag { background: var(--accent-soft); color: var(--accent-ink); border-radius: 99px; padding: 1px 9px; font-size: .75rem; }
-.empty { color: var(--muted); padding: 18px 0; }
-@media (max-width: 560px) { label.row { grid-template-columns: 1fr; } }
+.card.lead { background: var(--sign); border-color: var(--sign-deep); color: var(--sign-ink); }
+.card.lead span { color: var(--sign-dim); }
+.block { margin-bottom: 24px; }
+.block > h3 { margin-bottom: 8px; }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 16px 8px; }
+.plot { display: flex; align-items: flex-end; gap: clamp(2px, 1vw, 10px); height: 160px; border-bottom: 1px solid var(--line-strong); }
+.col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; }
+.col i { display: block; width: 100%; min-height: 2px; height: 100%; background: var(--bar); border-radius: 4px 4px 0 0; transform-origin: bottom; transform: scaleY(var(--v, 0)); transition: transform 400ms var(--enter); transition-delay: var(--d, 0ms); }
+.col.zero i { background: var(--line-strong); }
+.axis { display: flex; gap: clamp(2px, 1vw, 10px); padding-top: 6px; font-size: .6875rem; color: var(--muted); }
+.axis span { flex: 1 1 0; min-width: 0; text-align: center; overflow: hidden; white-space: nowrap; }
+.chart-note { padding: 8px 0; font-size: .8125rem; color: var(--muted); }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+th { background: var(--paper-2); font-size: .8125rem; font-weight: 600; color: var(--muted); }
+th.n, td.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+.scroll { overflow-x: auto; border-radius: 14px; }
+details.more { margin-top: 8px; }
+details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32px; display: inline-flex; align-items: center; }
+
+/* ---- settings */
+.group { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px 8px; margin: 0 0 16px; min-width: 0; }
+.group legend { padding: 0; }
+.group > header { padding: 12px 0 4px; }
+.group h3 { font-size: 1rem; }
+.group > header p { color: var(--muted); font-size: .8125rem; }
+.set { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 8px 24px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+.set:first-of-type { border-top: 0; }
+.set .t { font-weight: 500; }
+.set .t small { display: block; font-weight: 400; color: var(--muted); font-size: .8125rem; margin-top: 2px; }
+.set .ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-start; }
+.set .ctl .field { flex: 1 1 160px; }
+.switch { appearance: none; -webkit-appearance: none; position: relative; width: 48px; height: 28px; border-radius: 99px; background: var(--line-strong); cursor: pointer; flex: none; margin: 0; transition: background-color 160ms ease; }
+.switch::before { content: ""; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .3); transition: transform 180ms var(--enter); }
+.switch:checked { background: var(--bar); }
+.switch:checked::before { transform: translateX(20px); }
+.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; font-size: .8125rem; background: var(--paper-2); color: var(--muted); }
+.pill.on { background: var(--ok-soft); color: var(--ok); }
+.savebar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 12px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: var(--surface); border-top: 1px solid var(--line-strong); box-shadow: 0 -8px 24px rgb(12 30 20 / .1);
+  transform: translateY(100%); visibility: hidden; transition: transform 150ms ease-out, visibility 0s linear 150ms;
+}
+.savebar.show { transform: none; visibility: visible; transition: transform 220ms var(--enter), visibility 0s; }
+.savebar-in { max-width: 920px; margin: 0 auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.savebar .note { flex: 1 1 200px; font-size: .875rem; }
+.savebar .note.bad { color: var(--bad); }
+
+/* ---- toast */
+.toast { position: fixed; left: 50%; bottom: 24px; z-index: 40; translate: -50% 0; max-width: min(92vw, 460px); padding: 12px 18px; border-radius: 12px; background: var(--ink); color: var(--paper); box-shadow: var(--shadow); opacity: 0; transform: translateY(12px); pointer-events: none; transition: opacity 150ms ease-out, transform 150ms ease-out; }
+.toast.show { opacity: 1; transform: none; transition: opacity 200ms var(--enter), transform 200ms var(--enter); }
+body.has-savebar .toast { bottom: 96px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+@media (max-width: 640px) { .set { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>Completionist viewer</h1>
-  <p>Shown only on this computer. It holds counts, never what you typed.</p>
-  <nav role="tablist">
-    <button role="tab" id="t-dict" aria-selected="true">Dictionary</button>
-    <button role="tab" id="t-stats" aria-selected="false">Stats</button>
-    <button role="tab" id="t-set" aria-selected="false">Settings</button>
-  </nav>
-</header>
-<main>
-  <div id="note" class="msg bad" hidden></div>
-
-  <section id="dict">
-    <h2>What Completionist has learned</h2>
-    <p class="hint">Words you type often enough to be suggested, with how many times. Remove one and it is forgotten everywhere, including pairs and triples it was part of.</p>
-    <div class="bar">
-      <input type="text" id="q" placeholder="Search words" aria-label="Search words">
-      <select id="sort" aria-label="Sort"><option value="count">Most used first</option><option value="alpha">A to Z</option></select>
+<a class="skip" href="#main">Skip to content</a>
+<header class="sign">
+  <div class="sign-in">
+    <div class="brand">
+      <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="8" fill="#fff" fill-opacity=".16"/><rect x="9" y="9" width="18" height="5" fill="#fff"/><rect x="15.5" y="9" width="5" height="19" fill="#fff"/><rect x="25" y="18" width="2.5" height="10" fill="#fff"/></svg>
+      <div><h1>Completionist</h1><p>Viewer</p></div>
+      <span class="local"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>On this computer only</span>
     </div>
-    <div id="dict-off" class="empty" hidden>Learning is switched off, so there is nothing to show.</div>
-    <table id="words"><thead><tr><th>Word</th><th class="n">Used</th><th></th></tr></thead><tbody></tbody></table>
-    <p class="hint" id="count"></p>
+    <div class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" id="tab-words" aria-controls="panel-words" aria-selected="true">Words</button>
+      <button class="tab" role="tab" id="tab-phrases" aria-controls="panel-phrases" aria-selected="false" tabindex="-1">Phrases</button>
+      <button class="tab" role="tab" id="tab-stats" aria-controls="panel-stats" aria-selected="false" tabindex="-1">Stats</button>
+      <button class="tab" role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" tabindex="-1">Settings</button>
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <div id="banner" class="banner" role="alert" hidden><span id="banner-text"></span><button class="btn" id="banner-retry" type="button">Try Again</button></div>
+
+  <section class="panel" id="panel-words" role="tabpanel" aria-labelledby="tab-words">
+    <div class="head"><h2>Words You Use</h2><p>Words Completionist has learned from your typing, with how often you used each. Removing one forgets it everywhere, including the pairs and phrases it was part of.</p></div>
+    <div class="toolbar">
+      <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input class="field" type="search" id="words-q" name="q" autocomplete="off" spellcheck="false" placeholder="Search words…" aria-label="Search words"></div>
+      <select class="field" id="words-sort" name="sort" aria-label="Sort words"><option value="count">Most Used</option><option value="alpha">A to Z</option></select>
+    </div>
+    <div id="words-body"></div>
+    <div class="foot"><span id="words-count" aria-live="polite"></span><button class="btn" id="words-more" type="button" hidden>Show More</button></div>
   </section>
 
-  <section id="stats" hidden>
-    <h2>Your numbers</h2>
-    <div class="bar"><select id="days" aria-label="Period"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></div>
-    <div id="stats-body"></div>
+  <section class="panel" id="panel-phrases" role="tabpanel" aria-labelledby="tab-phrases" hidden>
+    <div class="head"><h2>Three-Word Phrases</h2><p>Sequences of three words you have typed. Completionist uses them to guess the next word. Removing a phrase leaves its words and pairs alone.</p></div>
+    <div class="toolbar">
+      <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input class="field" type="search" id="phrases-q" name="q" autocomplete="off" spellcheck="false" placeholder="Search phrases…" aria-label="Search phrases"></div>
+      <select class="field" id="phrases-sort" name="sort" aria-label="Sort phrases"><option value="count">Most Used</option><option value="alpha">A to Z</option></select>
+    </div>
+    <div id="phrases-body"></div>
+    <div class="foot"><span id="phrases-count" aria-live="polite"></span><button class="btn" id="phrases-more" type="button" hidden>Show More</button></div>
   </section>
 
-  <section id="settings" hidden>
-    <h2>Settings</h2>
-    <p class="hint">Saved into your settings file, and picked up within a couple of seconds.</p>
-    <form id="form"></form>
-    <div id="set-msg" class="msg" hidden></div>
+  <section class="panel" id="panel-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
+    <div class="head"><h2>Your Numbers</h2><p>Counts only, kept on this computer. Never what you typed.</p></div>
+    <div class="toolbar"><div class="seg" role="group" aria-label="Period" id="period"></div></div>
+    <div id="stats-body" aria-live="polite"></div>
+  </section>
+
+  <section class="panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+    <div class="head"><h2>Settings</h2><p>Saved into your settings file, with your comments kept. Changes apply within a couple of seconds.</p></div>
+    <form id="form" novalidate autocomplete="off"></form>
   </section>
 </main>
+
+<div class="savebar" id="savebar" inert>
+  <div class="savebar-in">
+    <p class="note" id="savenote" role="status">You have unsaved changes.</p>
+    <button class="btn quiet" id="discard" type="button">Discard</button>
+    <button class="btn primary" id="save" type="button">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
 <script>
 "use strict";
-// The token arrives in the address, then is kept in memory only and removed from the address bar.
+// The token arrives in the address, is kept in memory only, and is removed from the address bar.
 const token = new URLSearchParams(location.search).get("t") || "";
-history.replaceState(null, "", location.pathname);
+history.replaceState(null, "", location.pathname + location.hash);
 
 const $ = (id) => document.getElementById(id);
-const el = (tag, props, ...kids) => { const e = Object.assign(document.createElement(tag), props || {}); e.append(...kids); return e; };
+const el = (tag, props, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) { if (k.startsWith("aria-")) e.setAttribute(k, v); else e[k] = v; }
+  e.append(...kids);
+  return e;
+};
+const nf = new Intl.NumberFormat();
+const pf = new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 0 });
+const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
+// ---- talking to the engine
 async function api(path, body) {
   const opts = { headers: { "X-Completionist-Token": token } };
   if (body !== undefined) { opts.method = "POST"; opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
   let r;
-  try { r = await fetch(path, opts); } catch (e) { fail("Can't reach Completionist. Is it still running?"); throw e; }
+  try { r = await fetch(path, opts); }
+  catch (e) { banner("Can't reach Completionist. Is it still running?"); throw Object.assign(new Error("offline"), { shown: true }); }
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { const err = new Error(data.error || ("Error " + r.status)); err.status = r.status; throw err; }
-  $("note").hidden = true;
+  if (!r.ok) {
+    if (r.status === 403) { banner("This page has expired. Open the viewer from the tray again."); throw Object.assign(new Error("expired"), { shown: true }); }
+    throw Object.assign(new Error(data.error || "Something went wrong (error " + r.status + ")."), { status: r.status });
+  }
+  $("banner").hidden = true;
   return data;
 }
-function fail(text) { const n = $("note"); n.textContent = text; n.hidden = false; }
+function banner(text) { $("banner-text").textContent = text; $("banner").hidden = false; }
+$("banner-retry").addEventListener("click", () => show(current, false));
 
-// ---- tabs
-const tabs = { dict: $("t-dict"), stats: $("t-stats"), settings: $("t-set") };
-function show(name) {
-  for (const [k, b] of Object.entries(tabs)) { b.setAttribute("aria-selected", String(k === name)); $(k).hidden = k !== name; }
-  if (name === "dict") loadWords(); else if (name === "stats") loadStats(); else loadSettings();
+let toastTimer;
+function toast(text) {
+  const t = $("toast"); t.textContent = text; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
 }
-for (const [k, b] of Object.entries(tabs)) b.addEventListener("click", () => show(k));
 
-// ---- dictionary
-let timer;
-async function loadWords() {
-  try {
-    const d = await api("/api/words?limit=300&sort=" + $("sort").value + "&q=" + encodeURIComponent($("q").value));
-    $("dict-off").hidden = d.learning;
-    const body = $("words").querySelector("tbody");
-    body.replaceChildren(...d.words.map((w) => {
-      const rm = el("button", { className: "act danger", textContent: "Remove", ariaLabel: "Remove " + w.word });
-      rm.addEventListener("click", async () => { try { await api("/api/forget", { word: w.word }); } catch (e) { fail(e.message); } loadWords(); });
-      return el("tr", {}, el("td", { textContent: w.word }), el("td", { className: "n", textContent: String(w.count) }), el("td", { className: "n" }, rm));
-    }));
-    $("count").textContent = d.total ? (d.total > d.words.length ? "Showing " + d.words.length + " of " + d.total + " words. Search to narrow it down." : d.total + " words.") : "No words match.";
-  } catch (e) { if (e.status) fail(e.message); }
+// Two-step remove: the first press arms the button, the second confirms. It disarms after a few seconds, on Escape, or on blur.
+function armable(button, label, confirmLabel, action) {
+  let timer;
+  const disarm = () => { clearTimeout(timer); button.classList.remove("armed"); button.textContent = label; button.setAttribute("aria-label", label + (button.dataset.what ? " " + button.dataset.what : "")); };
+  button.addEventListener("click", () => {
+    if (button.classList.contains("armed")) { disarm(); action(); return; }
+    button.classList.add("armed"); button.textContent = confirmLabel;
+    button.setAttribute("aria-label", confirmLabel + " " + (button.dataset.what || ""));
+    clearTimeout(timer); timer = setTimeout(disarm, 4000);
+  });
+  button.addEventListener("blur", disarm);
+  button.addEventListener("keydown", (ev) => { if (ev.key === "Escape") disarm(); });
 }
-$("q").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(loadWords, 200); });
-$("sort").addEventListener("change", loadWords);
+
+// ---- sections, tabs and the address hash
+const NAMES = ["words", "phrases", "stats", "settings"];
+let current = "words";
+function show(name, animate = true) {
+  if (!NAMES.includes(name)) name = "words";
+  if (current === "settings" && name !== "settings" && dirty()) {
+    if (!confirm("You have unsaved settings. Leave without saving?")) { name = "settings"; } else { discardSettings(); }
+  }
+  current = name;
+  for (const n of NAMES) {
+    const tab = $("tab-" + n), panel = $("panel-" + n), on = n === name;
+    tab.setAttribute("aria-selected", String(on)); tab.tabIndex = on ? 0 : -1; panel.hidden = !on;
+    if (on && animate && !reduced.matches) { panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
+  }
+  if (location.hash !== "#" + name) history.replaceState(null, "", location.pathname + "#" + name);
+  updateBar();
+  ({ words: () => lists.words.load(animate), phrases: () => lists.phrases.load(animate), stats: loadStats, settings: loadSettings })[name]();
+}
+for (const n of NAMES) {
+  $("tab-" + n).addEventListener("click", (ev) => show(n, ev.detail !== 0));  // a keyboard activation doesn't animate
+  $("tab-" + n).addEventListener("keydown", (ev) => {
+    const i = NAMES.indexOf(n), move = { ArrowRight: 1, ArrowLeft: -1 }[ev.key];
+    if (move) { ev.preventDefault(); const next = NAMES[(i + move + NAMES.length) % NAMES.length]; $("tab-" + next).focus(); show(next, false); }
+    if (ev.key === "Home") { ev.preventDefault(); $("tab-words").focus(); show("words", false); }
+    if (ev.key === "End") { ev.preventDefault(); $("tab-settings").focus(); show("settings", false); }
+  });
+}
+
+// ---- the two lists: words and three-word phrases
+function makeList(cfg) {
+  const body = $(cfg.id + "-body"), count = $(cfg.id + "-count"), more = $(cfg.id + "-more"), q = $(cfg.id + "-q"), sort = $(cfg.id + "-sort");
+  let limit = 100, timer, seq = 0;
+  async function load(animate) {
+    const mine = ++seq;
+    if (!body.children.length) count.textContent = "Loading…";
+    let data;
+    try { data = await api(`${cfg.path}?limit=${limit}&sort=${sort.value}&q=${encodeURIComponent(q.value)}`); }
+    catch (e) { if (!e.shown) banner(e.message); return; }
+    if (mine !== seq) return;  // a newer search has already replaced this one
+    const items = data[cfg.key];
+    const max = Math.max(1, ...items.map((i) => i.count));
+    if (!items.length) {
+      const searching = q.value.trim();
+      body.replaceChildren(el("div", { className: "empty" },
+        el("strong", { textContent: !data.learning ? "Learning is switched off" : searching ? "Nothing matches “" + searching + "”" : cfg.emptyTitle }),
+        el("span", { textContent: !data.learning ? "Turn it on in Settings and Completionist will start learning again." : searching ? "Try fewer letters." : cfg.emptyText })));
+      count.textContent = ""; more.hidden = true; return;
+    }
+    const list = el("ul", { className: "rows" });
+    const stagger = animate && !reduced.matches;
+    items.forEach((item, i) => {
+      const text = cfg.text(item), d = Math.min(i * 20, 240) + "ms";
+      const bar = el("i"); bar.style.setProperty("--d", d);
+      const rm = el("button", { className: "rm", type: "button", textContent: "Remove" });
+      rm.dataset.what = "“" + text + "”"; rm.setAttribute("aria-label", "Remove " + rm.dataset.what);
+      const row = el("li", { className: "row" + (stagger ? " in" : "") }, el("span", { className: "label", textContent: text, title: text }), el("span", { className: "meter" }, bar), el("span", { className: "count num", textContent: nf.format(item.count) }), rm);
+      row.firstChild.translate = false;
+      if (stagger) row.style.setProperty("--d", d);
+      armable(rm, "Remove", "Confirm", () => remove(row, item, text));
+      list.append(row);
+      requestAnimationFrame(() => requestAnimationFrame(() => bar.style.setProperty("--v", item.count / max)));
+    });
+    body.replaceChildren(list);
+    more.hidden = data.total <= items.length;
+    count.textContent = data.total > items.length ? `Showing ${nf.format(items.length)} of ${nf.format(data.total)}. Search to narrow it down.` : `${nf.format(data.total)} ${data.total === 1 ? cfg.one : cfg.many}`;
+  }
+  async function remove(row, item, text) {
+    try { await api(cfg.forget, cfg.forgetBody(item)); } catch (e) { if (!e.shown) banner(e.message); return; }
+    const at = [...row.parentNode.children].indexOf(row);
+    row.classList.add("out");
+    await new Promise((done) => setTimeout(done, reduced.matches ? 0 : 170));
+    row.remove();
+    await load(false);
+    const buttons = body.querySelectorAll(".rm");
+    (buttons[Math.min(at, buttons.length - 1)] || q).focus();  // keep the keyboard where it was
+    toast(`Removed “${text}”.`);
+  }
+  q.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => { limit = 100; load(false); }, 200); });
+  sort.addEventListener("change", () => load(false));
+  more.addEventListener("click", () => { limit += 200; load(false); });
+  return { load: (animate) => { limit = 100; return load(animate); } };
+}
+const lists = {
+  words: makeList({ id: "words", path: "/api/words", key: "words", text: (w) => w.word, forget: "/api/forget", forgetBody: (w) => ({ word: w.word }), one: "word", many: "words", emptyTitle: "No words yet", emptyText: "Keep typing. Words you use often will show up here." }),
+  phrases: makeList({ id: "phrases", path: "/api/trigrams", key: "trigrams", text: (t) => t.words.join(" "), forget: "/api/forget-trigram", forgetBody: (t) => ({ words: t.words }), one: "phrase", many: "phrases", emptyTitle: "No phrases yet", emptyText: "Phrases appear once you have typed the same three words a few times." }),
+};
 
 // ---- stats
-const pct = (x) => Math.round(x * 100) + "%";
-function card(big, small) { return el("div", { className: "card" }, el("b", { textContent: big }), el("span", { textContent: small })); }
+let days = 7;
+const period = $("period");
+for (const n of [7, 30, 90]) {
+  const b = el("button", { type: "button", textContent: n + " Days" });
+  b.dataset.days = n; b.setAttribute("aria-pressed", String(n === days));
+  b.addEventListener("click", () => { days = n; for (const x of period.children) x.setAttribute("aria-pressed", String(+x.dataset.days === days)); loadStats(); });
+  period.append(b);
+}
+const dayFmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+const dayLong = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric" });
+const when = (iso) => new Date(iso + "T00:00:00");
+function card(big, small, lead, i) { const c = el("div", { className: "card" + (lead ? " lead" : "") }, el("b", { className: "tnum", textContent: big }), el("span", { textContent: small })); c.style.setProperty("--d", i * 40 + "ms"); return c; }
 function table(heads, rows) {
-  return el("table", {}, el("thead", {}, el("tr", {}, ...heads.map((h, i) => el("th", { className: i ? "n" : "", textContent: h })))),
-    el("tbody", {}, ...rows.map((r) => el("tr", {}, ...r.map((c, i) => el("td", { className: i ? "n" : "", textContent: String(c) }))))));
+  return el("div", { className: "scroll" }, el("table", {}, el("thead", {}, el("tr", {}, ...heads.map((h, i) => el("th", { className: i ? "n" : "", scope: "col", textContent: h })))),
+    el("tbody", {}, ...rows.map((r) => el("tr", {}, ...r.map((c, i) => el("td", { className: i ? "n" : "", textContent: typeof c === "number" ? nf.format(c) : c })))))));
 }
+function block(title, ...kids) { return el("div", { className: "block" }, el("h3", { textContent: title }), ...kids); }
 async function loadStats() {
-  try {
-    const s = await api("/api/stats?days=" + $("days").value);
-    const box = $("stats-body");
-    if (!s.available) { box.replaceChildren(el("p", { className: "empty", textContent: "Stats are switched off." })); return; }
-    const parts = [el("div", { className: "cards" },
-      card(s.keystrokes_saved.toLocaleString(), "keystrokes saved"),
-      card(pct(s.words.rate), "of word suggestions taken (" + s.words.accepted + " of " + s.words.shown + ")"),
-      card(String(s.phrases.accepted + s.phrases.partial), "phrases taken (" + s.phrases.shown + " shown)"),
-      card(String(s.dismissed), "dismissed"))];
-    parts.push(el("h2", { textContent: "By day" }), table(["Day", "Shown", "Taken", "Keystrokes saved"], s.daily.map((d) => [d.day, d.shown, d.accepted, d.saved])));
-    if (s.apps.length) parts.push(el("h2", { style: "margin-top:18px", textContent: "By app" }), table(["App", "Shown", "Taken", "Keystrokes saved"], s.apps.map((a) => [a.app, a.shown, a.accepted, a.saved])));
-    if (s.providers.length) parts.push(el("h2", { style: "margin-top:18px", textContent: "Phrase provider speed" }), table(["Provider", "Requests", "Errors", "First word, typical (ms)", "First word, slow (ms)"], s.providers.map((p) => [p.name, p.requests, p.errors, p.p50_ms, p.p95_ms])));
-    box.replaceChildren(...parts);
-  } catch (e) { if (e.status) fail(e.message); }
+  const box = $("stats-body");
+  let s;
+  try { s = await api("/api/stats?days=" + days); } catch (e) { if (!e.shown) banner(e.message); return; }
+  if (!s.available) { box.replaceChildren(el("div", { className: "empty" }, el("strong", { textContent: "Stats are switched off" }), el("span", { textContent: "Nothing is being counted." }))); return; }
+  const parts = [el("div", { className: "cards" },
+    card(nf.format(s.keystrokes_saved), "keystrokes saved", true, 0),
+    card(pf.format(s.words.rate), `of word suggestions taken (${nf.format(s.words.accepted)} of ${nf.format(s.words.shown)})`, false, 1),
+    card(nf.format(s.phrases.accepted + s.phrases.partial), `phrases taken (${nf.format(s.phrases.shown)} shown)`, false, 2),
+    card(nf.format(s.dismissed), "suggestions dismissed", false, 3))];
+
+  const max = Math.max(1, ...s.daily.map((d) => d.saved));
+  const every = Math.ceil(s.daily.length / 10);
+  const plot = el("div", { className: "plot" }), axis = el("div", { className: "axis", "aria-hidden": "true" });
+  s.daily.forEach((d, i) => {
+    const bar = el("i"); bar.style.setProperty("--d", Math.min(i * 12, 240) + "ms");
+    const col = el("div", { className: "col" + (d.saved ? "" : " zero"), title: `${dayLong.format(when(d.day))}: ${nf.format(d.saved)} keystrokes saved` }, bar);
+    plot.append(col);
+    axis.append(el("span", { textContent: i % every === 0 ? dayFmt.format(when(d.day)) : "" }));
+    requestAnimationFrame(() => requestAnimationFrame(() => bar.style.setProperty("--v", d.saved ? Math.max(d.saved / max, 0.02) : 0.02)));
+  });
+  const best = s.daily.reduce((a, b) => (b.saved > a.saved ? b : a), s.daily[0]);
+  const chart = el("div", { className: "chart" }, el("div", { role: "img", "aria-label": `Keystrokes saved each day over ${days} days. Best day: ${best.saved ? dayLong.format(when(best.day)) + ", " + nf.format(best.saved) : "none yet"}.` }, plot, axis),
+    el("p", { className: "chart-note", textContent: s.keystrokes_saved ? `Most in a day: ${nf.format(max)} (${dayFmt.format(when(best.day))}).` : "Nothing saved yet. Type for a while and come back." }));
+  const detail = el("details", { className: "more" }, el("summary", { textContent: "Show as a table" }), table(["Day", "Shown", "Taken", "Keystrokes saved"], s.daily.map((d) => [dayFmt.format(when(d.day)), d.shown, d.accepted, d.saved])));
+  parts.push(block("Keystrokes saved each day", chart, detail));
+  if (s.apps.length) parts.push(block("By app", table(["App", "Shown", "Taken", "Keystrokes saved"], s.apps.map((a) => [a.app, a.shown, a.accepted, a.saved]))));
+  if (s.providers.length) parts.push(block("Phrase provider speed", table(["Provider", "Requests", "Errors", "Typical first word (ms)", "Slow first word (ms)"], s.providers.map((p) => [p.name, p.requests, p.errors, p.p50_ms, p.p95_ms]))));
+  box.replaceChildren(...parts);
 }
-$("days").addEventListener("change", loadStats);
 
 // ---- settings
-const FIELDS = [
-  ["words", "Words", [
-    ["limit", "number", "How many words to show", { min: 1 }],
-    ["next", "bool", "Offer likely next words after a space"],
-    ["chunks", "bool", "Offer two- or three-word chunks while typing"],
-    ["next_threshold", "number", "How likely a next word must be", { min: 0, max: 1, step: 0.01, hint: "0 to 1; 0 shows the best few whatever the odds" }],
+const GROUPS = [
+  ["words", "Suggestions", "What shows up in the popup while you type.", [
+    ["limit", "number", "Words Shown", "How many words the popup lists.", { min: 1, step: 1 }],
+    ["next", "bool", "Next Words", "Offer likely next words after you type a space."],
+    ["chunks", "bool", "Phrase Chunks", "Offer two- or three-word chunks while you type."],
+    ["next_threshold", "number", "Next-Word Confidence", "From 0 to 1. Higher is quieter; 0 shows the best few whatever the odds.", { min: 0, max: 1, step: 0.01, inputmode: "decimal" }],
   ]],
-  ["learning", "Learning", [
-    ["enabled", "bool", "Learn my words and habits"],
-    ["promote_after", "number", "Uses before a new word is suggested", { min: 1 }],
+  ["learning", "Learning", "How Completionist learns your words.", [
+    ["enabled", "bool", "Learn From My Typing", "Counts only. It never stores what you wrote."],
+    ["promote_after", "number", "Uses Before Suggesting", "How many times a new word must be typed before it is suggested.", { min: 1, step: 1 }],
   ]],
-  ["phrase", "Phrases", [
-    ["enabled", "bool", "Suggest phrases"],
-    ["models", "list", "Models, one per line", { hint: "Tried in order; the next only if the one before fails" }],
-    ["api_key", "key", "OpenRouter key"],
+  ["phrase", "Cloud Phrases", "Longer suggestions from a model on OpenRouter.", [
+    ["enabled", "bool", "Suggest Phrases", "Turn cloud phrases on or off."],
+    ["api_key", "key", "OpenRouter Key", "Saved into your settings file. The page can write it but never shows it back."],
+    ["models", "list", "Models", "One per line. Tried in order; the next only if the one before fails."],
   ]],
-  ["apps", "Apps", [
-    ["block", "list", "Stay silent in these apps", { hint: "One program name per line, like code.exe" }],
-    ["allow", "list", "Show phrases on their own in these apps"],
+  ["apps", "Apps", "Where Completionist speaks up.", [
+    ["block", "list", "Stay Silent In", "One program name per line, like code.exe."],
+    ["allow", "list", "Show Phrases Automatically In", "One program name per line. Ctrl+Space works everywhere else."],
   ]],
-  ["hotkeys", "Hotkey", [["pause", "text", "Pause and resume", { hint: "Like ctrl+alt+p; leave empty for none" }]]],
+  ["hotkeys", "Hotkey", "", [["pause", "text", "Pause and Resume", "For example ctrl+alt+p. Leave empty for no hotkey.", { placeholder: "ctrl+alt+p" }]]],
 ];
-let loaded = {};
+let loaded = null;
+const form = $("form");
+function dirty() { return loaded !== null && Object.keys(readForm()).length > 0; }
 async function loadSettings() {
-  try {
-    loaded = await api("/api/settings");
-    const form = $("form");
-    form.replaceChildren(...FIELDS.map(([sec, title, rows]) => el("fieldset", {}, el("legend", { textContent: title }), ...rows.map(([key, kind, label, opt]) => field(sec, key, kind, label, opt || {})))),
-      el("button", { className: "act primary", type: "submit", textContent: "Save settings" }));
-  } catch (e) { if (e.status) { $("form").replaceChildren(); fail(e.message); } }
+  if (loaded && dirty()) return;  // keep what the user is typing
+  try { loaded = await api("/api/settings"); } catch (e) { if (!e.shown) { form.replaceChildren(); banner(e.message); } return; }
+  renderSettings();
 }
-function field(sec, key, kind, label, opt) {
-  const id = "f-" + sec + "-" + key;
-  const value = (loaded[sec] || {})[key];
+function renderSettings() {
+  form.replaceChildren(...GROUPS.map(([sec, title, about, rows]) => {
+    const g = el("fieldset", { className: "group" }, el("legend", { className: "sr", textContent: title }),
+      el("header", {}, el("h3", { textContent: title }), about ? el("p", { textContent: about }) : ""));
+    for (const [key, kind, label, hint, opt = {}] of rows) g.append(setting(sec, key, kind, label, hint, opt));
+    return g;
+  }));
+  updateBar();
+}
+function setting(sec, key, kind, label, hint, opt) {
+  const id = `f-${sec}-${key}`, value = loaded[sec][key];
   let input;
-  if (kind === "bool") { input = el("input", { type: "checkbox", id, checked: !!value }); }
-  else if (kind === "number") { input = el("input", { type: "number", id, value: value, min: opt.min, max: opt.max, step: opt.step || 1 }); }
-  else if (kind === "list") { input = el("textarea", { id, value: (value || []).join("\n") }); }
-  else if (kind === "key") { input = el("input", { type: "password", id, autocomplete: "off", placeholder: loaded.phrase.api_key_set ? "A key is set. Type to replace it." : "Not set" }); }
-  else { input = el("input", { type: "text", id, value: value || "" }); }
-  input.dataset.sec = sec; input.dataset.key = key; input.dataset.kind = kind;
-  const small = opt.hint ? el("small", { textContent: opt.hint }) : "";
-  const row = el("label", { className: "row", htmlFor: id }, el("span", {}, label, small), input);
-  if (kind === "key" && loaded.phrase.api_key_set) {
-    const clear = el("button", { className: "act danger", type: "button", textContent: "Remove key" });
-    clear.addEventListener("click", () => save({ phrase: { api_key: "" } }, "Key removed."));
-    row.append(clear);
+  if (kind === "bool") input = el("input", { type: "checkbox", id, className: "switch", checked: !!value });
+  else if (kind === "number") input = el("input", { type: "number", id, className: "field", value, min: opt.min, max: opt.max, step: opt.step, inputMode: opt.inputmode || "numeric" });
+  else if (kind === "list") { input = el("textarea", { id, className: "field", value: value.join("\n"), spellcheck: false }); }
+  else if (kind === "key") input = el("input", { type: "password", id, className: "field", autocomplete: "off", spellcheck: false, placeholder: loaded.phrase.api_key_set ? "Paste a new key to replace it…" : "Paste your key…" });
+  else input = el("input", { type: "text", id, className: "field", value, spellcheck: false, autocomplete: "off", placeholder: opt.placeholder || "" });
+  input.name = `${sec}.${key}`; input.dataset.sec = sec; input.dataset.key = key; input.dataset.kind = kind;
+  if (kind === "bool") input.setAttribute("role", "switch");
+  const t = el("label", { className: "t", htmlFor: id }, label, el("small", { textContent: hint }));
+  const ctl = el("div", { className: "ctl" }, input);
+  if (kind === "key") {
+    ctl.prepend(el("span", { className: "pill" + (loaded.phrase.api_key_set ? " on" : ""), textContent: loaded.phrase.api_key_set ? "Key set" : "No key yet" }));
+    if (loaded.phrase.api_key_set) {
+      const rm = el("button", { className: "btn quiet", type: "button", textContent: "Remove Key" }); rm.dataset.what = "";
+      armable(rm, "Remove Key", "Confirm Remove", () => save({ phrase: { api_key: "" } }, "Key removed."));
+      ctl.append(rm);
+    }
   }
-  return row;
+  return el("div", { className: "set" }, t, ctl);
 }
 function readForm() {
   const out = {};
-  for (const i of $("form").querySelectorAll("[data-key]")) {
+  for (const i of form.querySelectorAll("[data-key]")) {
     const { sec, key, kind } = i.dataset;
     let v;
     if (kind === "bool") v = i.checked;
     else if (kind === "number") { if (i.value === "") continue; v = Number(i.value); }
-    else if (kind === "list") v = i.value.split("\n").map((s) => s.trim()).filter(Boolean);
+    else if (kind === "list") v = i.value.split("\n").map((x) => x.trim()).filter(Boolean);
     else if (kind === "key") { if (!i.value) continue; v = i.value.trim(); }
     else v = i.value.trim();
     if (kind !== "key" && JSON.stringify(v) === JSON.stringify(loaded[sec][key])) continue;  // send only what changed
@@ -239,24 +525,32 @@ function readForm() {
   }
   return out;
 }
-async function save(changes, okText) {
-  const m = $("set-msg");
-  try {
-    loaded = await api("/api/settings", changes);
-    m.className = "msg ok"; m.textContent = okText || "Saved. It takes effect within a couple of seconds.";
-    const key = $("f-phrase-api_key"); if (key) key.value = "";
-    loadSettings().then(() => { m.hidden = false; });
-  } catch (e) { m.className = "msg bad"; m.textContent = e.message; }
-  m.hidden = false;
+function updateBar(message, bad) {
+  const on = current === "settings" && dirty();
+  $("savebar").classList.toggle("show", on); $("savebar").inert = !on;
+  document.body.classList.toggle("has-savebar", on);
+  const note = $("savenote");
+  note.textContent = message || "You have unsaved changes."; note.classList.toggle("bad", !!bad);
 }
-$("form").addEventListener("submit", (ev) => {
-  ev.preventDefault();
-  const changes = readForm();
-  if (!Object.keys(changes).length) { const m = $("set-msg"); m.className = "msg ok"; m.textContent = "Nothing changed."; m.hidden = false; return; }
-  save(changes);
-});
+form.addEventListener("input", () => updateBar());
+form.addEventListener("change", () => updateBar());
+form.addEventListener("submit", (ev) => { ev.preventDefault(); saveForm(); });
+form.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && ev.target.tagName === "INPUT" && dirty()) { ev.preventDefault(); saveForm(); } });
+function discardSettings() { if (loaded) renderSettings(); }
+$("discard").addEventListener("click", () => { discardSettings(); toast("Changes discarded."); });
+$("save").addEventListener("click", saveForm);
+async function saveForm() { const changes = readForm(); if (Object.keys(changes).length) save(changes, "Settings saved. They apply within a couple of seconds."); }
+async function save(changes, done) {
+  const btn = $("save"); btn.disabled = true; btn.textContent = "Saving…";
+  try { loaded = await api("/api/settings", changes); renderSettings(); toast(done); }
+  catch (e) {
+    if (!e.shown) { toast(e.message); updateBar(e.message, true); const first = form.querySelector("[data-key]"); if (first) first.focus({ preventScroll: true }); }
+  } finally { btn.disabled = false; btn.textContent = "Save Settings"; }
+}
+addEventListener("beforeunload", (ev) => { if (dirty()) { ev.preventDefault(); ev.returnValue = ""; } });
+addEventListener("hashchange", () => { const n = location.hash.slice(1); if (NAMES.includes(n) && n !== current) show(n, false); });
 
-show("dict");
+show(NAMES.includes(location.hash.slice(1)) ? location.hash.slice(1) : "words", false);
 </script>
 </body>
 </html>

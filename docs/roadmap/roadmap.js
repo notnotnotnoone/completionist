@@ -1123,6 +1123,40 @@ window.COMPLETIONIST_ROADMAP = {
             "engine/tests/test_settings.py",
             "0.6.0"
           ]
+        },
+        {
+          "id": "M8.8",
+          "title": "Trigrams: list and remove three-word phrases, in the store, the server and the viewer",
+          "status": "done",
+          "area": "engine",
+          "stories": [
+            67,
+            68
+          ],
+          "notes": "PersonalStore.trigrams(search) and forget_trigram(a, b, c); /api/trigrams and /api/forget-trigram; a Phrases tab. Removing one phrase leaves its words and two-word pairs, since other sentences use them.",
+          "refs": [
+            "m8-trigrams",
+            "engine/src/completionist_engine/personal.py",
+            "engine/src/completionist_engine/viewer.py",
+            "0.6.1"
+          ]
+        },
+        {
+          "id": "M8.9",
+          "title": "Viewer redesign: clearer hierarchy, motion and accessibility",
+          "status": "done",
+          "area": "viewer",
+          "stories": [
+            68,
+            69,
+            75
+          ],
+          "notes": "Rebuilt viewer.html: four tabs kept in the address hash, usage bars, a daily chart, switches and a save bar for settings, a two-step confirm before any remove, toasts, empty and loading states, dark mode, phone width, reduced motion, keyboard-initiated changes not animated. Checked against the ui-ux-designer, ui-animation and web-design-guidelines skills.",
+          "refs": [
+            "m8-trigrams",
+            "engine/src/completionist_engine/viewer.html",
+            "0.6.1"
+          ]
         }
       ]
     },
@@ -1441,6 +1475,16 @@ window.COMPLETIONIST_ROADMAP = {
       "date": "2026-09-30"
     },
     {
+      "version": "0.6.1",
+      "status": "released",
+      "title": "Phrases in the viewer",
+      "highways": [
+        "engine"
+      ],
+      "date": "2026-09-30",
+      "text": "The viewer gains a Phrases tab to list and remove three-word phrases, and the whole page is redesigned with usage bars, a daily chart, a save bar for settings, a two-step confirm before removing anything, and motion that respects reduced-motion settings."
+    },
+    {
       "version": "0.7.0",
       "status": "next",
       "title": "Typo-tolerant words",
@@ -1711,6 +1755,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Release 0.6.1: viewer trigram list and remove (M8.8) and a full redesign of the page (M8.9); 486 engine tests."
+    },
     {
       "date": "2026-09-30",
       "text": "Release 0.6.0 (M8 done): the personal viewer. M9 is now active and 0.7.0 is next."
