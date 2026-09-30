@@ -146,10 +146,11 @@ std::wstring ReadBeside(ITfRange* anchor, TfEditCookie ec, bool before, LONG* av
     return text;
 }
 
+// Input scope is an *app* property: the application supplies it, so it's read via GetAppProperty.
 std::wstring ReadInputScopes(ITfContext* context, TfEditCookie ec, ITfRange* range) {
     std::wstring names;
-    ITfProperty* property = nullptr;
-    if (FAILED(context->GetProperty(GUID_PROP_INPUTSCOPE, &property))) return L"(no property)";
+    ITfReadOnlyProperty* property = nullptr;
+    if (FAILED(context->GetAppProperty(GUID_PROP_INPUTSCOPE, &property)) || !property) return L"(no property)";
     VARIANT value;
     VariantInit(&value);
     if (SUCCEEDED(property->GetValue(ec, range, &value)) && value.vt == VT_UNKNOWN && value.punkVal) {
@@ -171,6 +172,24 @@ std::wstring ReadInputScopes(ITfContext* context, TfEditCookie ec, ITfRange* ran
     VariantClear(&value);
     property->Release();
     return names.empty() ? L"(none)" : names;
+}
+
+// Whether the app has switched keyboard input methods off for this context (e.g. a password field).
+int KeyboardDisabled(ITfContext* context) {
+    int disabled = -1;  // unknown
+    ITfCompartmentMgr* compartments = nullptr;
+    if (SUCCEEDED(context->QueryInterface(IID_ITfCompartmentMgr, reinterpret_cast<void**>(&compartments)))) {
+        ITfCompartment* compartment = nullptr;
+        if (SUCCEEDED(compartments->GetCompartment(GUID_COMPARTMENT_KEYBOARD_DISABLED, &compartment))) {
+            VARIANT value;
+            VariantInit(&value);
+            if (SUCCEEDED(compartment->GetValue(&value))) disabled = (value.vt == VT_I4 && value.lVal != 0) ? 1 : 0;
+            VariantClear(&value);
+            compartment->Release();
+        }
+        compartments->Release();
+    }
+    return disabled;
 }
 
 class TyperSpike;
@@ -344,6 +363,7 @@ public:
         std::wstring before = ReadBeside(selection.range, ec, true, &availableBefore);
         std::wstring after = ReadBeside(selection.range, ec, false, &availableAfter);
         std::wstring scopes = ReadInputScopes(context, ec, selection.range);
+        int keyboardDisabled = KeyboardDisabled(context);
         currentWord_ = TrailingWord(before);
 
         RECT caret = {};
@@ -377,9 +397,9 @@ public:
         selection.range->Release();
 
         Log(L"inspect sel_empty=%d before=%ld after=%ld word=\"%s\" caret=(%ld,%ld)-(%ld,%ld) extent_hr=0x%08lx "
-            L"prev_char=%d clipped=%d scope=%s title=\"%s\" tail=\"%s\" head=\"%s\"",
+            L"prev_char=%d clipped=%d kbd_disabled=%d scope=%s title=\"%s\" tail=\"%s\" head=\"%s\"",
             selectionEmpty, availableBefore, availableAfter, currentWord_.c_str(), caret.left, caret.top, caret.right,
-            caret.bottom, extentHr, usedPreviousChar, clipped, scopes.c_str(), Snippet(title, 60, false).c_str(),
+            caret.bottom, extentHr, usedPreviousChar, clipped, keyboardDisabled, scopes.c_str(), Snippet(title, 60, false).c_str(),
             Snippet(before, 40, true).c_str(), Snippet(after, 20, false).c_str());
 
         if (extentHr == TF_E_NOLAYOUT && retries_ < 3 && popup_) {
