@@ -27,6 +27,7 @@ A phrase is a continuation of your sentence from a cheap cloud completion model,
 
 - **Provider:** any OpenAI-compatible `/completions` endpoint. The default is DeepSeek (`https://api.deepseek.com/beta`, `deepseek-chat`, key in `DEEPSEEK_API_KEY`). The text after the caret is sent as `suffix` (fill-in-the-middle) so the phrase fits what follows.
 - **Context sent:** up to 8,000 characters before the caret and 2,000 after, cut at paragraph/sentence boundaries so the provider's prefix cache hits.
+- **OpenRouter (or any provider without FIM):** set `base_url = "https://openrouter.ai/api/v1"`, `model` to an OpenRouter model that accepts plain completions, `api_key_env = "OPENROUTER_API_KEY"` and `fim = false`. The model then sees only the text before the caret, so phrases are held back while other text follows the caret on the same line. Which OpenRouter models work is untested; `typer-bench` finds out.
 - **When:** in apps listed under `[apps] allow`, a phrase is requested 350 ms after you pause. Everywhere else, only when you press Ctrl+Space.
 - **Cost:** spend is counted per day (`spend.json`); phrases stop for the day at `daily_budget_usd` (default $0.50). Three provider failures in a row pause phrases for 30 s.
 - **Privacy:** nothing is sent from password fields or block-listed apps. Text goes only to the provider you configured.

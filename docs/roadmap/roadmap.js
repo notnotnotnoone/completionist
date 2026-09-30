@@ -568,6 +568,18 @@ window.TYPER_ROADMAP = {
             59
           ],
           "notes": "Needs you: `setx DEEPSEEK_API_KEY \"...\"` in a terminal (never in chat), restart the engine, then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Typer` shows what it cost."
+        },
+        {
+          "id": "M3.12",
+          "title": "OpenRouter without FIM: prefix-only phrases, held back when text follows the caret on the same line",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "notes": "The user only has an OpenRouter key and it documents no `suffix`. fim=false now also skips phrases while non-blank text follows the caret on the same line. Which OpenRouter models take /completions is untested; bench/providers.example.toml has candidates.",
+          "refs": [
+            "branch openrouter-phrases",
+            "engine/src/typer_engine/phrases.py"
+          ]
         }
       ]
     },
@@ -922,6 +934,10 @@ window.TYPER_ROADMAP = {
   "decisions": [
     {
       "date": "2026-09-29",
+      "text": "Provider: the user only has OpenRouter, so phrases run prefix-only there (fim=false) with a same-line guard. DeepSeek stays the default with FIM. Model choice is still open until typer-bench runs."
+    },
+    {
+      "date": "2026-09-29",
       "text": "N-gram corpus is WikiText-103 (encyclopedic English, from Hugging Face; the original S3 link is gone). It helps formal writing most; a chat-style corpus such as subtitles would help casual text and can be added later."
     },
     {
@@ -981,6 +997,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "Phrases work without FIM: prefix-only requests are held back when text follows the caret on the same line. OpenRouter candidates added to the benchmark file."
+    },
     {
       "date": "2026-09-29",
       "text": "Released 0.0.5: merged m3-phrases (M1-M4 code) into main. Live checks in real apps remain open."

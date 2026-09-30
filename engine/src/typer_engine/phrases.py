@@ -113,7 +113,7 @@ class PhraseSession:
 
     def on_request(self, request: Request, mode: Mode) -> Update:
         self._scheduler.debounce = self._service.config.debounce
-        if not self._service.available:
+        if not self._service.available or self._text_after_clashes(request):
             mode = "off"
         update = self._scheduler.request(request, mode, self._now(), self._service.usable())
         self._apply(update.actions)
@@ -121,7 +121,7 @@ class PhraseSession:
         return update
 
     def on_hotkey(self, request: Request, mode: Mode) -> Update:
-        if not self._service.available:
+        if not self._service.available or self._text_after_clashes(request):
             mode = "off"
         update = self._scheduler.hotkey(request, mode, self._now(), self._service.usable())
         self._apply(update.actions)
@@ -142,6 +142,13 @@ class PhraseSession:
         self._tasks.clear()
 
     # -- internals -------------------------------------------------------------------------------
+
+    def _text_after_clashes(self, request: Request) -> bool:
+        """Without fill-in-the-middle the model never sees what follows the caret, so a phrase would run
+        into text already on the same line. Hold it back there (later lines don't matter)."""
+        if self._service.config.provider.fim:
+            return False
+        return bool(request.after.split("\n", 1)[0].strip())
 
     def _now(self) -> float:
         return self._service.clock()

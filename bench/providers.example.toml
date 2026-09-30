@@ -22,3 +22,27 @@ price_output_per_m = 1.20
 # model = "deepseek-chat"
 # api_key_env = "DEEPSEEK_API_KEY"
 # fim = false
+
+# OpenRouter: one key (OPENROUTER_API_KEY) for many models. It documents a legacy `prompt` endpoint but no
+# `suffix`, so these run prefix-only (fim = false). Typer then holds phrases back while text follows the
+# caret on the same line. UNTESTED: whether a given model accepts /completions, and its price, are things
+# this benchmark exists to find out. Check prices on openrouter.ai/models and edit the numbers below.
+[[provider]]
+name = "openrouter-codestral"
+base_url = "https://openrouter.ai/api/v1"
+model = "mistralai/codestral-2508"
+api_key_env = "OPENROUTER_API_KEY"
+fim = false
+price_input_per_m = 0.30
+price_cached_per_m = 0.30
+price_output_per_m = 0.90
+
+[[provider]]
+name = "openrouter-deepseek"
+base_url = "https://openrouter.ai/api/v1"
+model = "deepseek/deepseek-chat"
+api_key_env = "OPENROUTER_API_KEY"
+fim = false
+price_input_per_m = 0.30
+price_cached_per_m = 0.30
+price_output_per_m = 1.20
