@@ -1,0 +1,24 @@
+# Candidates for `typer-bench`. Copy to providers.toml, set each API key in an environment variable
+# (setx NAME "value" in a terminal, then open a new one), and run:
+#   cd engine && uv run typer-bench ../bench/providers.toml --json ../bench/results.json
+#
+# The provider must speak the OpenAI-style POST {base_url}/completions with streaming. DeepSeek's FIM
+# endpoint (under /beta) does. Providers that only offer chat endpoints, or a different FIM path,
+# need a small adapter first.
+
+[[provider]]
+name = "deepseek-fim"
+base_url = "https://api.deepseek.com/beta"
+model = "deepseek-chat"
+api_key_env = "DEEPSEEK_API_KEY"
+fim = true
+price_input_per_m = 0.30
+price_cached_per_m = 0.006
+price_output_per_m = 1.20
+
+# [[provider]]
+# name = "deepseek-plain"        # same model without the text after the caret, to see what FIM adds
+# base_url = "https://api.deepseek.com/beta"
+# model = "deepseek-chat"
+# api_key_env = "DEEPSEEK_API_KEY"
+# fim = false

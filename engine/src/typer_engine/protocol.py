@@ -96,6 +96,30 @@ class WordReply:
     id: int
     replace: int
     words: tuple[str, ...]
+    phrase: str = ""
+    """The phrase continuation to show as the top row, if one is ready."""
+    phrase_done: bool = True
+    """False while more phrase text may still be pushed."""
+    phrase_mode: str = "off"
+    """"auto", "hotkey" or "off": whether phrases are available in this field."""
 
     def to_message(self) -> dict[str, Any]:
-        return {"id": self.id, "type": "words", "replace": self.replace, "words": list(self.words)}
+        message: dict[str, Any] = {"id": self.id, "type": "words", "replace": self.replace, "words": list(self.words)}
+        if self.phrase_mode != "off":
+            message["phrase_mode"] = self.phrase_mode
+        if self.phrase or not self.phrase_done:
+            message["phrase"] = self.phrase
+            message["phrase_done"] = self.phrase_done
+        return message
+
+
+@dataclass(frozen=True)
+class PhraseUpdate:
+    """Pushed to the text service as a phrase streams in, keyed by the newest request it belongs to."""
+
+    id: int
+    text: str
+    done: bool
+
+    def to_message(self) -> dict[str, Any]:
+        return {"id": self.id, "type": "phrase", "text": self.text, "done": self.done}

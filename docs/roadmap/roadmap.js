@@ -413,27 +413,34 @@ window.TYPER_ROADMAP = {
         {
           "id": "M3.1",
           "title": "Provider benchmark: time-to-first-token and quality",
-          "status": "todo",
+          "status": "blocked",
           "area": "bench",
           "stories": [
             45
           ],
-          "notes": "Candidates: DeepSeek-Flash FIM (leading), Codestral FIM, Qwen 3.5 Flash, Groq gpt-oss-20b, Ministral 3B, Gemini 3.1 Flash-Lite. Cheap models only, never premium chat models."
+          "notes": "`typer-bench` is built and tested against a fake server: time to first token, total time, cost from the provider's own token counts, and a clean-completion check. Running it on real providers needs your API keys (`setx NAME value`, never in chat). Only DeepSeek is confirmed OpenAI-compatible for `/completions` with FIM; Codestral uses a different FIM path and Groq has no completions endpoint, so those need a small adapter first.",
+          "refs": [
+            "engine/src/typer_engine/bench.py",
+            "bench/providers.example.toml"
+          ]
         },
         {
           "id": "M3.2",
           "title": "Benchmark time-to-first-token against context size",
-          "status": "todo",
+          "status": "blocked",
           "area": "bench",
           "stories": [
             46
           ],
-          "notes": "Sets the default context cap (starting at 8k characters before, 2k after)."
+          "notes": "The same tool sweeps 500, 2000 and 8000 characters of context. Waiting on API keys to run it; then pick `context_before` by measurement.",
+          "refs": [
+            "engine/src/typer_engine/bench.py"
+          ]
         },
         {
           "id": "M3.3",
           "title": "Phrase provider: OpenAI-compatible /completions with optional FIM",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             22,
@@ -443,33 +450,42 @@ window.TYPER_ROADMAP = {
             39,
             40
           ],
-          "notes": "Streaming. API key read from an env var named in config; the user sets it with `setx`, never in chat."
+          "notes": "`PhraseProvider` streams OpenAI-style `/completions` (plain or FIM with a suffix), reads usage from DeepSeek and OpenAI formats, and turns timeouts and HTTP errors into `ProviderError` without ever including the key. Settings live under `[phrase]`; the key is read from the environment variable named in `api_key_env`. Tested against a local fake server.",
+          "refs": [
+            "engine/src/typer_engine/phrase_provider.py"
+          ]
         },
         {
           "id": "M3.4",
           "title": "Cache-friendly anchored context window",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             59
           ],
-          "notes": "The window start moves only in large steps so consecutive requests share a prefix and hit the provider cache (about $0.31 vs $1.56 a day at peak)."
+          "notes": "`anchored_window` cuts the text before the caret at a paragraph or sentence boundary, so the start of the prompt only moves every sentence or so instead of every keystroke. 400 keystrokes move it 5 times, so consecutive requests share a cached prefix.",
+          "refs": [
+            "engine/src/typer_engine/context.py"
+          ]
         },
         {
           "id": "M3.5",
           "title": "Daily budget cap and per-request cost tracking",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             60,
             61
           ],
-          "notes": "`daily_budget_usd` defaults to 0.50. Spend comes from provider usage data."
+          "notes": "`DailyBudget` prices each request from the provider's cached, uncached and output token counts, saves the day's total in `spend.json`, resets at midnight and stops requests at `daily_budget_usd` (default 0.50). Only totals are stored.",
+          "refs": [
+            "engine/src/typer_engine/budget.py"
+          ]
         },
         {
           "id": "M3.6",
           "title": "Phrase scheduler state machine",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             18,
@@ -477,17 +493,24 @@ window.TYPER_ROADMAP = {
             24,
             26
           ],
-          "notes": "350 ms debounce, cancel on divergence, typeahead trim, no requests when gated. Tested with a fake clock."
+          "notes": "`PhraseScheduler` is a pure state machine with an injected clock: 350 ms pause in auto mode, hotkey mode never asks alone, typing along trims the phrase without a new request, anything else cancels and clears it, late chunks that contradict the typed text are dropped. 22 tests.",
+          "refs": [
+            "engine/src/typer_engine/phrase_scheduler.py"
+          ]
         },
         {
           "id": "M3.7",
           "title": "Phrase push messages over the pipe",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             22
           ],
-          "notes": "Keyed by the originating request id, carrying the text so far and a streaming flag."
+          "notes": "Replies carry `phrase` and `phrase_mode`; streamed text is pushed as `{\"type\":\"phrase\",\"id\",\"text\",\"done\"}` keyed to the newest request. Tested over a real named pipe with a fake provider, including that password fields never reach the provider.",
+          "refs": [
+            "engine/src/typer_engine/phrases.py",
+            "engine/tests/test_phrases_pipe.py"
+          ]
         },
         {
           "id": "M3.8",
@@ -514,10 +537,14 @@ window.TYPER_ROADMAP = {
         {
           "id": "M3.10",
           "title": "Fall back to words when the provider is slow or down",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             30
+          ],
+          "notes": "A provider error ends the phrase quietly (word suggestions carry on); three failures in a row pause phrases for 30 seconds; with no key, no budget or phrases switched off, nothing is ever requested.",
+          "refs": [
+            "engine/src/typer_engine/phrases.py"
           ]
         }
       ]
@@ -866,6 +893,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "M3 engine side done on branch m3-phrases: provider, anchored context, daily budget, scheduler, phrase service, pushes over the pipe and typer-bench. 292 engine tests pass. Next: the phrase row in the DLL (M3.8) and the Ctrl+Space hotkey (M3.9). Benchmark runs are blocked on your API keys."
+    },
     {
       "date": "2026-09-29",
       "text": "Added a TSF harness that runs the real DLL through real TSF with the real engine and a simulated text field: 31 checks pass, popup rendering reviewed from screenshots. Real-app checks (M1.12, M2.7) still need the DLL registered, which needs your UAC click."

@@ -14,7 +14,7 @@ The full spec is in [issue #1 (PRD)](https://github.com/notnotnotnoone/typer/iss
 |---|---|
 | `engine/` | Python engine (uv project): pipe server, word completion, phrase provider, learning, metrics |
 | `tip/` | C++ TSF text service DLL (adapted from Microsoft's SampleIME). The M0 spike is in `tip/spike/`; the real DLL is M1 |
-| `bench/` | Phrase-provider benchmark *(not started)* |
+| `bench/` | Provider comparison (`typer-bench`): candidates file and how to run it |
 | `data/` | N-gram table build scripts *(not started)* |
 | `docs/roadmap/` | Roadmap data, task board and release timeline (open the HTML files from disk) |
 | `scripts/` | Roadmap checker; install / uninstall scripts later |

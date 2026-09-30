@@ -55,3 +55,4 @@ async def _serve(assembled: Assembled, pipe_name: str) -> None:
                 assembled.personal.flush()
     finally:
         server.close()
+        await assembled.aclose()

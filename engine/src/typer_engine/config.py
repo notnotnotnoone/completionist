@@ -13,6 +13,23 @@
 
     [data]
     dir = "C:/somewhere"        # where personal counts and n-gram tables live
+
+    [phrase]                    # phrase continuations from a cloud completion model
+    enabled = true
+    base_url = "https://api.deepseek.com/beta"   # any OpenAI-compatible /completions endpoint
+    model = "deepseek-chat"
+    api_key_env = "DEEPSEEK_API_KEY"             # name of the environment variable holding the key
+    fim = true                  # send the text after the caret too (fill-in-the-middle)
+    max_tokens = 40
+    temperature = 0.2
+    timeout = 4.0               # seconds
+    debounce_ms = 350           # pause before an automatic request
+    context_before = 8000       # characters of text before the caret sent to the model
+    context_after = 2000
+    daily_budget_usd = 0.50     # phrases stop for the day once this is spent
+    price_input_per_m = 0.30    # dollars per million tokens, used to count spend
+    price_cached_per_m = 0.006
+    price_output_per_m = 1.20
 """
 
 import os
@@ -20,6 +37,9 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from typer_engine.budget import Prices
+from typer_engine.phrase_provider import ProviderSettings
 
 DEFAULT_BLOCK = frozenset(
     {
@@ -45,7 +65,17 @@ DEFAULT_BLOCK = frozenset(
 )
 DEFAULT_ALLOW = frozenset({"obsidian.exe", "notepad.exe", "winword.exe", "outlook.exe", "olk.exe"})
 
-_SCHEMA = {"apps": {"block", "allow"}, "words": {"limit"}, "learning": {"enabled", "promote_after"}, "data": {"dir"}}
+_PHRASE_KEYS = {
+    "enabled", "base_url", "model", "api_key_env", "fim", "max_tokens", "temperature", "timeout", "debounce_ms",
+    "context_before", "context_after", "daily_budget_usd", "price_input_per_m", "price_cached_per_m", "price_output_per_m",
+}  # fmt: skip
+_SCHEMA = {
+    "apps": {"block", "allow"},
+    "words": {"limit"},
+    "learning": {"enabled", "promote_after"},
+    "data": {"dir"},
+    "phrase": _PHRASE_KEYS,
+}
 
 
 class ConfigError(Exception):
@@ -59,6 +89,17 @@ def default_data_dir() -> Path:
 
 
 @dataclass(frozen=True)
+class PhraseConfig:
+    enabled: bool = True
+    provider: ProviderSettings = field(default_factory=ProviderSettings)
+    debounce: float = 0.35  # seconds
+    context_before: int = 8000
+    context_after: int = 2000
+    daily_budget_usd: float = 0.50
+    prices: Prices = field(default_factory=Prices)
+
+
+@dataclass(frozen=True)
 class Config:
     block: frozenset[str] = DEFAULT_BLOCK
     allow: frozenset[str] = DEFAULT_ALLOW
@@ -66,6 +107,7 @@ class Config:
     learning: bool = True
     promote_after: int = 3
     data_dir: Path = field(default_factory=default_data_dir)
+    phrase: PhraseConfig = field(default_factory=PhraseConfig)
 
 
 def default_config_path() -> Path:
@@ -99,6 +141,41 @@ def load_config(path: Path) -> Config:
             else config.promote_after
         ),
         data_dir=_directory(data_section["dir"], "data.dir") if "dir" in data_section else config.data_dir,
+        phrase=_phrase(data.get("phrase", {})),
+    )
+
+
+def _phrase(section: dict[str, Any]) -> PhraseConfig:
+    base = PhraseConfig()
+    p = base.provider
+
+    def get(key: str, default: Any, check: Any) -> Any:
+        return check(section[key], f"phrase.{key}") if key in section else default
+
+    provider = ProviderSettings(
+        base_url=get("base_url", p.base_url, _text),
+        model=get("model", p.model, _text),
+        api_key_env=get("api_key_env", p.api_key_env, _text),
+        fim=get("fim", p.fim, _boolean),
+        max_tokens=get("max_tokens", p.max_tokens, _positive_int),
+        temperature=get("temperature", p.temperature, _non_negative_number),
+        timeout=get("timeout", p.timeout, _positive_number),
+        stop=p.stop,
+    )
+    prices = Prices(
+        input_per_m=get("price_input_per_m", base.prices.input_per_m, _non_negative_number),
+        cached_per_m=get("price_cached_per_m", base.prices.cached_per_m, _non_negative_number),
+        output_per_m=get("price_output_per_m", base.prices.output_per_m, _non_negative_number),
+    )
+    debounce_ms = get("debounce_ms", base.debounce * 1000, _non_negative_number)
+    return PhraseConfig(
+        enabled=get("enabled", base.enabled, _boolean),
+        provider=provider,
+        debounce=debounce_ms / 1000,
+        context_before=get("context_before", base.context_before, _positive_int),
+        context_after=get("context_after", base.context_after, _non_negative_int),
+        daily_budget_usd=get("daily_budget_usd", base.daily_budget_usd, _non_negative_number),
+        prices=prices,
     )
 
 
@@ -123,6 +200,30 @@ def _positive_int(value: Any, name: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value < 1:
         raise ConfigError(f"{name} must be a whole number of at least 1")
     return value
+
+
+def _non_negative_int(value: Any, name: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ConfigError(f"{name} must be a whole number, 0 or more")
+    return value
+
+
+def _non_negative_number(value: Any, name: str) -> float:
+    if not isinstance(value, int | float) or isinstance(value, bool) or value < 0:
+        raise ConfigError(f"{name} must be a number, 0 or more")
+    return float(value)
+
+
+def _positive_number(value: Any, name: str) -> float:
+    if not isinstance(value, int | float) or isinstance(value, bool) or value <= 0:
+        raise ConfigError(f"{name} must be a number above 0")
+    return float(value)
+
+
+def _text(value: Any, name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ConfigError(f"{name} must be non-empty text")
+    return value.strip()
 
 
 def _boolean(value: Any, name: str) -> bool:

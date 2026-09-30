@@ -94,3 +94,67 @@ def test_data_dir_defaults_under_localappdata_and_can_move(monkeypatch, tmp_path
     assert Config().data_dir == tmp_path / "Typer"
     moved = load_config(write(tmp_path, f"[data]\ndir = '{tmp_path / 'elsewhere'}'\n"))
     assert moved.data_dir == tmp_path / "elsewhere"
+
+
+# --- phrase settings --------------------------------------------------------------------------
+
+
+def test_phrase_defaults_match_the_budget_plan():
+    phrase = Config().phrase
+    assert phrase.enabled is True
+    assert phrase.provider.api_key_env == "DEEPSEEK_API_KEY"
+    assert phrase.provider.fim is True
+    assert phrase.debounce == pytest.approx(0.35)
+    assert (phrase.context_before, phrase.context_after) == (8000, 2000)
+    assert phrase.daily_budget_usd == pytest.approx(0.50)
+
+
+def test_phrase_settings_can_be_overridden(tmp_path):
+    path = write(
+        tmp_path,
+        """
+        [phrase]
+        enabled = false
+        base_url = "https://api.example.com/v1"
+        model = "small-fim"
+        api_key_env = "MY_KEY"
+        fim = false
+        max_tokens = 24
+        temperature = 0
+        timeout = 2.5
+        debounce_ms = 500
+        context_before = 4000
+        context_after = 0
+        daily_budget_usd = 0.25
+        price_input_per_m = 0.1
+        price_cached_per_m = 0.01
+        price_output_per_m = 0.4
+        """,
+    )
+    phrase = load_config(path).phrase
+    assert phrase.enabled is False
+    assert (phrase.provider.base_url, phrase.provider.model, phrase.provider.api_key_env) == ("https://api.example.com/v1", "small-fim", "MY_KEY")
+    assert phrase.provider.fim is False and phrase.provider.max_tokens == 24 and phrase.provider.temperature == 0
+    assert phrase.provider.timeout == 2.5
+    assert phrase.debounce == pytest.approx(0.5)
+    assert (phrase.context_before, phrase.context_after) == (4000, 0)
+    assert phrase.daily_budget_usd == 0.25
+    assert (phrase.prices.input_per_m, phrase.prices.cached_per_m, phrase.prices.output_per_m) == (0.1, 0.01, 0.4)
+
+
+def test_the_api_key_itself_cannot_be_put_in_the_config(tmp_path):
+    with pytest.raises(ConfigError, match="api_key"):
+        load_config(write(tmp_path, "[phrase]\napi_key = 'sk-secret'\n"))
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "enabled = 'yes'", "base_url = ''", "model = 3", "fim = 1", "max_tokens = 0", "temperature = -1", "timeout = 0",
+        "debounce_ms = -5", "context_before = 0", "context_after = -1", "daily_budget_usd = -0.5", "price_input_per_m = 'x'",
+        "turbo = true",
+    ],
+)  # fmt: skip
+def test_invalid_phrase_settings_are_rejected(tmp_path, line):
+    with pytest.raises(ConfigError):
+        load_config(write(tmp_path, f"[phrase]\n{line}\n"))

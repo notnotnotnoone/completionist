@@ -5,16 +5,21 @@ import logging
 from asyncio.windows_events import PipeServer
 
 from typer_engine.engine import Engine
-from typer_engine.protocol import DEFAULT_PIPE_NAME, FrameDecoder, ProtocolError, encode, parse_request
+from typer_engine.protocol import DEFAULT_PIPE_NAME, FrameDecoder, PhraseUpdate, ProtocolError, encode, parse_request
 
 logger = logging.getLogger("typer_engine.server")
 
 
 class _Connection(asyncio.Protocol):
     def __init__(self, engine: Engine) -> None:
-        self._session = engine.open_session()
+        self._session = engine.open_session(self._push)
         self._decoder = FrameDecoder()
         self._transport: asyncio.WriteTransport | None = None
+
+    def _push(self, update: PhraseUpdate) -> None:
+        """Send a streamed phrase update: something the text service didn't ask for in a reply."""
+        if self._transport is not None and not self._transport.is_closing():
+            self._transport.write(encode(update.to_message()))
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         assert isinstance(transport, asyncio.WriteTransport)
@@ -33,6 +38,7 @@ class _Connection(asyncio.Protocol):
             self._transport.close()
 
     def connection_lost(self, exc: Exception | None) -> None:
+        self._session.close()
         logger.debug("client disconnected")
 
 
