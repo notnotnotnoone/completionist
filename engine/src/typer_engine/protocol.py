@@ -68,6 +68,12 @@ class Request:
     input_scope: tuple[str, ...] = ()
     before: str = ""
     after: str = ""
+    accepted: str = ""
+    """For `accept` events: the word that was inserted."""
+    quiet: bool = False
+    """The text service is holding its popup back here, so there's no point asking for a phrase."""
+    kind: str = "word"
+    """For `accept` events: "word", "phrase" (all of it) or "phrase_word" (one word of it)."""
 
 
 def parse_request(message: dict[str, Any]) -> Request:
@@ -78,15 +84,21 @@ def parse_request(message: dict[str, Any]) -> Request:
     if event not in _EVENT_TYPES:
         raise ProtocolError(f"unknown event {event!r}")
     strings = {}
-    for field in ("app", "title", "before", "after"):
+    for field in ("app", "title", "before", "after", "accepted"):
         value = message.get(field, "")
         if not isinstance(value, str):
             raise ProtocolError(f"{field} must be a string, got {type(value).__name__}")
         strings[field] = value
+    kind = message.get("kind", "word")
+    if kind not in ("word", "phrase", "phrase_word"):
+        raise ProtocolError(f"unknown accept kind {kind!r}")
+    quiet = message.get("quiet", False)
+    if not isinstance(quiet, bool):
+        raise ProtocolError("quiet must be true or false")
     input_scope = message.get("input_scope", [])
     if not isinstance(input_scope, list) or not all(isinstance(s, str) for s in input_scope):
         raise ProtocolError("input_scope must be a list of strings")
-    return Request(id=request_id, event=event, input_scope=tuple(input_scope), **strings)
+    return Request(id=request_id, event=event, input_scope=tuple(input_scope), quiet=quiet, kind=kind, **strings)
 
 
 @dataclass(frozen=True)
@@ -94,6 +106,30 @@ class WordReply:
     id: int
     replace: int
     words: tuple[str, ...]
+    phrase: str = ""
+    """The phrase continuation to show as the top row, if one is ready."""
+    phrase_done: bool = True
+    """False while more phrase text may still be pushed."""
+    phrase_mode: str = "off"
+    """"auto", "hotkey" or "off": whether phrases are available in this field."""
 
     def to_message(self) -> dict[str, Any]:
-        return {"id": self.id, "type": "words", "replace": self.replace, "words": list(self.words)}
+        message: dict[str, Any] = {"id": self.id, "type": "words", "replace": self.replace, "words": list(self.words)}
+        if self.phrase_mode != "off":
+            message["phrase_mode"] = self.phrase_mode
+        if self.phrase or not self.phrase_done:
+            message["phrase"] = self.phrase
+            message["phrase_done"] = self.phrase_done
+        return message
+
+
+@dataclass(frozen=True)
+class PhraseUpdate:
+    """Pushed to the text service as a phrase streams in, keyed by the newest request it belongs to."""
+
+    id: int
+    text: str
+    done: bool
+
+    def to_message(self) -> dict[str, Any]:
+        return {"id": self.id, "type": "phrase", "text": self.text, "done": self.done}

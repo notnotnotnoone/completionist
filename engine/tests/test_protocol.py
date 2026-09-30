@@ -93,3 +93,29 @@ def test_parse_request_rejects_invalid_messages(message):
 def test_word_reply_serialises_to_wire_shape():
     reply = WordReply(id=3, replace=3, words=("world", "work"))
     assert reply.to_message() == {"id": 3, "type": "words", "replace": 3, "words": ["world", "work"]}
+
+
+def test_a_word_reply_carries_phrase_fields_only_when_relevant():
+    from typer_engine.protocol import PhraseUpdate
+
+    plain = WordReply(id=1, replace=0, words=())
+    assert "phrase" not in plain.to_message() and "phrase_mode" not in plain.to_message()
+
+    available = WordReply(id=1, replace=2, words=("a",), phrase_mode="hotkey")
+    assert available.to_message()["phrase_mode"] == "hotkey"
+    assert "phrase" not in available.to_message()
+
+    showing = WordReply(id=1, replace=2, words=("a",), phrase="ld is big", phrase_done=False, phrase_mode="auto")
+    message = showing.to_message()
+    assert (message["phrase"], message["phrase_done"], message["phrase_mode"]) == ("ld is big", False, "auto")
+
+    assert PhraseUpdate(id=4, text="hi", done=True).to_message() == {"id": 4, "type": "phrase", "text": "hi", "done": True}
+
+
+def test_a_quiet_flag_is_parsed_and_defaults_to_false():
+    from typer_engine.protocol import parse_request
+
+    assert parse_request({"id": 1, "event": "keystroke"}).quiet is False
+    assert parse_request({"id": 1, "event": "keystroke", "quiet": True}).quiet is True
+    with pytest.raises(ProtocolError):
+        parse_request({"id": 1, "event": "keystroke", "quiet": "yes"})

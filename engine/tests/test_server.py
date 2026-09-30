@@ -131,9 +131,13 @@ def test_round_trip_with_the_real_vocabulary_is_under_10ms_at_p95():
 
 
 @pytest.fixture
-def engine_process():
+def engine_process(tmp_path):
     name = unique_pipe_name()
-    process = subprocess.Popen([sys.executable, "-m", "typer_engine", "--pipe", name])
+    # Own data folder, so the test never reads or writes the real n-gram and personal files.
+    config = tmp_path / "config.toml"
+    data_dir = (tmp_path / "data").as_posix()
+    config.write_text(f"[data]\ndir = '{data_dir}'\n", encoding="utf-8")
+    process = subprocess.Popen([sys.executable, "-m", "typer_engine", "--pipe", name, "--config", str(config), "--no-tray"])
     try:
         yield name
     finally:
@@ -145,3 +149,20 @@ def test_engine_process_answers_the_probe(engine_process, capsys):
     exit_code = probe_main(["--pipe", engine_process, "--timeout", "20", "I'd like to recomm"])
     assert exit_code == 0
     assert capsys.readouterr().out.splitlines()[0] == "recommend"
+
+
+def test_words_typed_over_one_connection_are_learned():
+    from typer_engine.personal import PersonalStore
+
+    async def scenario():
+        personal = PersonalStore()
+        engine = Engine(WordCompleter(VOCAB, personal=personal), Config(block=frozenset(), allow=frozenset()), personal=personal)
+        async with serving(engine) as name:
+            client = await EngineClient.connect(name)
+            for i, text in enumerate(["hey", "hey ", "hey l", "hey li", "hey lin", "hey linq", "hey linqi", "hey linqi "], start=1):
+                await client.request(keystroke(i, text))
+            await client.close()
+        return personal
+
+    personal = asyncio.run(scenario())
+    assert dict(personal.counts((), "lin").words) == {"linqi": 1}

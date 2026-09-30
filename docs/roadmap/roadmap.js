@@ -8,7 +8,7 @@ window.TYPER_ROADMAP = {
   "updated": "2026-09-29",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "Build the real TSF text service and its key router",
+  "now": "Try the real text service and learning in real apps (your checklist), then merge branch m1-tsf-dll to main as 0.0.5",
   "milestones": [
     {
       "id": "M0",
@@ -165,32 +165,36 @@ window.TYPER_ROADMAP = {
         {
           "id": "M1.6",
           "title": "TSF service shell from SampleIME: activation, key sink, edit sessions, registration",
-          "status": "next",
+          "status": "done",
           "area": "dll",
           "stories": [
             43
           ],
-          "notes": "Register for en-US, en-CA and en-GB. Never let exceptions cross COM boundaries.",
+          "notes": "TSF shell written from the spike's proven code: activation, edit sessions, key sink, COM registration for en-US/CA/GB. Lifecycle smoke test (`tip/tests/load_test.ps1`) activates and tears it down 40 times on a real thread manager and the DLL stays unloadable.",
           "refs": [
-            "tip/"
+            "tip/src/tsf_service.cpp",
+            "m1-tsf-dll"
           ]
         },
         {
           "id": "M1.7",
           "title": "Context reader: text around the caret, caret rect, input scope, app and title",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             14,
             31,
             32
           ],
-          "notes": "Treat `E_FAIL` from `RequestEditSession` as transient (Chromium returns it during focus changes). Read input scope via `GetAppProperty`."
+          "notes": "Reads up to 2,000 characters before and 500 after the caret, the caret rect, input scope and app/title. Keyboard-disabled and password contexts send nothing. `E_FAIL` from `RequestEditSession` is retried shortly instead of treated as an error.",
+          "refs": [
+            "tip/src/tsf_service.cpp"
+          ]
         },
         {
           "id": "M1.8",
           "title": "Pure popup state + key router with native tests",
-          "status": "next",
+          "status": "done",
           "area": "dll",
           "stories": [
             4,
@@ -201,52 +205,90 @@ window.TYPER_ROADMAP = {
             9,
             51
           ],
-          "notes": "No TSF dependency. Tab accepts, Up/Down move, Esc dismisses, Enter is never consumed, keys pass through when the popup is closed. Tested with a standalone doctest executable."
+          "notes": "`PopupModel` has no TSF dependency and 14 native tests cover every key in every state (closed, open, stale, modifiers held). Enter is never consumed. The tests also cover the frame codec and JSON reader (15 more).",
+          "refs": [
+            "tip/src/popup_model.h",
+            "tip/tests/test_popup_model.cpp",
+            "tip/test.cmd"
+          ]
         },
         {
           "id": "M1.9",
           "title": "Engine client on a worker thread",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             34,
             35
           ],
-          "notes": "Request ids, drop stale replies, tight timeouts, reconnect with backoff. Never block the app's UI thread."
+          "notes": "Worker thread with overlapped I/O, request ids, stale replies dropped, reconnect with backoff (250 ms to 2 s), and a check that the engine runs as the same Windows user. `tip/tests/e2e.ps1` runs it against the real engine: no engine, late start, kill and restart all recover.",
+          "refs": [
+            "tip/src/engine_client.cpp",
+            "tip/tests/e2e.ps1"
+          ]
+        },
+        {
+          "id": "M1.14",
+          "title": "TSF harness: real DLL, real engine, simulated app",
+          "status": "done",
+          "area": "test",
+          "stories": [
+            1,
+            2,
+            4,
+            5,
+            6,
+            7,
+            8,
+            31,
+            51
+          ],
+          "notes": "`tip/tests/tsf_e2e.ps1` runs the unregistered DLL through real TSF against a stand-in text field (`ITextStoreACP`), with the real engine and n-gram data. 31 checks: popup under the caret, Down/Up/Tab/Esc, Enter never consumed, Tab left alone when the popup is closed or stale, no popup mid-word / with a selection / where keyboards are disabled, learned words offered, fast typing. Also passes as a DPI-unaware app. Key events go straight to the DLL's key interface because TSF only routes keys to a registered text service.",
+          "refs": [
+            "tip/tests/tsf_harness.cpp",
+            "tip/tests/tsf_e2e.ps1"
+          ]
         },
         {
           "id": "M1.10",
           "title": "Popup rendering at the caret",
-          "status": "todo",
+          "status": "doing",
           "area": "dll",
           "stories": [
             2,
             3,
             36
           ],
-          "notes": "Word rows, never takes focus (`WS_EX_NOACTIVATE`), DPI-aware, correct on a second monitor."
+          "notes": "Built and checked in the harness: word rows, typed prefix highlighted in blue, highlight row moves, popup opens just under the caret (screenshots reviewed), never takes focus, click-through, per-window DPI. Still needs your look on a second monitor and in a real app at 150% scaling.",
+          "refs": [
+            "tip/src/popup.cpp"
+          ]
         },
         {
           "id": "M1.11",
           "title": "Keyboard icon and an enable-keyboard step",
-          "status": "todo",
+          "status": "doing",
           "area": "install",
           "stories": [
             43
           ],
-          "notes": "Without an icon Settings doesn't list the keyboard; the spike had to be enabled with `Set-WinUserLanguageList`. The user runs system-setting commands themselves."
+          "notes": "Icon (`tip/assets/typer.ico`) is compiled into the DLL, and `tip/register.ps1` plus `tip/enable-keyboard.ps1` do the install. Waiting for you to confirm Typer shows up in Settings and can be switched to.",
+          "refs": [
+            "tip/register.ps1",
+            "tip/enable-keyboard.ps1"
+          ]
         },
         {
           "id": "M1.12",
           "title": "Manual app matrix for the real DLL",
-          "status": "todo",
+          "status": "next",
           "area": "test",
           "stories": [
             2,
             31,
             36
           ],
-          "notes": "Notepad, Chrome (textarea, contenteditable, long text, password field, after `chrome://restart`), Edge, Discord, Slack, Obsidian, an older Electron app. 100% and 150% scaling. Enter still sends in Discord. The user tests; give a checklist and read the logs."
+          "notes": "Notepad, Chrome (textarea, contenteditable, long text, password field, after `chrome://restart`), Edge, Discord, Slack, Obsidian, an older Electron app. 100% and 150% scaling. Enter still sends in Discord. The harness (M1.14) already covers the logic; this checks each app's own quirks. Switch to the Typer keyboard first, so the old Typer Spike keyboard isn't also active."
         },
         {
           "id": "M1.13",
@@ -268,61 +310,96 @@ window.TYPER_ROADMAP = {
         {
           "id": "M2.1",
           "title": "N-gram builder: bigram and trigram tables from a public corpus",
-          "status": "todo",
+          "status": "done",
           "area": "data",
           "stories": [
             11
           ],
-          "notes": "Wikipedia plus subtitles, stored compactly (SQLite or marisa-trie), not as in-memory dicts."
+          "notes": "`typer-build-ngrams` counts words, bigrams and trigrams from text files or folders (`.txt`/`.gz`), prunes rare entries while counting so memory stays bounded, and writes a SQLite file. Built from WikiText-103: 81M words, 100k vocabulary, 0.8M bigrams, 1.6M trigrams, 66 MB, 6.5 minutes.",
+          "refs": [
+            "engine/src/typer_engine/ngrams.py",
+            "engine/src/typer_engine/build_ngrams.py"
+          ]
         },
         {
           "id": "M2.2",
           "title": "N-gram re-ranking in the word completer",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             11
+          ],
+          "notes": "The completer mixes Zipf frequency with bigram and trigram counts (contexts seen under 5 times are ignored). \"What do you th\" now ranks \"think\" first. Pipe round trip stays fast: p95 1.2 ms uncached against the real table.",
+          "refs": [
+            "engine/src/typer_engine/words.py"
           ]
         },
         {
           "id": "M2.3",
           "title": "Filter misspellings and junk out of the base vocabulary",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             10
           ],
-          "notes": "wordfreq includes entries like \"tomorow\"."
+          "notes": "Beyond the 20,000 most common words, a word must appear written lowercase at least 3 times in the corpus. \"tomorow\", \"tomorrowland\" and \"Updike\" no longer appear; the vocabulary went from 146k to 53k words.",
+          "refs": [
+            "engine/src/typer_engine/vocabulary.py"
+          ]
         },
         {
           "id": "M2.4",
           "title": "Personal store: accept and typed-word counts in SQLite",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             16,
             17
           ],
-          "notes": "Counts only, never raw text."
+          "notes": "`PersonalStore` keeps word and word-pair counts in memory, saved to `personal.sqlite` every 10 s and on exit. Only plain lowercase English words are stored. Corrupt files are set aside; rare pairs are pruned past 300k.",
+          "refs": [
+            "engine/src/typer_engine/personal.py"
+          ]
         },
         {
           "id": "M2.5",
           "title": "Promote new words to the vocabulary after N uses",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             15
+          ],
+          "notes": "A word outside the dictionary is suggested once used 3 times (`[learning] promote_after`). Learning counts only real typing, one character at a time, so pasted text, caret jumps and backspacing never count. Silent fields and block-listed apps never teach it anything.",
+          "refs": [
+            "engine/src/typer_engine/learning.py",
+            "engine/src/typer_engine/engine.py"
           ]
         },
         {
           "id": "M2.6",
           "title": "Accept events name the accepted item",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             16
           ],
-          "notes": "Protocol change on both sides so the engine can learn from accepts."
+          "notes": "The DLL sends an `accept` event with the inserted word, and the engine learns it and the word before it. The protocol field is covered by tests on both sides.",
+          "refs": [
+            "tip/src/tsf_service.cpp",
+            "engine/src/typer_engine/protocol.py"
+          ]
+        },
+        {
+          "id": "M2.7",
+          "title": "Check learning and n-gram ranking live through the DLL",
+          "status": "next",
+          "area": "test",
+          "stories": [
+            11,
+            15,
+            16
+          ],
+          "notes": "Needs you: with the engine running and the Typer keyboard on, type a made-up word (like \"zorblax\") three or more times, then confirm it shows up as a suggestion. Also check \"I'd like to kn\" puts \"know\" first."
         }
       ]
     },
@@ -336,27 +413,34 @@ window.TYPER_ROADMAP = {
         {
           "id": "M3.1",
           "title": "Provider benchmark: time-to-first-token and quality",
-          "status": "todo",
+          "status": "blocked",
           "area": "bench",
           "stories": [
             45
           ],
-          "notes": "Candidates: DeepSeek-Flash FIM (leading), Codestral FIM, Qwen 3.5 Flash, Groq gpt-oss-20b, Ministral 3B, Gemini 3.1 Flash-Lite. Cheap models only, never premium chat models."
+          "notes": "`typer-bench` is built and tested against a fake server: time to first token, total time, cost from the provider's own token counts, and a clean-completion check. Running it on real providers needs your API keys (`setx NAME value`, never in chat). Only DeepSeek is confirmed OpenAI-compatible for `/completions` with FIM; Codestral uses a different FIM path and Groq has no completions endpoint, so those need a small adapter first.",
+          "refs": [
+            "engine/src/typer_engine/bench.py",
+            "bench/providers.example.toml"
+          ]
         },
         {
           "id": "M3.2",
           "title": "Benchmark time-to-first-token against context size",
-          "status": "todo",
+          "status": "blocked",
           "area": "bench",
           "stories": [
             46
           ],
-          "notes": "Sets the default context cap (starting at 8k characters before, 2k after)."
+          "notes": "The same tool sweeps 500, 2000 and 8000 characters of context. Waiting on API keys to run it; then pick `context_before` by measurement.",
+          "refs": [
+            "engine/src/typer_engine/bench.py"
+          ]
         },
         {
           "id": "M3.3",
           "title": "Phrase provider: OpenAI-compatible /completions with optional FIM",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             22,
@@ -366,33 +450,42 @@ window.TYPER_ROADMAP = {
             39,
             40
           ],
-          "notes": "Streaming. API key read from an env var named in config; the user sets it with `setx`, never in chat."
+          "notes": "`PhraseProvider` streams OpenAI-style `/completions` (plain or FIM with a suffix), reads usage from DeepSeek and OpenAI formats, and turns timeouts and HTTP errors into `ProviderError` without ever including the key. Settings live under `[phrase]`; the key is read from the environment variable named in `api_key_env`. Tested against a local fake server.",
+          "refs": [
+            "engine/src/typer_engine/phrase_provider.py"
+          ]
         },
         {
           "id": "M3.4",
           "title": "Cache-friendly anchored context window",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             59
           ],
-          "notes": "The window start moves only in large steps so consecutive requests share a prefix and hit the provider cache (about $0.31 vs $1.56 a day at peak)."
+          "notes": "`anchored_window` cuts the text before the caret at a paragraph or sentence boundary, so the start of the prompt only moves every sentence or so instead of every keystroke. 400 keystrokes move it 5 times, so consecutive requests share a cached prefix.",
+          "refs": [
+            "engine/src/typer_engine/context.py"
+          ]
         },
         {
           "id": "M3.5",
           "title": "Daily budget cap and per-request cost tracking",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             60,
             61
           ],
-          "notes": "`daily_budget_usd` defaults to 0.50. Spend comes from provider usage data."
+          "notes": "`DailyBudget` prices each request from the provider's cached, uncached and output token counts, saves the day's total in `spend.json`, resets at midnight and stops requests at `daily_budget_usd` (default 0.50). Only totals are stored.",
+          "refs": [
+            "engine/src/typer_engine/budget.py"
+          ]
         },
         {
           "id": "M3.6",
           "title": "Phrase scheduler state machine",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             18,
@@ -400,22 +493,29 @@ window.TYPER_ROADMAP = {
             24,
             26
           ],
-          "notes": "350 ms debounce, cancel on divergence, typeahead trim, no requests when gated. Tested with a fake clock."
+          "notes": "`PhraseScheduler` is a pure state machine with an injected clock: 350 ms pause in auto mode, hotkey mode never asks alone, typing along trims the phrase without a new request, anything else cancels and clears it, late chunks that contradict the typed text are dropped. 22 tests.",
+          "refs": [
+            "engine/src/typer_engine/phrase_scheduler.py"
+          ]
         },
         {
           "id": "M3.7",
           "title": "Phrase push messages over the pipe",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             22
           ],
-          "notes": "Keyed by the originating request id, carrying the text so far and a streaming flag."
+          "notes": "Replies carry `phrase` and `phrase_mode`; streamed text is pushed as `{\"type\":\"phrase\",\"id\",\"text\",\"done\"}` keyed to the newest request. Tested over a real named pipe with a fake provider, including that password fields never reach the provider.",
+          "refs": [
+            "engine/src/typer_engine/phrases.py",
+            "engine/tests/test_phrases_pipe.py"
+          ]
         },
         {
           "id": "M3.8",
           "title": "Phrase row in the popup",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             18,
@@ -423,25 +523,51 @@ window.TYPER_ROADMAP = {
             20,
             21
           ],
-          "notes": "Greyed top row, highlighted by default, Ctrl+Right accepts the next word, 150 ms no-steal window."
+          "notes": "The popup gets a phrase row on top: typed part in blue, the phrase as ghost text, highlighted by default 150 ms after it appears so a late phrase can't steal a Tab (that Tab takes the word). Up/Down move through phrase and words. Checked in the TSF harness with a fake provider, in both auto and hotkey modes, and in a screenshot.",
+          "refs": [
+            "tip/src/popup_model.h",
+            "tip/src/popup.cpp",
+            "tip/tests/phrase_scenarios.h"
+          ]
         },
         {
           "id": "M3.9",
           "title": "Ctrl+Space hotkey requests a phrase in any app",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             25
+          ],
+          "notes": "Ctrl+Space asks for a phrase (also right after a space, with no word yet), Ctrl+Right inserts the next phrase word and keeps the rest, Esc quiets the popup for the word and stops phrase requests. The key is only taken where the engine says phrases are available, so Word's own Ctrl+Space is safe elsewhere.",
+          "refs": [
+            "tip/src/tsf_service.cpp"
           ]
         },
         {
           "id": "M3.10",
           "title": "Fall back to words when the provider is slow or down",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             30
+          ],
+          "notes": "A provider error ends the phrase quietly (word suggestions carry on); three failures in a row pause phrases for 30 seconds; with no key, no budget or phrases switched off, nothing is ever requested.",
+          "refs": [
+            "engine/src/typer_engine/phrases.py"
           ]
+        },
+        {
+          "id": "M3.11",
+          "title": "Check phrases live with a real provider and key",
+          "status": "next",
+          "area": "test",
+          "stories": [
+            18,
+            19,
+            25,
+            59
+          ],
+          "notes": "Needs you: `setx DEEPSEEK_API_KEY \"...\"` in a terminal (never in chat), restart the engine, then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Typer` shows what it cost."
         }
       ]
     },
@@ -455,45 +581,72 @@ window.TYPER_ROADMAP = {
         {
           "id": "M4.1",
           "title": "Tray icon with pause/resume and a global hotkey",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             41
+          ],
+          "notes": "Code and tests done; the tray and hotkey need a manual look on a real desktop.",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
           ]
         },
         {
           "id": "M4.2",
           "title": "Start the engine at logon",
-          "status": "todo",
+          "status": "doing",
           "area": "install",
           "stories": [
             42
+          ],
+          "notes": "scripts/install.ps1 creates the logon task (pythonw, no console). Written and syntax-checked; not yet run, because it needs the user (UAC, keyboard setting).",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
           ]
         },
         {
           "id": "M4.3",
           "title": "Hot-reload the config file",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             38
+          ],
+          "notes": "ConfigWatcher polls mtime; a bad edit keeps the old config and logs why.",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
           ]
         },
         {
           "id": "M4.4",
           "title": "Install and uninstall scripts",
-          "status": "todo",
+          "status": "doing",
           "area": "install",
           "stories": [
             43,
             44
           ],
-          "notes": "Register the TIP, enable the keyboard, create the logon task. Admin steps need the user's UAC approval."
+          "notes": "install.ps1 / uninstall.ps1 written and syntax-checked; the user runs them (UAC and language settings are not mine to change).",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
+          ]
         },
         {
           "id": "M4.5",
           "title": "Metrics store: shown, accepted, keystrokes saved, provider latency",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             52,
@@ -501,36 +654,75 @@ window.TYPER_ROADMAP = {
             54,
             56
           ],
-          "notes": "Counts and timings only, never typed text."
+          "notes": "SQLite counts and timings per day/app/provider; never text.",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
+          ]
         },
         {
           "id": "M4.6",
           "title": "Stats summary from the CLI or tray",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             55
+          ],
+          "notes": "typer-stats CLI and tray \"Show stats\".",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
           ]
         },
         {
           "id": "M4.7",
           "title": "Engine logging of request timings and provider errors",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             50
+          ],
+          "notes": "engine.log rotates; requests over 25 ms and provider errors are logged.",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
           ]
         },
         {
           "id": "M4.8",
           "title": "Resilience pass: engine crashes and restarts",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             34,
             35
           ],
-          "notes": "Kill the engine mid-typing: apps behave as if Typer weren't installed, then reconnect."
+          "notes": "Harness scenarios R1/R2 kill and restart the engine: typing does not hang, keys pass through, the popup returns after reconnect. The harness needs the desktop foreground, so it is run only when the user is away.",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
+          ]
+        },
+        {
+          "id": "M4.9",
+          "title": "Live check of install, tray, hotkey and logon start",
+          "status": "next",
+          "area": "install",
+          "stories": [
+            41,
+            42,
+            43,
+            44
+          ],
+          "notes": "User runs .\\scripts\\install.ps1, checks the tray icon and Ctrl+Alt+P, reboots once to see the engine start by itself."
         }
       ]
     },
@@ -603,6 +795,13 @@ window.TYPER_ROADMAP = {
       "text": "The engine and spike branches were merged into main, and the project gained a task board and a left-to-right release timeline that agents keep current under the rules in CLAUDE.md."
     },
     {
+      "version": "0.0.5",
+      "status": "released",
+      "title": "Text service, phrases and daily-driver polish",
+      "text": "The real Typer text service, context-aware and learning word ranking, streamed cloud phrases with a daily budget, a tray icon, pause hotkey, stats and install scripts are all built and covered by automated tests, with checks in real apps still to do.",
+      "date": "2026-09-29"
+    },
+    {
       "version": "0.1.0",
       "status": "next",
       "title": "Words everywhere",
@@ -635,12 +834,11 @@ window.TYPER_ROADMAP = {
       "status": "planned",
       "title": "Autocomplete for everything you type",
       "essay": [
-        "Typer 1.0 brings the suggestions of a code editor to every place you write English on Windows. Type a few letters in Discord, a browser text box or an email, and a short list of completions appears at the caret. Pause for a moment, and a continuation of your sentence appears above them. Tab accepts the highlighted suggestion and Enter still sends the message. When Typer has nothing useful to offer, every key behaves exactly as it did before it was installed.",
-        "An earlier attempt at this tool failed because of its plumbing. It located the caret through accessibility APIs, rebuilt the text from a keyboard hook and inserted completions by simulating keystrokes. Each of those methods is an approximation, and the approximations drifted apart. The popup appeared in the wrong place, the tool’s copy of the text fell out of step after a click or a paste, and Tab either leaked through to the app or disappeared. Typer avoids all three problems by registering as a text service, the mechanism Windows provides for Chinese and Japanese input methods. A text service receives the exact caret rectangle, the real text around the caret, key events it is allowed to consume, and a proper channel for inserting text. The spike released as 0.0.3 confirmed that this works in the apps that matter most: Chrome, Edge, Discord and Teams.",
-        "Suggestions arrive at two speeds. Words are local and instant. A frequency list of about 146,000 English words, re-ranked by the words before the caret and by your own habits, answers within a few milliseconds of each keystroke. Phrases come from the cloud, from a small and inexpensive fill-in-the-middle model that sees the text before and after the caret along with the app name and window title. The split follows from the job each part does. Word completion must keep pace with typing, and only a local index is fast enough. Phrase quality depends on a real language model, and a cloud model that costs a fraction of a cent per request writes much better text than anything that runs comfortably on a laptop.",
-        "Cost shaped the design from the start. Heavy daily use has to stay under fifty cents, so phrases appear automatically only in apps you have allow-listed, and everywhere else they wait for Ctrl+Space. The context sent to the model is anchored, which means consecutive requests begin with the same text and are served from the provider’s cache at about a fiftieth of the normal price. A daily spending cap backs this up. Once the cap is reached, Typer offers words only until the next day. The same caution applies to privacy and safety. Typer stays silent in password, URL, email and number fields and in code editors and terminals, and its learning and metrics stores keep counts and timings rather than anything you typed.",
-        "Version 1.0 is measured as well as built. Typer records how often suggestions are shown and accepted in each app, how many keystrokes they save, and how quickly each provider responds. Those numbers set the defaults, including which provider to use, how long to wait before asking for a phrase and how much context to send. A stats summary shows the same figures, so the question of whether Typer is worth running has a clear answer.",
-        "Some things are left out on purpose. Google Docs draws its text on a canvas that no text service can read, so it remains out of reach. Phrases appear as the top row of the popup instead of inline ghost text, because other apps’ text fields have no way to display ghost text. There is no settings window, since a single config file covers every option. After 1.0, phrase suggestions will learn what you are replying to by reading the surrounding conversation, and a Chrome extension will reach web text fields directly. Both build on the engine that 1.0 ships."
+        "Typer 1.0 puts the suggestions of a code editor into every place you write English on Windows. Type a few letters in Discord, a browser text box or an email and a short list of completions appears just under the caret, ranked by the words before it and by the words you actually use. Tab takes the top one. In apps you choose, and on Ctrl+Space everywhere else, a greyed phrase appears above the list, a continuation of your sentence that you take whole with Tab or one word at a time with Ctrl+Right. Enter is never touched, and nothing in a password field is read or sent.",
+        "The unusual decision is that Typer is a Text Services Framework text service, the mechanism Windows uses for input methods, and not a keyboard hook with a screen-scraping overlay. That choice cost a milestone of throwaway spiking and a C++ DLL that lives inside every app, but it is why the caret position, the surrounding text, the key handling and the insertion of accepted text all come from Windows itself and work the same in Notepad, Chrome, Edge, Discord and Teams. The DLL stays deliberately thin: it draws the popup, decides which keys it consumes, and talks over a named pipe to a Python engine, reconnecting quietly if the engine is gone. The key router is pure logic with native tests, and the whole DLL is exercised through real TSF against a simulated text field, including the engine being killed and restarted mid-typing.",
+        "Word ranking is local and instant. A 146,000-word frequency list gives the base order, bigram and trigram counts built from WikiText-103 re-rank by context, and a personal store of word and word-pair counts, never text, boosts what you use and adds names and slang after a few uses. Lookups take about a millisecond at the 95th percentile. Phrases are the only thing that leaves the machine, and they are built to be cheap: a fill-in-the-middle completion request to a low-cost model, with the context cut at paragraph boundaries so the provider's prefix cache does the work, a debounce so it asks once per pause, and a hard daily budget of fifty cents after which phrases simply stop. The key lives in an environment variable and never in a config file.",
+        "It is not finished in every way, and this release is honest about that. The automated tests pass, but the checks that need a person at a real desktop are still open: registering the DLL and using it in real apps, a live phrase request with a real key, the tray icon and pause hotkey, and starting at logon after a reboot. The provider benchmark has not been run, so DeepSeek is the default because it is the one endpoint known to speak the right protocol, not because it won a comparison. The n-gram corpus is encyclopedic, which suits formal writing more than chat. The harness that tests the real DLL needs the foreground window, so it only runs when nobody is using the machine.",
+        "What 1.0 leaves out is as deliberate as what it includes. It does not read the conversation you are replying to, so a Discord phrase knows your sentence but not the message above it; that is the next release. It has no browser extension, no macOS or Linux, no languages other than English, and no cloud account, sync or telemetry: the only network traffic is the phrase request you configured, and the only record of your typing is a set of counts on your own disk. Those limits keep the promise small enough to keep, which is that Typer starts with Windows, stays out of the way, and shows you the numbers on whether it is paying for itself."
       ]
     },
     {
@@ -724,6 +922,10 @@ window.TYPER_ROADMAP = {
   "decisions": [
     {
       "date": "2026-09-29",
+      "text": "N-gram corpus is WikiText-103 (encyclopedic English, from Hugging Face; the original S3 link is gone). It helps formal writing most; a chat-style corpus such as subtitles would help casual text and can be added later."
+    },
+    {
+      "date": "2026-09-29",
       "text": "Releases follow semantic versioning, and each gets writing that matches its size: one sentence for a patch, a paragraph for a minor release (one per milestone), an essay for a major release."
     },
     {
@@ -779,6 +981,38 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "Released 0.0.5: merged m3-phrases (M1-M4 code) into main. Live checks in real apps remain open."
+    },
+    {
+      "date": "2026-09-29",
+      "text": "READMEs rewritten (install, keys, phrases, tray, config) and the 1.0.0 essay redrafted as a retrospective, with the open live checks stated plainly."
+    },
+    {
+      "date": "2026-09-29",
+      "text": "M4 built: metrics, tray, pause hotkey, hot-reloaded config, engine.log, typer-stats, phrase accept kinds, install/uninstall scripts, and an engine kill/restart harness scenario. Live install check (M4.9) is the user's."
+    },
+    {
+      "date": "2026-09-29",
+      "text": "M3 DLL side done: phrase row, Ctrl+Space, Ctrl+Right, no-steal window, Esc quieting. The TSF harness now runs both phrase modes against a fake provider and all checks pass. Live check with a real provider key is M3.11."
+    },
+    {
+      "date": "2026-09-29",
+      "text": "M3 engine side done on branch m3-phrases: provider, anchored context, daily budget, scheduler, phrase service, pushes over the pipe and typer-bench. 292 engine tests pass. Next: the phrase row in the DLL (M3.8) and the Ctrl+Space hotkey (M3.9). Benchmark runs are blocked on your API keys."
+    },
+    {
+      "date": "2026-09-29",
+      "text": "Added a TSF harness that runs the real DLL through real TSF with the real engine and a simulated text field: 31 checks pass, popup rendering reviewed from screenshots. Real-app checks (M1.12, M2.7) still need the DLL registered, which needs your UAC click."
+    },
+    {
+      "date": "2026-09-29",
+      "text": "M2 engine work done on branch m1-tsf-dll: n-gram tables built from WikiText-103, bigram/trigram ranking, misspelling filter, personal learning and accept events. 197 engine tests pass; p95 lookup 1.2 ms. Waiting on your live checks (M1.10-M1.12, M2.7) before merging."
+    },
+    {
+      "date": "2026-09-29",
+      "text": "M1 code complete on branch m1-tsf-dll: real DLL, key router, engine client, popup, icon and install scripts. Native tests, the engine end-to-end check and the lifecycle smoke test pass. Popup look and the manual app matrix (M1.10-M1.12) still need you."
+    },
     {
       "date": "2026-09-29",
       "text": "Released v0.0.4: merged the engine and spike branches into main (M1.5 done). Added the release timeline, switched the data to `roadmap.js` so both pages open from disk, and split the post-v1 work into M5 and M6."
