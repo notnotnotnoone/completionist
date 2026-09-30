@@ -6,15 +6,18 @@ It's built as a **Text Services Framework (TSF) text service**, the same mechani
 
 The full spec is in [issue #1 (PRD)](https://github.com/notnotnotnoone/typer/issues/1).
 
+**Roadmap:** open [`docs/roadmap/index.html`](docs/roadmap/index.html) (tasks) or [`docs/roadmap/releases.html`](docs/roadmap/releases.html) (release timeline) in a browser. Both read [`docs/roadmap/roadmap.js`](docs/roadmap/roadmap.js), which agents keep current (see [`CLAUDE.md`](CLAUDE.md)).
+
 ## Layout
 
 | Path | What |
 |---|---|
 | `engine/` | Python engine (uv project): pipe server, word completion, phrase provider, learning, metrics |
-| `tip/` | C++ TSF text service DLL (adapted from Microsoft's SampleIME) *(not started)* |
+| `tip/` | C++ TSF text service DLL (adapted from Microsoft's SampleIME). The M0 spike is in `tip/spike/`; the real DLL is M1 |
 | `bench/` | Phrase-provider benchmark *(not started)* |
 | `data/` | N-gram table build scripts *(not started)* |
-| `scripts/` | Install / uninstall scripts *(not started)* |
+| `docs/roadmap/` | Roadmap data, task board and release timeline (open the HTML files from disk) |
+| `scripts/` | Roadmap checker; install / uninstall scripts later |
 
 ## Engine
 
