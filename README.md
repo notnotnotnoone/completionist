@@ -6,7 +6,7 @@ It's built as a **Text Services Framework (TSF) text service**, the same mechani
 
 The full spec is in [issue #1 (PRD)](https://github.com/notnotnotnoone/typer/issues/1).
 
-**Roadmap:** open [`docs/roadmap/index.html`](docs/roadmap/index.html) (tasks) or [`docs/roadmap/releases.html`](docs/roadmap/releases.html) (release timeline) in a browser. Both read [`docs/roadmap/roadmap.js`](docs/roadmap/roadmap.js), which agents keep current (see [`CLAUDE.md`](CLAUDE.md)).
+**Roadmap:** open [docs/roadmap/index.html](docs/roadmap/index.html) (the highway map) or [docs/roadmap/tasks.html](docs/roadmap/tasks.html) (the task board) in a browser. Both read [docs/roadmap/roadmap.js](docs/roadmap/roadmap.js), which agents keep current (see [CLAUDE.md](CLAUDE.md)). Project context and the color scheme are in [CONTEXT.md](CONTEXT.md).
 
 ## Install
 
@@ -52,7 +52,7 @@ The tray icon pauses and resumes, shows what Typer has saved you, and opens the 
 | `engine/` | Python engine (uv project): pipe server, word completion, phrase provider, learning, metrics, tray |
 | `tip/` | C++ TSF text service DLL (adapted from Microsoft's SampleIME). The M0 spike is in `tip/spike/` |
 | `bench/` | Provider comparison (`typer-bench`): candidates file and how to run it |
-| `docs/roadmap/` | Roadmap data, task board and release timeline (open the HTML files from disk) |
+| `docs/roadmap/` | Roadmap data, highway map and task board (open the HTML files from disk) |
 | `scripts/` | Roadmap checker, `install.ps1`, `uninstall.ps1` |
 
 ## Development

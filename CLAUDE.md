@@ -6,8 +6,8 @@ System-wide, VS Code-style English autocomplete for Windows. A C++ TSF text serv
 
 `docs/roadmap/roadmap.js` is the single source of truth for what's done, in progress and next, and for every release. Two plain HTML pages read it. The user opens them straight from disk in a browser; nothing is published.
 
-- `docs/roadmap/index.html`: tasks by milestone.
-- `docs/roadmap/releases.html`: versions from left to right, with release writing.
+- `docs/roadmap/index.html`: the highway map. Every release on highways, one for each part of the app, with the release writing, the road work and the itinerary.
+- `docs/roadmap/tasks.html`: the task board by milestone, with filters, story coverage, decisions, risks and the log.
 
 `roadmap.js` is `window.TYPER_ROADMAP = { ... };` where everything after the `=` must be strict JSON: double quotes, no comments, no trailing commas.
 
@@ -61,7 +61,7 @@ Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases
   - Mark the following release `next`.
 - **A major release** rewrites its planned essay as a retrospective of what actually shipped.
 - **Planned versions** (`planned`, and at most one `next`) describe the intent.
-- **Tag every released version** `vX.Y.Z` on `main` and push the tag. The timeline links to the code at each tag.
+- **Tag every released version** `vX.Y.Z` on `main` and push the tag.
 - Package versions (such as `engine/pyproject.toml`) are not release versions. The release version lives only in `roadmap.js`.
 
 ## Layout and commands
@@ -71,7 +71,8 @@ Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases
 | `engine/` | Python engine, a standalone uv project. `cd engine && uv sync && uv run pytest` |
 | `tip/spike/` | M0 throwaway TSF spike: `build.cmd`, `register.ps1`, findings in `README.md` |
 | `tip/` | The real TSF DLL (M1, adapted from Microsoft's SampleIME) |
-| `docs/roadmap/` | Roadmap data (`roadmap.js`), the task board (`index.html`) and the release timeline (`releases.html`) |
+| `docs/roadmap/` | Roadmap data (`roadmap.js`), the highway map (`index.html`, `map-layout.js`, `map.js`, `page.js`), the task board (`tasks.html`), shared `theme.css` and `common.js` |
+| `CONTEXT.md` | What the product is, its architecture, glossary, the official Evergreen color scheme and typography |
 | `scripts/` | `check_roadmap.py`; `install.ps1` / `uninstall.ps1` (user-run: UAC, keyboard, logon task) |
 
 - **C++ builds** use the VS 2022 Build Tools from the command line: `vcvars64.bat`, then `cl`, with the static CRT (`/MT`), x64 only. See `tip/spike/build.cmd` for the pattern.
@@ -89,6 +90,7 @@ Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases
 - **Never ask for API keys in chat.**
   - Keys live in user environment variables that the user sets (e.g. `setx DEEPSEEK_API_KEY ...`).
   - Config only names the variable.
+- **Colors and type:** use the Evergreen tokens and fonts in CONTEXT.md. Don't add colors without validating them as it describes.
 - **Don't change Windows system settings yourself.** Give the user the command:
   - enabling or removing the keyboard (`Set-WinUserLanguageList`)
   - registry changes outside `regsvr32`

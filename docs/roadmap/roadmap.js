@@ -1058,6 +1058,10 @@ window.TYPER_ROADMAP = {
   "log": [
     {
       "date": "2026-09-29",
+      "text": "Retired releases.html (its writing now lives in the map's travel guide and itinerary); README and CLAUDE.md point at the map and the task board."
+    },
+    {
+      "date": "2026-09-29",
       "text": "Map page sections: masthead sign, now sign, mile-marker posts, highway spotlight, legend, travel guide, road work and itinerary."
     },
     {
