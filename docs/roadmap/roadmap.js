@@ -878,17 +878,21 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.1",
           "title": "Personal log admission: learn only words you typed, finished without correcting and used 3 times",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             66
           ],
-          "notes": "Builds on the existing PersonalStore and `promote_after`. Adds: a word counts only when you finish it with a space or punctuation and didn't backspace over it (so typos are never learned, which also keeps the typo feature from learning its own mistakes). Silent fields, block-listed apps, pasted text and caret jumps already teach nothing. Keep it simple: no per-day rule, decay or never-learn list until junk actually shows up."
+          "notes": "Builds on the existing PersonalStore and `promote_after`. Adds: a word counts only when you finish it with a space or punctuation and didn't backspace over it (so typos are never learned, which also keeps the typo feature from learning its own mistakes). Silent fields, block-listed apps, pasted text and caret jumps already teach nothing. Keep it simple: no per-day rule, decay or never-learn list until junk actually shows up.",
+          "refs": [
+            "engine/src/completionist_engine/learning.py",
+            "branch m7-next-words"
+          ]
         },
         {
           "id": "M7.2",
           "title": "Personal trigram counts next to the word and pair counts",
-          "status": "todo",
+          "status": "next",
           "area": "engine",
           "stories": [
             66,
@@ -1581,6 +1585,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M7.1 done: a word backspaced over while typing is never learned (the 3-use admission already existed as promote_after)."
+    },
     {
       "date": "2026-09-30",
       "text": "Pushed main and tag v0.4.0 to origin."

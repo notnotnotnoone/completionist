@@ -8,23 +8,31 @@ _TAIL = 300
 class TypingLearner:
     """One per connection. A word counts as typed only when the text grew by exactly one character
     that ends it (a space or punctuation), so pasted text, caret jumps, backspacing and text loaded
-    into a field never count."""
+    into a field never count. A word the writer backspaced over while typing it is skipped too, so
+    typos, and the fixes made to them, are never learned."""
 
     def __init__(self) -> None:
         self._last: str | None = None
+        self._corrected = False
 
     def reset(self) -> None:
         self._last = None
+        self._corrected = False
 
     def observe(self, before: str) -> tuple[str, tuple[str, ...]] | None:
         """The finished word (lowercase) and up to two words before it, if this text completed one."""
         last, self._last = self._last, before[-_TAIL:]
+        if last is not None and len(before) < len(last) and last.startswith(before[-_TAIL:]):
+            self._corrected = True
+            return None
         if last is None or not before or before[:-1][-_TAIL:] != last:
+            self._corrected = False
             return None
         ender = before[-1]
         if ender.isalnum() or ender in "'_":
             return None
+        corrected, self._corrected = self._corrected, False
         typed = current_word(last)
-        if not typed:
+        if not typed or corrected:
             return None
         return typed.lower(), previous_words(last, 2)
