@@ -3,485 +3,188 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Typer Roadmap</title>
+<title>Completionist Roadmap</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Martian+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Overpass:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800;1,900&family=Overpass+Mono:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="theme.css">
 <style>
-/* Layout: a caret line with a candidate-window popup ("what's next"), a milestone track that filters,
-   sticky filters, milestone sections with expandable tasks, PRD story coverage, decisions/risks, update log. */
+.map-sec { display: grid; gap: 1rem; padding-block: 1rem 0; }
+.map-ctl { display: flex; flex-wrap: wrap; gap: .4rem; }
+.ctl { font-weight: 800; font-size: var(--fs-xs); letter-spacing: .1em; text-transform: uppercase; padding: .5rem .85rem .4rem; border-radius: 999px; border: 2px solid var(--ink); background: var(--surface); cursor: pointer; }
+.ctl:hover { background: var(--ink); color: var(--paper); }
+.ctl[aria-pressed="true"] { background: var(--sign); color: var(--sign-ink); border-color: var(--sign); }
+.ctl-now { border-color: var(--accent); color: var(--accent-ink); }
+.hw-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.hw-chip { display: inline-flex; align-items: center; gap: .45rem; font-weight: 900; font-style: italic; font-size: var(--fs-s); text-transform: uppercase; letter-spacing: .04em; padding: .4rem .8rem .3rem; border-radius: 999px; border: 2px solid var(--hw); color: var(--ink); background: var(--surface); cursor: pointer; }
+.hw-chip i { width: 14px; height: 14px; border-radius: 50%; background: var(--hw); }
+.hw-chip[aria-pressed="true"] { background: var(--hw); color: var(--sign-ink); }
+.map-frame { position: relative; margin-inline: 16px; border-radius: 18px; border: 2px solid var(--line-strong); overflow: hidden;
+  background: linear-gradient(90deg, transparent 32.9%, rgb(0 0 0 / .045) 33.3%, transparent 33.8%, transparent 66.2%, rgb(0 0 0 / .045) 66.6%, transparent 67%), var(--paper-2);
+  box-shadow: 0 30px 60px -40px var(--shadow), inset 0 0 0 6px var(--surface); }
+@media (min-width: 760px) { .map-frame { margin-inline: 32px; } }
+.map-scroll { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; cursor: grab; }
+.map-scroll.dragging { cursor: grabbing; user-select: none; }
+.map-scroll:focus-visible { outline-offset: -4px; }
+.map-inner { position: relative; }
+.map-inner svg { position: absolute; inset: 0; overflow: visible; }
+.lane-tags { position: sticky; left: 0; width: 150px; z-index: 2; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.lane-tags.show { opacity: 1; }
+.lane-tag { position: absolute; left: 10px; background: var(--hw); color: var(--sign-ink); font-weight: 900; font-style: italic; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .04em; padding: .45rem .75rem .35rem; border-radius: 999px; box-shadow: 0 8px 18px -8px var(--shadow), 0 0 0 3px var(--surface); white-space: nowrap; }
+.fit .map-scroll { overflow: hidden; cursor: default; }
+.fit .map-inner { width: 100% !important; height: auto !important; }
+.fit .map-inner svg { position: static; width: 100%; height: auto; }
+.fit .lane-tags { display: none; }
+.stn { cursor: pointer; outline: none; }
+.stn .hit { transition: stroke .15s; }
+.stn:hover .hit, .stn:focus-visible .hit { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 3 3; }
+.stn.on .hit { stroke: var(--accent); stroke-width: 3; stroke-dasharray: none; }
+.dim { opacity: .18; transition: opacity .2s; }
+.halo { transform-box: fill-box; transform-origin: center; animation: halo 1.8s ease-out infinite; }
+@keyframes halo { from { opacity: .9; transform: scale(1); } to { opacity: 0; transform: scale(1.6); } }
+.pin-pulse { transform-box: fill-box; transform-origin: center; animation: halo 2.2s ease-out infinite; }
+.hero { display: grid; gap: 1.1rem; padding-block: .5rem 2.5rem; }
+.hero .exit-tab { justify-self: start; margin-bottom: -1.1rem; margin-left: 1.5rem; position: relative; z-index: 1; }
+.hero-sign { padding: clamp(1.75rem, 5vw, 3.5rem); overflow: hidden; display: grid; gap: .9rem; }
+.hero-name { font-weight: 900; font-size: clamp(2.1rem, 9.6vw, 6.4rem); line-height: .9; letter-spacing: -.045em; overflow-wrap: anywhere; position: relative; }
+.hero-tag { font-family: var(--serif); font-style: italic; font-size: clamp(1.1rem, 2.6vw, 1.6rem); max-width: 36rem; position: relative; }
+.hero-ghost { position: absolute; right: -1rem; bottom: -3.5rem; font-weight: 900; font-size: clamp(7rem, 26vw, 16rem); line-height: 1; letter-spacing: -.06em; color: transparent; -webkit-text-stroke: 2px var(--sign-dim); opacity: .28; pointer-events: none; }
+.hero-arrows { list-style: none; margin: .5rem 0 0; padding: 1rem 0 0; border-top: 2px solid var(--sign-dim); display: grid; gap: .45rem; font-weight: 800; font-size: clamp(1rem, 2.4vw, 1.35rem); position: relative; }
+.vms { display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: center; background: var(--vms); color: var(--vms-ink); border-radius: 12px; padding: 1rem 1.25rem; border: 3px solid var(--sign-deep); position: relative; overflow: hidden; }
+.vms::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle, transparent 55%, var(--vms) 60%) 0 0 / 4px 4px; opacity: .55; }
+.vms-lbl { font-family: var(--mono); font-weight: 700; font-size: var(--fs-xs); letter-spacing: .2em; text-transform: uppercase; border: 2px solid currentColor; border-radius: 6px; padding: .25rem .5rem; }
+.vms-text { font-family: var(--mono); font-weight: 600; font-size: clamp(.95rem, 2.2vw, 1.2rem); text-transform: uppercase; letter-spacing: .04em; text-shadow: 0 0 10px var(--accent); overflow-wrap: anywhere; }
+.posts { list-style: none; margin: 0; padding: 0 0 .9rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .75rem; }
+.post { background: var(--sign); color: var(--sign-ink); border-radius: 10px 10px 4px 4px; padding: 1rem .9rem 1.4rem; display: grid; gap: .35rem; outline: 2px solid var(--sign-ink); outline-offset: -6px; box-shadow: 0 18px 28px -20px var(--shadow); position: relative; }
+.post::after { content: ""; position: absolute; left: 50%; bottom: -14px; width: 10px; height: 14px; margin-left: -5px; background: var(--ink); border-radius: 0 0 3px 3px; }
+.post b { font-weight: 900; font-size: 2.3rem; line-height: 1; letter-spacing: -.03em; }
+.post b small { font-size: .45em; opacity: .8; }
+.post span { font-weight: 800; font-size: var(--fs-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--sign-dim); }
+.legend { margin-top: 1rem; display: grid; grid-template-columns: auto 1fr; gap: 1rem 1.5rem; padding: 1.1rem 1.25rem; background: var(--surface); border: 2px solid var(--ink); border-radius: 4px; box-shadow: 6px 6px 0 var(--ink); }
+.key { list-style: none; margin: .6rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .5rem 1.25rem; font-size: var(--fs-s); }
+.key li { display: flex; align-items: center; gap: .6rem; }
+.key svg { flex: none; overflow: visible; }
+.key span { color: var(--muted); }
+.key span b { color: var(--ink); font-weight: 800; }
+.key-note { margin-top: .8rem; font-family: var(--serif); font-style: italic; color: var(--muted); }
+@media (max-width: 640px) { .legend { grid-template-columns: 1fr; } .compass { display: none; } }
+.mono { font-family: var(--mono); }
+.hw-tag { display: inline-flex; align-items: center; gap: .35rem; font-weight: 800; font-size: var(--fs-xs); letter-spacing: .04em; text-transform: uppercase; padding: .15rem .55rem .1rem; border-radius: 999px; border: 2px solid var(--hw); }
+.hw-tag i { width: .6rem; height: .6rem; border-radius: 50%; background: var(--hw); }
+/* Travel guide */
+.guide { padding-block: 2.5rem 1rem; }
+.gd { display: grid; gap: 1.5rem; }
+.gd-head { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+.gd-head h3 { font-weight: 900; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1.05; letter-spacing: -.03em; }
+.gd-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: .6rem; }
+.gd-meta time { font-family: var(--mono); font-size: var(--fs-xs); color: var(--muted); }
+.plate { font-family: var(--mono); font-weight: 700; font-size: 1.05rem; background: var(--sign); color: var(--sign-ink); padding: .75rem .9rem; border-radius: 6px; outline: 2px solid var(--sign-ink); outline-offset: -5px; box-shadow: 0 10px 18px -12px var(--shadow); }
+.exit-stack { display: grid; justify-items: start; }
+.exit-sign { font-family: var(--mono); font-weight: 700; padding: 1.5rem 2rem .9rem; border-radius: 0 12px 12px 12px; }
+.shield { flex: none; filter: drop-shadow(0 8px 10px var(--shadow)); }
+.gd-body { display: grid; gap: 2rem; align-items: start; }
+@media (min-width: 900px) { .gd-body.has-box { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); } }
+.prose { font-family: var(--serif); font-size: 1.125rem; line-height: 1.7; }
+.prose.big { font-size: 1.25rem; }
+.drop::first-letter { font-family: var(--serif); font-weight: 900; float: left; font-size: 4.2em; line-height: .8; padding: .08em .12em 0 0; color: var(--sign); }
+.essay { font-family: var(--serif); font-size: 1.05rem; line-height: 1.7; columns: 2 22rem; column-gap: 2.5rem; column-rule: 2px dashed var(--line-strong); }
+.essay p + p { margin-top: 1em; }
+.gd-count { font-family: var(--mono); font-size: var(--fs-xs); color: var(--muted); margin-top: .8rem; }
+.g-list { list-style: none; margin: 1.25rem 0 0; padding: 0; display: grid; gap: .5rem; }
+.g-box { background: var(--surface); border: 2px solid var(--ink); border-radius: 4px; box-shadow: 6px 6px 0 var(--ink); padding: 1.1rem 1.25rem; display: grid; gap: .8rem; }
+.g-goal { font-weight: 900; font-size: 1.25rem; letter-spacing: -.02em; }
+.g-done { font-size: var(--fs-s); }
+.g-meter { display: grid; grid-template-columns: 8rem 1fr auto; gap: .6rem; align-items: center; font-size: var(--fs-xs); font-weight: 800; }
+.g-group { border-left: 6px solid var(--hw); padding-left: .8rem; display: grid; gap: .4rem; }
+.g-group h4 { font-size: var(--fs-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.g-group ul, .work-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+.g-task { display: grid; grid-template-columns: 5rem 3.2rem minmax(0, 1fr); gap: .5rem; align-items: baseline; font-size: var(--fs-s); }
+.g-task a { font-size: var(--fs-xs); }
+/* Road work */
+.work { padding-block: 2.5rem 1rem; display: grid; gap: 1rem; }
+.work-title { display: flex; align-items: center; gap: 1rem; }
+.work-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
+.work-col { border-top: 8px solid var(--hw); background: var(--surface); border-radius: 0 0 var(--r) var(--r); padding: 1rem; display: grid; gap: .6rem; align-content: start; box-shadow: 0 14px 24px -20px var(--shadow); }
+.work-col h3 { font-weight: 900; font-style: italic; text-transform: uppercase; font-size: var(--fs-m); letter-spacing: .03em; }
+.clear { font-family: var(--serif); font-style: italic; color: var(--muted); }
+/* Itinerary */
+.itinerary { padding-block: 2.5rem 1rem; display: grid; gap: 1rem; }
+.itin-major { display: grid; gap: 1.25rem; padding-block: 2rem; border-bottom: 6px double var(--line-strong); }
+.itin-head { display: flex; align-items: center; gap: 1rem; }
+.itin-head h3 { font-weight: 900; font-size: clamp(1.4rem, 3.5vw, 2.1rem); letter-spacing: -.03em; }
+.itin-rel { display: grid; gap: .6rem; padding: 1rem 1.1rem; background: var(--surface); border-radius: var(--r); border-left: 6px solid var(--line-strong); justify-items: start; scroll-margin-top: 1rem; }
+.itin-minor { border-left-color: var(--sign); }
+.itin-rel header { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .8rem; }
+.itin-rel .ver { font-weight: 700; }
+.itin-rel h4 { font-weight: 800; font-size: var(--fs-l); }
+.itin-rel time { font-family: var(--mono); font-size: var(--fs-xs); color: var(--muted); }
+.itin-text { font-family: var(--serif); line-height: 1.65; max-width: 50rem; }
+.itin-text p + p { margin-top: .8em; }
 
-/* Hero */
-.hero { display: grid; gap: 1.25rem; }
-.tagline { color: var(--muted); max-width: 40rem; }
-.hero-grid { display: grid; gap: 1.5rem; align-items: start; }
-@media (min-width: 860px) { .hero-grid { grid-template-columns: minmax(0, 1fr) 15rem; gap: 3rem; } }
-.now { min-width: 0; }
-.caret-line { font-family: var(--display); font-size: var(--fs-l); line-height: 1.5; font-weight: 500; }
-.now-lbl { display: inline-block; font-size: var(--fs-xs); letter-spacing: .06em; text-transform: uppercase; color: var(--on-accent); background: var(--accent); padding: .1em .45em; border-radius: 3px; margin-right: .5em; vertical-align: .2em; font-weight: 700; }
-.caret { display: inline-block; width: 2px; height: 1.1em; background: var(--accent); vertical-align: -.18em; margin-left: 3px; animation: blink 1.06s steps(1) infinite; }
-@keyframes blink { 50% { opacity: 0; } }
-.pop { margin-top: .6rem; max-width: 38rem; background: var(--pop); color: var(--pop-ink); border: 1px solid var(--pop-line); border-radius: 4px; box-shadow: 0 14px 32px -14px var(--shadow); font-family: var(--display); font-size: var(--fs-s); overflow: hidden; }
-.pop-list { display: grid; }
-.pop-row { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr) auto; gap: .75rem; align-items: baseline; width: 100%; padding: .5rem .8rem; border: 0; background: transparent; color: var(--pop-ink); text-align: left; cursor: pointer; line-height: 1.45; }
-.pop-row .pop-id, .pop-row .pop-st { color: var(--pop-muted); font-size: var(--fs-xs); }
-.pop-row.hl { background: var(--pop-hl); color: var(--pop-hl-ink); }
-.pop-row.hl .pop-id, .pop-row.hl .pop-st { color: var(--pop-hl-ink); }
-.pop-row:focus-visible { outline: 2px solid var(--pop-ink); outline-offset: -3px; }
-.pop-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; padding: .4rem .8rem; border-top: 1px solid var(--pop-line); color: var(--pop-muted); font-size: var(--fs-xs); }
-.pop-foot kbd { margin-right: .15em; }
-.pop-empty { padding: .6rem .8rem; color: var(--pop-muted); }
-.overall { display: grid; gap: .5rem; }
-.big { font-family: var(--display); font-size: 2.5rem; font-weight: 700; line-height: 1; letter-spacing: -.03em; }
-.big .of { font-size: var(--fs-l); color: var(--muted); font-weight: 400; letter-spacing: 0; }
-.links { display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: var(--fs-s); padding-top: .25rem; }
-
-/* Milestone track */
-.track { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.75rem, 1fr)); gap: .5rem; }
-.trk { display: grid; gap: .3rem; align-content: start; text-align: left; padding: .7rem .8rem .8rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; min-width: 0; }
-.trk:hover { border-color: var(--line-strong); }
-.trk[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.trk-top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
-.trk-id { font-family: var(--display); font-weight: 700; font-size: var(--fs-m); }
-.trk-st { font-family: var(--display); font-size: var(--fs-xs); }
-.trk-title { font-size: var(--fs-s); line-height: 1.35; min-height: 2.7em; }
-.trk-meta { font-family: var(--display); font-size: var(--fs-xs); color: var(--muted); }
-.st-active { color: var(--accent); } .st-done { color: var(--ok); } .st-planned { color: var(--muted); }
-
-/* Filters */
-.filters { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: .75rem; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: center; }
-.search { position: relative; flex: 1 1 14rem; min-width: 0; }
-.search input { width: 100%; padding: .45rem 2.2rem .45rem .7rem; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-s); }
-.search kbd { position: absolute; right: .6rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: var(--fs-xs); pointer-events: none; }
-.chips { display: flex; flex-wrap: wrap; gap: .35rem; }
-.chip { font-family: var(--display); font-size: var(--fs-xs); padding: .3rem .6rem; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); cursor: pointer; }
-.chip:hover { border-color: var(--muted); }
-.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.chip .n { opacity: .7; margin-left: .3em; }
-.area { display: flex; align-items: center; gap: .5rem; }
-.area select { font: inherit; font-size: var(--fs-s); padding: .4rem .5rem; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--surface); color: var(--ink); }
-.story-chip { font-family: var(--display); font-size: var(--fs-xs); display: inline-flex; gap: .4rem; align-items: center; padding: .3rem .4rem .3rem .6rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
-.story-chip button { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0 .2rem; font-size: var(--fs-s); line-height: 1; }
-
-/* Milestone sections and tasks */
-#tasks { display: grid; gap: 2.5rem; scroll-margin-top: 6rem; }
-.ms { display: grid; gap: .9rem; }
-.ms-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .25rem 1rem; align-items: start; }
-.ms-id { font-family: var(--display); font-weight: 700; font-size: var(--fs-xl); line-height: 1.2; color: var(--muted); }
-.ms-head h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 500; line-height: 1.25; letter-spacing: -.01em; }
-.goal { color: var(--muted); max-width: 44rem; margin-top: .3rem; }
-.ms-side { display: grid; justify-items: end; gap: .3rem; }
-.ms-side .pill { justify-self: end; }
-.count, .ver-link { font-family: var(--display); font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; }
-.ver-link { color: var(--accent); }
-.done-when { font-size: var(--fs-s); max-width: 50rem; display: flex; flex-wrap: wrap; gap: .1rem .6rem; }
-@media (max-width: 600px) { .ms-head { grid-template-columns: minmax(0, 1fr) auto; } .ms-id { grid-column: 1 / -1; } }
-.tasks { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
-.tasks > li + li { border-top: 1px solid var(--line); }
-.task summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 5.4rem 3.4rem minmax(0, 1fr) auto 1rem; grid-template-areas: "pill id title area chev"; gap: .8rem; align-items: baseline; padding: .7rem .9rem; }
-.task summary::-webkit-details-marker { display: none; }
-.task summary:hover { background: var(--bg); }
-.task summary:focus-visible { outline-offset: -3px; }
-.task .pill { grid-area: pill; }
-.t-id { grid-area: id; font-family: var(--display); font-size: var(--fs-xs); color: var(--muted); }
-.t-title { grid-area: title; min-width: 0; }
-.t-area { grid-area: area; font-family: var(--display); font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; }
-.chev { grid-area: chev; color: var(--muted); font-family: var(--display); transition: transform .15s ease; justify-self: end; }
-.task[open] .chev { transform: rotate(90deg); }
-.task[open] summary .t-title { font-weight: 700; }
-.task.is-dropped .t-title { text-decoration: line-through; color: var(--muted); }
-@media (max-width: 600px) {
-  .task summary { grid-template-columns: auto auto minmax(0, 1fr) 1rem; grid-template-areas: "pill id area chev" "title title title title"; row-gap: .35rem; }
-  .t-area { justify-self: end; }
-}
-.t-body { display: grid; gap: .7rem; padding: .1rem .9rem 1rem; margin-left: calc(5.4rem + .8rem); max-width: 48rem; }
-@media (max-width: 600px) { .t-body { margin-left: 0; } }
-.t-row { display: grid; gap: .3rem; }
-.st-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .2rem; font-size: var(--fs-s); }
-.st-link { border: 0; background: transparent; color: var(--accent); cursor: pointer; padding: 0; font-family: var(--display); font-size: var(--fs-xs); text-decoration: underline; text-underline-offset: 2px; }
-.refs { display: flex; flex-wrap: wrap; gap: .35rem; font-size: var(--fs-s); }
-.empty { padding: 1.5rem; background: var(--surface); border: 1px dashed var(--line-strong); border-radius: var(--r); color: var(--muted); }
-
-/* Coverage */
-.block { display: grid; gap: .9rem; }
-.block h2 { font-family: var(--display); font-size: var(--fs-l); font-weight: 500; }
-.block-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .5rem 1.5rem; }
-.legend { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: var(--fs-xs); color: var(--muted); font-family: var(--display); }
-.legend span::before { content: ""; display: inline-block; width: .7rem; height: .7rem; border-radius: 2px; margin-right: .35rem; vertical-align: -.05rem; }
-.lg-done::before { background: var(--ok); } .lg-partial::before { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
-.lg-planned::before { background: var(--todo-soft); } .lg-none::before { box-shadow: inset 0 0 0 1px var(--line-strong); }
-.cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.25rem, 1fr)); gap: 4px; }
-.cell { aspect-ratio: 1; max-width: 100%; border: 0; border-radius: 3px; font-family: var(--display); font-size: var(--fs-xs); cursor: pointer; font-variant-numeric: tabular-nums; }
-.c-done { background: var(--ok); color: var(--surface); }
-.c-partial { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.c-planned { background: var(--todo-soft); color: var(--todo); }
-.c-none { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line-strong); }
-.cell.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
-.cell-info { font-size: var(--fs-s); min-height: 1.6em; color: var(--muted); }
-.cell-info strong { color: var(--ink); }
-
-/* Decisions, risks, log */
-.two { display: grid; gap: 2rem; }
-@media (min-width: 860px) { .two { grid-template-columns: 1fr 1fr; } }
-.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; }
-.plain li { display: grid; gap: .2rem; min-width: 0; }
-.plain time { font-family: var(--display); font-size: var(--fs-xs); color: var(--muted); }
-.risk-top { display: flex; gap: .6rem; align-items: baseline; }
-.mit { font-size: var(--fs-s); color: var(--muted); }
-.log li { grid-template-columns: 6.5rem minmax(0, 1fr); gap: 1rem; }
-@media (max-width: 600px) { .log li { grid-template-columns: 1fr; gap: .1rem; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="hero">
-    <div class="brand-row">
-      <h1 class="wordmark">typer <span>roadmap</span></h1>
-      <div class="brand-side">
-        <nav class="pages" aria-label="Roadmap pages"><a href="index.html" aria-current="page">Tasks</a><a href="releases.html">Releases</a></nav>
-        <p class="meta">Updated <time id="updated">…</time></p>
+<header class="wrap">
+  <div class="topbar">
+    <a class="brand" href="index.html" aria-label="Completionist roadmap, map">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 36 8v12c0 9-7 15-16 18C11 35 4 29 4 20V8Z" style="fill:var(--sign);stroke:var(--sign-ink);stroke-width:2"/><text x="20" y="27" text-anchor="middle" style="fill:var(--sign-ink);font:900 17px var(--display)">C</text></svg>
+      <span class="brand-word">Completionist<small>autocomplete</small></span>
+    </a>
+    <div class="topbar-side">
+      <nav class="pages" aria-label="Roadmap pages"><a href="index.html" aria-current="page">Map</a><a href="tasks.html">Tasks</a></nav>
+      <p class="meta">Updated <time id="updated">…</time></p>
+      <button type="button" class="theme-btn" id="theme"></button>
+    </div>
+  </div>
+</header>
+<main>
+  <section class="wrap hero" aria-label="Where Completionist is">
+    <span class="exit-tab">Autocomplete for Windows</span>
+    <div class="sign hero-sign"><span class="hero-ghost" id="hero-ghost" aria-hidden="true"></span>
+      <h1 class="hero-name">Completionist</h1><p class="hero-tag" id="hero-tag"></p><ul class="hero-arrows" id="hero-arrows"></ul></div>
+    <div class="vms" role="status"><span class="vms-lbl">Now</span><p class="vms-text" id="vms-text"></p></div>
+    <ul class="posts" id="posts" aria-label="Progress"></ul>
+  </section>
+  <section class="map-sec" aria-labelledby="map-h">
+    <div class="wrap sec-head">
+      <div class="sec-title"><span class="lbl">Every release, every part of the app</span><h2 id="map-h">The <em>highway</em></h2></div>
+      <div class="map-ctl">
+        <button type="button" class="ctl" id="go-start">⇤ Start</button>
+        <button type="button" class="ctl ctl-now" id="go-now">You are here</button>
+        <button type="button" class="ctl" id="go-end">Future ⇥</button>
+        <button type="button" class="ctl" id="fit" aria-pressed="false">Whole map</button>
       </div>
     </div>
-    <p class="tagline" id="tagline">System-wide, VS Code-style English autocomplete for Windows</p>
-    <div class="hero-grid">
-      <div class="now">
-        <p class="caret-line"><span class="now-lbl">Now</span><span id="now-text">Loading the roadmap</span><span class="caret" aria-hidden="true"></span></p>
-        <div class="pop" role="group" aria-label="Up next">
-          <div class="pop-list" id="pop-list"><p class="pop-empty">Loading…</p></div>
-          <div class="pop-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move &nbsp;<kbd>Enter</kbd> open task</span><span id="pop-ms"></span></div>
+    <div class="wrap"><div class="hw-chips" id="hw-chips" aria-label="Spotlight a highway"></div></div>
+    <div class="map-frame" id="map-frame">
+      <div class="map-scroll" id="map-scroll" tabindex="0" role="region" aria-label="Highway map of every release. Scrolls sideways.">
+        <div class="map-inner" id="map-inner">
+          <div class="lane-tags" id="lane-tags" aria-hidden="true"></div>
+          <svg id="map" role="group" aria-label="Releases on the highway map"></svg>
         </div>
       </div>
-      <aside class="overall" aria-label="Overall progress">
-        <p class="big num"><span id="done-n">–</span><span class="of"> / <span id="total-n">–</span></span></p>
-        <p class="lbl">Tasks done</p>
-        <div class="meter"><i id="overall-bar"></i></div>
-        <p class="links"><a id="prd" href="https://github.com/notnotnotnoone/typer/issues/1" target="_blank" rel="noopener">PRD (issue #1) ↗</a><a id="repo" href="https://github.com/notnotnotnoone/typer" target="_blank" rel="noopener">Repository ↗</a></p>
-      </aside>
     </div>
-  </header>
-
-  <nav class="track" id="track" aria-label="Milestones"></nav>
-
-  <div class="filters" role="search">
-    <label class="search"><input id="q" type="search" placeholder="Search tasks, files, notes" autocomplete="off" aria-label="Search tasks"><kbd>/</kbd></label>
-    <div class="chips" id="status-chips" aria-label="Filter by status"></div>
-    <label class="area"><span class="lbl">Area</span><select id="area"></select></label>
-    <span id="story-filter"></span>
-  </div>
-
-  <main id="tasks" aria-live="polite"><p class="empty">Loading tasks…</p></main>
-
-  <section class="block" aria-labelledby="cov-h">
-    <div class="block-head">
-      <h2 id="cov-h">PRD story coverage</h2>
-      <div class="legend" id="legend"></div>
-    </div>
-    <div class="cells" id="cells"></div>
-    <p class="cell-info" id="cell-info" aria-live="polite">Select a story to see the tasks that deliver it.</p>
   </section>
-
-  <div class="two">
-    <section class="block" aria-labelledby="dec-h"><h2 id="dec-h">Decisions</h2><ul class="plain" id="decisions"></ul></section>
-    <section class="block" aria-labelledby="risk-h"><h2 id="risk-h">Risks</h2><ul class="plain" id="risks"></ul></section>
-  </div>
-
-  <section class="block" aria-labelledby="log-h">
-    <div class="block-head"><h2 id="log-h">Update log</h2><button type="button" class="linkish" id="log-toggle" hidden></button></div>
-    <ul class="plain log" id="log"></ul>
+  <div class="wrap"><aside class="legend" id="legend" aria-label="Map key"></aside></div>
+  <section class="wrap guide" id="guide" aria-live="polite" aria-label="Travel guide"></section>
+  <section class="wrap work" aria-labelledby="work-h">
+    <div class="sec-head"><div class="work-title"><div class="diamond" aria-hidden="true"><span><b>ROAD<br>WORK<br>AHEAD</b></span></div>
+      <div class="sec-title"><span class="lbl">Doing, next and blocked</span><h2 id="work-h">Road <em>work</em></h2></div></div></div>
+    <div class="lane-rule"></div><div class="work-cols" id="work-cols"></div>
   </section>
-
-  <footer>Source of truth: <code>docs/roadmap/roadmap.js</code>. Agents update it with every change, as required by <code>CLAUDE.md</code>.</footer>
-</div>
-
+  <section class="wrap itinerary" aria-labelledby="itin-h">
+    <div class="sec-head"><div class="sec-title"><span class="lbl">Every release, in full</span><h2 id="itin-h">The <em>itinerary</em></h2></div></div>
+    <div class="lane-rule"></div><div id="itin"></div>
+  </section>
+</main>
+<footer class="wrap site">
+  <span>Source of truth: <code>roadmap.js</code>. Agents update it with every commit (see <a href="../../CLAUDE.md">CLAUDE.md</a>).</span>
+  <span><a href="tasks.html">Task board</a> · <a href="../../CONTEXT.md">CONTEXT.md</a> · <a href="https://github.com/notnotnotnoone/typer/issues/1" target="_blank" rel="noopener">PRD ↗</a> · <a href="https://github.com/notnotnotnoone/typer" target="_blank" rel="noopener">Repository ↗</a></span>
+</footer>
 <script src="roadmap.js"></script>
-<script>
-(() => {
-  const STATUS = {
-    doing: { label: "Doing", rank: 0 }, next: { label: "Next", rank: 1 }, blocked: { label: "Blocked", rank: 2 },
-    todo: { label: "To do", rank: 3 }, done: { label: "Done", rank: 4 }, dropped: { label: "Dropped", rank: 5 },
-  };
-  const MS_STATUS = { active: "Active", done: "Done", planned: "Planned" };
-  const RISK = { open: "Open", mitigated: "Mitigated", retired: "Retired" };
-  const AREA = { engine: "Engine", dll: "DLL", install: "Install", test: "Manual test", bench: "Benchmark", data: "Data",
-    docs: "Docs", repo: "Repo", toolchain: "Toolchain", extension: "Extension" };
-  const COVER = { done: "Delivered", partial: "In progress", planned: "Planned", none: "No task yet" };
-  const FILTERS = [["all", "All"], ["open", "Open"], ["doing", "Doing"], ["next", "Next"], ["blocked", "Blocked"], ["done", "Done"]];
-  const STORE = "typer-roadmap:view";
-  const LOG_SHOWN = 5;
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  const $ = (s) => document.querySelector(s);
-  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-  const rich = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
-  const areaName = (a) => AREA[a] || a;
-
-  const data = window.TYPER_ROADMAP;
-  if (!data) {
-    $("#tasks").innerHTML = `<div class="error"><strong>Couldn't load roadmap.js.</strong>
-      <p>It must sit next to this page. If it's there, it probably has a syntax error: run <code>python scripts/check_roadmap.py</code> to find it.</p></div>`;
-    $("#now-text").textContent = "Roadmap data unavailable";
-    $("#pop-list").innerHTML = `<p class="pop-empty">No data.</p>`;
-    return;
-  }
-
-  let tasks = [], byStory = {};
-  const releaseFor = {};
-  const opened = new Set();
-  const view = { ms: "all", status: "all", area: "all", q: "", story: null };
-  let logAll = false;
-
-  try { Object.assign(view, JSON.parse(localStorage.getItem(STORE)) || {}); } catch {}
-  view.q = ""; view.story = null;
-  const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ ms: view.ms, status: view.status, area: view.area })); } catch {} };
-
-  const progress = (list) => {
-    const live = list.filter((t) => t.status !== "dropped");
-    return { done: live.filter((t) => t.status === "done").length, total: live.length };
-  };
-  const byRank = (a, b) => STATUS[a.status].rank - STATUS[b.status].rank;
-
-  function index() {
-    for (const m of data.milestones) for (const t of m.tasks) {
-      t.ms = m; t.stories = t.stories || []; tasks.push(t);
-      for (const n of t.stories) (byStory[n] ||= []).push(t);
-    }
-    for (const r of data.releases || []) if (r.milestone) releaseFor[r.milestone] = r;
-    if (view.ms !== "all" && !data.milestones.some((m) => m.id === view.ms)) view.ms = "all";
-    if (!FILTERS.some(([k]) => k === view.status)) view.status = "all";
-    if (view.area !== "all" && !tasks.some((t) => t.area === view.area)) view.area = "all";
-  }
-
-  function matches(t, ignoreStatus) {
-    if (view.ms !== "all" && t.ms.id !== view.ms) return false;
-    if (view.area !== "all" && t.area !== view.area) return false;
-    if (view.story != null && !t.stories.includes(view.story)) return false;
-    if (!ignoreStatus) {
-      if (view.status === "open") { if (t.status === "done" || t.status === "dropped") return false; }
-      else if (view.status !== "all" && t.status !== view.status) return false;
-    }
-    if (view.q) {
-      const hay = [t.id, t.title, t.notes, (t.refs || []).join(" "), areaName(t.area), t.ms.title].join(" ").toLowerCase();
-      if (!view.q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w))) return false;
-    }
-    return true;
-  }
-
-  function renderHero() {
-    const p = progress(tasks);
-    $("#updated").textContent = data.updated;
-    $("#updated").setAttribute("datetime", data.updated);
-    if (data.tagline) $("#tagline").textContent = data.tagline;
-    $("#now-text").textContent = data.now;
-    $("#done-n").textContent = p.done;
-    $("#total-n").textContent = p.total;
-    $("#overall-bar").style.width = (p.total ? (p.done / p.total) * 100 : 0) + "%";
-    if (data.prd) $("#prd").href = data.prd;
-    if (data.repo) $("#repo").href = data.repo;
-
-    const active = data.milestones.find((m) => m.status === "active");
-    const queue = tasks.filter((t) => ["doing", "next", "blocked"].includes(t.status)).sort(byRank);
-    if (active) for (const t of active.tasks) if (queue.length < 5 && t.status === "todo") queue.push(t);
-    const rows = queue.slice(0, 5);
-    $("#pop-list").innerHTML = rows.length
-      ? rows.map((t, i) => `<button type="button" class="pop-row${i === 0 ? " hl" : ""}" data-task="${esc(t.id)}"><span class="pop-id">${esc(t.id)}</span><span>${esc(t.title)}</span><span class="pop-st">${STATUS[t.status].label}</span></button>`).join("")
-      : `<p class="pop-empty">Nothing queued. Add tasks with status "next".</p>`;
-    if (active) {
-      const ap = progress(active.tasks);
-      const rel = releaseFor[active.id];
-      $("#pop-ms").textContent = `${active.id}${rel ? " → v" + rel.version : ""} · ${ap.done}/${ap.total} done`;
-    }
-  }
-
-  function renderTrack() {
-    const all = progress(tasks);
-    const card = (key, id, st, stLabel, title, p) => `
-      <button type="button" class="trk" data-ms="${esc(key)}" aria-pressed="${view.ms === key}">
-        <span class="trk-top"><span class="trk-id">${esc(id)}</span><span class="trk-st st-${st}">${esc(stLabel)}</span></span>
-        <span class="trk-title">${esc(title)}</span>
-        <span class="meter"><i style="width:${p.total ? (p.done / p.total) * 100 : 0}%"></i></span>
-        <span class="trk-meta num">${p.done}/${p.total} tasks</span>
-      </button>`;
-    $("#track").innerHTML = card("all", "All", "planned", "", `All ${data.milestones.length} milestones`, all)
-      + data.milestones.map((m) => card(m.id, m.id, m.status, MS_STATUS[m.status] || m.status, m.title, progress(m.tasks))).join("");
-  }
-
-  function renderFilters() {
-    const pool = tasks.filter((t) => matches(t, true));
-    const count = (k) => k === "all" ? pool.length
-      : k === "open" ? pool.filter((t) => t.status !== "done" && t.status !== "dropped").length
-      : pool.filter((t) => t.status === k).length;
-    $("#status-chips").innerHTML = FILTERS
-      .filter(([k]) => k === "all" || k === "open" || count(k) > 0 || view.status === k)
-      .map(([k, label]) => `<button type="button" class="chip" data-status="${k}" aria-pressed="${view.status === k}">${label}<span class="n num">${count(k)}</span></button>`).join("");
-
-    const areas = [...new Set(tasks.map((t) => t.area))].sort((a, b) => areaName(a).localeCompare(areaName(b)));
-    $("#area").innerHTML = `<option value="all">All areas</option>` + areas.map((a) => `<option value="${esc(a)}">${esc(areaName(a))}</option>`).join("");
-    $("#area").value = view.area;
-
-    $("#story-filter").innerHTML = view.story == null ? ""
-      : `<span class="story-chip">Story #${view.story}: ${esc(data.stories[view.story])}<button type="button" data-clear-story aria-label="Clear story filter">×</button></span>`;
-  }
-
-  function refHtml(r) {
-    return /^https?:\/\//.test(r) ? `<a href="${esc(r)}" target="_blank" rel="noopener">${esc(r)} ↗</a>` : `<code>${esc(r)}</code>`;
-  }
-
-  function taskRow(t) {
-    const stories = t.stories.length ? `<div class="t-row"><span class="lbl">PRD stories</span><ul class="st-list">${t.stories.map((n) =>
-      `<li><button type="button" class="st-link" data-story="${n}">#${n}</button> ${esc(data.stories[n] || "Unknown story")}</li>`).join("")}</ul></div>` : "";
-    const refs = t.refs && t.refs.length ? `<div class="t-row"><span class="lbl">Where</span><span class="refs">${t.refs.map(refHtml).join("")}</span></div>` : "";
-    const body = (t.notes ? `<p>${rich(t.notes)}</p>` : "") + stories + refs;
-    return `<li><details class="task${t.status === "dropped" ? " is-dropped" : ""}" id="${esc(t.id)}"${opened.has(t.id) ? " open" : ""}>
-      <summary><span class="pill s-${esc(t.status)}">${esc(STATUS[t.status]?.label || t.status)}</span><span class="t-id">${esc(t.id)}</span><span class="t-title">${rich(t.title)}</span><span class="t-area">${esc(areaName(t.area))}</span><span class="chev" aria-hidden="true">›</span></summary>
-      <div class="t-body">${body || `<p class="mit">No notes yet.</p>`}</div>
-    </details></li>`;
-  }
-
-  function renderTasks() {
-    const html = data.milestones.map((m) => {
-      const list = m.tasks.filter((t) => matches(t));
-      if (!list.length) return "";
-      const p = progress(m.tasks);
-      const rel = releaseFor[m.id];
-      return `<section class="ms" aria-labelledby="h-${esc(m.id)}">
-        <header class="ms-head">
-          <span class="ms-id">${esc(m.id)}</span>
-          <div><h2 id="h-${esc(m.id)}">${esc(m.title)}</h2><p class="goal">${rich(m.goal)}</p></div>
-          <div class="ms-side"><span class="pill m-${esc(m.status)}">${esc(MS_STATUS[m.status] || m.status)}</span><span class="count">${p.done}/${p.total} done</span>${rel ? `<a class="ver-link" href="releases.html#v${esc(rel.version)}">${rel.status === "released" ? "Shipped in" : "Ships as"} v${esc(rel.version)}</a>` : ""}</div>
-        </header>
-        <p class="done-when"><span class="lbl">Done when</span><span>${rich(m.done_when)}</span></p>
-        <ol class="tasks">${list.map(taskRow).join("")}</ol>
-      </section>`;
-    }).join("");
-    $("#tasks").innerHTML = html || `<p class="empty">No tasks match these filters. <button type="button" class="linkish" data-reset>Clear filters</button></p>`;
-  }
-
-  function storyState(n) {
-    const live = (byStory[n] || []).filter((t) => t.status !== "dropped");
-    if (!live.length) return "none";
-    if (live.every((t) => t.status === "done")) return "done";
-    if (live.some((t) => t.status === "done" || t.status === "doing")) return "partial";
-    return "planned";
-  }
-
-  function storyInfo(n) {
-    const live = (byStory[n] || []).filter((t) => t.status !== "dropped");
-    const by = live.length ? " · " + live.map((t) => `${esc(t.id)} (${STATUS[t.status].label.toLowerCase()})`).join(", ") : " · no task covers it yet";
-    return `<strong>#${n} ${esc(data.stories[n])}</strong> · ${COVER[storyState(n)]}${by}`;
-  }
-
-  function renderCoverage() {
-    const nums = Object.keys(data.stories).map(Number).sort((a, b) => a - b);
-    const tally = { done: 0, partial: 0, planned: 0, none: 0 };
-    for (const n of nums) tally[storyState(n)]++;
-    $("#legend").innerHTML = Object.keys(tally).map((k) => `<span class="lg-${k}">${COVER[k]} <span class="num">${tally[k]}</span></span>`).join("");
-    $("#cells").innerHTML = nums.map((n) => {
-      const st = storyState(n);
-      return `<button type="button" class="cell c-${st}${view.story === n ? " sel" : ""}" data-story="${n}" data-cell aria-pressed="${view.story === n}" aria-label="Story ${n}: ${esc(data.stories[n])}. ${COVER[st]}" title="#${n} ${esc(data.stories[n])}">${n}</button>`;
-    }).join("");
-    if (view.story != null) $("#cell-info").innerHTML = storyInfo(view.story);
-  }
-
-  function renderNotes() {
-    $("#decisions").innerHTML = (data.decisions || []).map((d) => `<li><time datetime="${esc(d.date)}">${esc(d.date)}</time><span>${rich(d.text)}</span></li>`).join("") || `<li class="mit">None recorded.</li>`;
-    const order = { open: 0, mitigated: 1, retired: 2 };
-    $("#risks").innerHTML = [...(data.risks || [])].sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3)).map((r) =>
-      `<li><span class="risk-top"><span class="pill r-${esc(r.status)}">${esc(RISK[r.status] || r.status)}</span><span>${rich(r.text)}</span></span>${r.mitigation ? `<span class="mit">${rich(r.mitigation)}</span>` : ""}</li>`).join("") || `<li class="mit">None recorded.</li>`;
-    const log = data.log || [];
-    $("#log").innerHTML = (logAll ? log : log.slice(0, LOG_SHOWN)).map((e) =>
-      `<li><time datetime="${esc(e.date)}">${esc(e.date)}</time><span>${rich(e.text)}</span></li>`).join("");
-    const toggle = $("#log-toggle");
-    toggle.hidden = log.length <= LOG_SHOWN;
-    toggle.textContent = logAll ? "Show recent" : `Show all ${log.length}`;
-  }
-
-  function withFocus(fn) {
-    const a = document.activeElement;
-    const key = a && ["ms", "status", "story", "task"].map((k) => a.dataset && a.dataset[k] != null ? `[data-${k}="${a.dataset[k]}"]` : "").find(Boolean);
-    const inCells = a && a.hasAttribute && a.hasAttribute("data-cell");
-    fn();
-    if (key) { const el = document.querySelector((inCells ? "[data-cell]" : "") + key); if (el) el.focus({ preventScroll: true }); }
-  }
-
-  function renderView() { withFocus(() => { renderTrack(); renderFilters(); renderTasks(); renderCoverage(); }); }
-
-  function openTask(id) {
-    const t = tasks.find((x) => x.id === id);
-    if (!t) return;
-    if (!matches(t)) { view.ms = "all"; view.status = "all"; view.area = "all"; view.q = ""; view.story = null; $("#q").value = ""; save(); }
-    opened.add(id);
-    renderView();
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.open = true;
-    el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "center" });
-    el.querySelector("summary").focus({ preventScroll: true });
-  }
-
-  function applyHash() {
-    const h = decodeURIComponent(location.hash.slice(1));
-    if (!h) return;
-    if (tasks.some((t) => t.id === h)) openTask(h);
-    else if (data.milestones.some((m) => m.id === h)) { view.ms = h; view.status = "all"; renderView(); }
-  }
-
-  document.addEventListener("click", (e) => {
-    const el = e.target.closest("[data-ms],[data-status],[data-task],[data-story],[data-reset],[data-clear-story],#log-toggle");
-    if (!el) return;
-    if (el.id === "log-toggle") { logAll = !logAll; renderNotes(); return; }
-    if (el.dataset.task) { openTask(el.dataset.task); return; }
-    if (el.dataset.ms) { view.ms = el.dataset.ms; save(); renderView(); return; }
-    if (el.dataset.status) { view.status = el.dataset.status; save(); renderView(); return; }
-    if (el.hasAttribute("data-clear-story")) { view.story = null; renderView(); $("#cell-info").textContent = "Select a story to see the tasks that deliver it."; return; }
-    if (el.hasAttribute("data-reset")) { Object.assign(view, { ms: "all", status: "all", area: "all", q: "", story: null }); $("#q").value = ""; save(); renderView(); return; }
-    if (el.dataset.story) {
-      const n = Number(el.dataset.story);
-      view.story = view.story === n ? null : n;
-      if (view.story != null) { view.ms = "all"; view.status = "all"; view.area = "all"; }
-      renderView();
-      $("#cell-info").innerHTML = view.story != null ? storyInfo(view.story) : "Select a story to see the tasks that deliver it.";
-      if (view.story != null && !el.hasAttribute("data-cell")) $("#tasks").scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
-    }
-  });
-
-  document.addEventListener("toggle", (e) => {
-    const d = e.target;
-    if (!(d instanceof HTMLDetailsElement) || !d.id) return;
-    d.open ? opened.add(d.id) : opened.delete(d.id);
-  }, true);
-
-  const cells = $("#cells");
-  const showCell = (e) => { const c = e.target.closest("[data-cell]"); if (c) $("#cell-info").innerHTML = storyInfo(Number(c.dataset.story)); };
-  cells.addEventListener("mouseover", showCell);
-  cells.addEventListener("focusin", showCell);
-
-  const pop = $("#pop-list");
-  const highlight = (row) => { for (const r of pop.querySelectorAll(".pop-row")) r.classList.toggle("hl", r === row); };
-  pop.addEventListener("mouseover", (e) => { const r = e.target.closest(".pop-row"); if (r) highlight(r); });
-  pop.addEventListener("focusin", (e) => { const r = e.target.closest(".pop-row"); if (r) highlight(r); });
-  pop.addEventListener("keydown", (e) => {
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    const rows = [...pop.querySelectorAll(".pop-row")];
-    const i = rows.indexOf(document.activeElement);
-    const next = rows[(i + (e.key === "ArrowDown" ? 1 : -1) + rows.length) % rows.length];
-    if (next) { e.preventDefault(); next.focus(); }
-  });
-
-  $("#q").addEventListener("input", (e) => { view.q = e.target.value.trim(); renderFilters(); renderTasks(); });
-  $("#q").addEventListener("keydown", (e) => { if (e.key === "Escape" && e.target.value) { e.target.value = ""; view.q = ""; renderFilters(); renderTasks(); } });
-  $("#area").addEventListener("change", (e) => { view.area = e.target.value; save(); renderView(); });
-  document.addEventListener("keydown", (e) => {
-    if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
-    const tag = document.activeElement && document.activeElement.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-    e.preventDefault(); $("#q").focus();
-  });
-  addEventListener("hashchange", applyHash);
-
-  index();
-  renderHero(); renderView(); renderNotes(); applyHash();
-})();
-</script>
+<script src="common.js"></script>
+<script src="map-layout.js"></script>
+<script src="map.js"></script>
+<script src="page.js"></script>
 </body>
 </html>

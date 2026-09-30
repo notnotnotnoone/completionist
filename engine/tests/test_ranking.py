@@ -2,8 +2,8 @@
 
 import pytest
 
-from typer_engine.counts import NO_COUNTS, Counts
-from typer_engine.words import WordCompleter, previous_words, sentence_words
+from completionist_engine.counts import NO_COUNTS, Counts
+from completionist_engine.words import WordCompleter, previous_words, sentence_words
 
 
 class FakeCounts:

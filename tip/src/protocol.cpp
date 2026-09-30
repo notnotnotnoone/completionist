@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <utility>
 
-namespace typer::protocol {
+namespace completionist::protocol {
 
 namespace {
 
@@ -398,4 +398,4 @@ bool FrameDecoder::Feed(const char* data, std::size_t size, std::vector<std::str
     }
 }
 
-}  // namespace typer::protocol
+}  // namespace completionist::protocol

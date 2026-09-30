@@ -1,5 +1,5 @@
-from typer_engine.phrase_scheduler import Cancel, PhraseScheduler, Start
-from typer_engine.protocol import Request
+from completionist_engine.phrase_scheduler import Cancel, PhraseScheduler, Start
+from completionist_engine.protocol import Request
 
 DEBOUNCE = 0.35
 

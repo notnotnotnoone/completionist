@@ -1,11 +1,11 @@
-// Talks to the engine over \\.\pipe\typer-engine from a worker thread, so the app's UI thread never
+// Talks to the engine over \\.\pipe\completionist-engine from a worker thread, so the app's UI thread never
 // blocks on I/O. One client per process, shared by every text-service instance in it.
 //
 //  * Send() only queues; it never blocks.
-//  * Replies to keystroke requests are posted to the requester's window as WM_TYPER_REPLY, with a
+//  * Replies to keystroke requests are posted to the requester's window as WM_COMPLETIONIST_REPLY, with a
 //    heap-allocated protocol::WordReply* in lParam that the receiver must delete.
 //  * If the engine isn't running, requests are dropped and the client reconnects with backoff
-//    (250 ms doubling to 5 s), so apps behave as if Typer weren't there until it returns.
+//    (250 ms doubling to 5 s), so apps behave as if Completionist weren't there until it returns.
 #pragma once
 
 #define WIN32_LEAN_AND_MEAN
@@ -16,9 +16,9 @@
 
 #include "protocol.h"
 
-namespace typer {
+namespace completionist {
 
-constexpr UINT WM_TYPER_REPLY = WM_APP + 0x41;
+constexpr UINT WM_COMPLETIONIST_REPLY = WM_APP + 0x41;
 
 class EngineClient {
 public:
@@ -30,7 +30,7 @@ public:
 
     std::uint32_t NextId();
 
-    // Queues `request`. When `replyTo` is set, the engine's reply is posted to it as WM_TYPER_REPLY.
+    // Queues `request`. When `replyTo` is set, the engine's reply is posted to it as WM_COMPLETIONIST_REPLY.
     void Send(protocol::Request request, HWND replyTo);
 
     bool connected() const { return connected_; }
@@ -52,4 +52,4 @@ private:
     volatile LONG connected_ = 0;
 };
 
-}  // namespace typer
+}  // namespace completionist

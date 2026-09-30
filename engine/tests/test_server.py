@@ -7,13 +7,13 @@ from uuid import uuid4
 
 import pytest
 
-from typer_engine.client import EngineClient
-from typer_engine.config import Config
-from typer_engine.engine import Engine
-from typer_engine.probe import main as probe_main
-from typer_engine.server import start_server
-from typer_engine.vocabulary import load_wordfreq_vocabulary
-from typer_engine.words import WordCompleter
+from completionist_engine.client import EngineClient
+from completionist_engine.config import Config
+from completionist_engine.engine import Engine
+from completionist_engine.probe import main as probe_main
+from completionist_engine.server import start_server
+from completionist_engine.vocabulary import load_wordfreq_vocabulary
+from completionist_engine.words import WordCompleter
 
 VOCAB = [("world", 5.8), ("work", 6.0), ("worry", 5.0)]
 
@@ -23,7 +23,7 @@ def small_engine() -> Engine:
 
 
 def unique_pipe_name() -> str:
-    return rf"\\.\pipe\typer-test-{uuid4().hex}"
+    return rf"\\.\pipe\completionist-test-{uuid4().hex}"
 
 
 @contextlib.asynccontextmanager
@@ -137,7 +137,7 @@ def engine_process(tmp_path):
     config = tmp_path / "config.toml"
     data_dir = (tmp_path / "data").as_posix()
     config.write_text(f"[data]\ndir = '{data_dir}'\n", encoding="utf-8")
-    process = subprocess.Popen([sys.executable, "-m", "typer_engine", "--pipe", name, "--config", str(config), "--no-tray"])
+    process = subprocess.Popen([sys.executable, "-m", "completionist_engine", "--pipe", name, "--config", str(config), "--no-tray"])
     try:
         yield name
     finally:
@@ -152,7 +152,7 @@ def test_engine_process_answers_the_probe(engine_process, capsys):
 
 
 def test_words_typed_over_one_connection_are_learned():
-    from typer_engine.personal import PersonalStore
+    from completionist_engine.personal import PersonalStore
 
     async def scenario():
         personal = PersonalStore()

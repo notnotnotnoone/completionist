@@ -7,7 +7,7 @@
 
 #include <cstdarg>
 
-namespace typer {
+namespace completionist {
 
 namespace {
 
@@ -16,7 +16,7 @@ volatile LONG g_verbose = 0;
 bool DataPath(const wchar_t* file, wchar_t (&path)[MAX_PATH], bool createDirectory) {
     DWORD len = GetEnvironmentVariableW(L"LOCALAPPDATA", path, MAX_PATH);
     if (len == 0 || len >= MAX_PATH) return false;
-    if (FAILED(StringCchCatW(path, MAX_PATH, L"\\Typer"))) return false;
+    if (FAILED(StringCchCatW(path, MAX_PATH, L"\\Completionist"))) return false;
     if (createDirectory) CreateDirectoryW(path, nullptr);
     return SUCCEEDED(StringCchCatW(path, MAX_PATH, L"\\")) && SUCCEEDED(StringCchCatW(path, MAX_PATH, file));
 }
@@ -73,4 +73,4 @@ void LogDebug(const wchar_t* format, ...) {
     va_end(args);
 }
 
-}  // namespace typer
+}  // namespace completionist

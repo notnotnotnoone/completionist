@@ -1,5 +1,5 @@
 // Wire protocol with the engine: each frame is a 4-byte little-endian length followed by that many
-// bytes of UTF-8 JSON (an object). Mirrors engine/src/typer_engine/protocol.py.
+// bytes of UTF-8 JSON (an object). Mirrors engine/src/completionist_engine/protocol.py.
 // No Windows dependencies, so it is tested natively.
 #pragma once
 
@@ -10,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-namespace typer::protocol {
+namespace completionist::protocol {
 
 constexpr std::size_t kMaxFrameBytes = 1u << 20;
 
@@ -60,4 +60,4 @@ private:
     std::string buffer_;
 };
 
-}  // namespace typer::protocol
+}  // namespace completionist::protocol

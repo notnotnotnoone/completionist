@@ -1,4 +1,4 @@
-"""Generates typer.ico: a blue rounded square with a white T and a caret bar.
+"""Generates completionist.ico: a blue rounded square with a white T and a caret bar.
 
     python make_icon.py
 
@@ -67,7 +67,7 @@ def main() -> None:
         offset += len(image)
     for image in images:
         out += image
-    target = Path(__file__).with_name("typer.ico")
+    target = Path(__file__).with_name("completionist.ico")
     target.write_bytes(out)
     print(f"wrote {target} ({len(out)} bytes, sizes {SIZES})")
 

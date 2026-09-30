@@ -1,4 +1,4 @@
-# Typer
+# Completionist
 
 System-wide, VS Code–style English autocomplete for Windows. A word dropdown at the caret in every app, plus a phrase continuation you accept with Tab.
 
@@ -6,7 +6,7 @@ It's built as a **Text Services Framework (TSF) text service**, the same mechani
 
 The full spec is in [issue #1 (PRD)](https://github.com/notnotnotnoone/typer/issues/1).
 
-**Roadmap:** open [`docs/roadmap/index.html`](docs/roadmap/index.html) (tasks) or [`docs/roadmap/releases.html`](docs/roadmap/releases.html) (release timeline) in a browser. Both read [`docs/roadmap/roadmap.js`](docs/roadmap/roadmap.js), which agents keep current (see [`CLAUDE.md`](CLAUDE.md)).
+**Roadmap:** open [docs/roadmap/index.html](docs/roadmap/index.html) (the highway map) or [docs/roadmap/tasks.html](docs/roadmap/tasks.html) (the task board) in a browser. Both read [docs/roadmap/roadmap.js](docs/roadmap/roadmap.js), which agents keep current (see [CLAUDE.md](CLAUDE.md)). Project context and the color scheme are in [CONTEXT.md](CONTEXT.md).
 
 ## Install
 
@@ -16,19 +16,19 @@ Needs [uv](https://docs.astral.sh/uv/) and Visual Studio 2022 Build Tools with t
 .\scripts\install.ps1
 ```
 
-It installs the engine's dependencies, builds and registers the DLL (one UAC prompt), adds the Typer keyboard to your English language(s), creates a logon task and starts the engine. Then switch to the Typer keyboard with Win+Space and type. Apps that were already open need a restart.
+It installs the engine's dependencies, builds and registers the DLL (one UAC prompt), adds the Completionist keyboard to your English language(s), creates a logon task and starts the engine. Then switch to the Completionist keyboard with Win+Space and type. Apps that were already open need a restart.
 
 ```powershell
-.\scripts\uninstall.ps1              # add -DeleteData to remove %LOCALAPPDATA%\Typer too
+.\scripts\uninstall.ps1              # add -DeleteData to remove %LOCALAPPDATA%\Completionist too
 ```
 
-Phrases (the greyed continuation) run through OpenRouter and need its key, set once as a user environment variable. The key is never stored in Typer's config:
+Phrases (the greyed continuation) run through OpenRouter and need its key, set once as a user environment variable. The key is never stored in Completionist's config:
 
 ```powershell
 setx OPENROUTER_API_KEY "your key"
 ```
 
-Then restart the engine from the tray icon. Typer doesn't count what phrases cost: set a spending limit on the key itself in OpenRouter.
+Then restart the engine from the tray icon. Completionist doesn't count what phrases cost: set a spending limit on the key itself in OpenRouter.
 
 ## Using it
 
@@ -39,11 +39,11 @@ Then restart the engine from the tray icon. Typer doesn't count what phrases cos
 | Ctrl+Right | Accept the next word of the phrase |
 | Ctrl+Space | Ask for a phrase now (in apps where phrases aren't automatic) |
 | Esc | Dismiss until the next word |
-| Ctrl+Alt+P | Pause / resume Typer everywhere |
+| Ctrl+Alt+P | Pause / resume Completionist everywhere |
 
 Enter is never touched. Nothing is shown or sent from password fields.
 
-The tray icon pauses and resumes, shows what Typer has saved you, and opens the settings file and logs. `typer-stats` (in `engine/`) prints the same numbers in the terminal.
+The tray icon pauses and resumes, shows what Completionist has saved you, and opens the settings file and logs. `completionist-stats` (in `engine/`) prints the same numbers in the terminal.
 
 ## Layout
 
@@ -51,7 +51,7 @@ The tray icon pauses and resumes, shows what Typer has saved you, and opens the 
 |---|---|
 | `engine/` | Python engine (uv project): pipe server, word completion, phrase provider, learning, metrics, tray |
 | `tip/` | C++ TSF text service DLL (adapted from Microsoft's SampleIME). The M0 spike is in `tip/spike/` |
-| `docs/roadmap/` | Roadmap data, task board and release timeline (open the HTML files from disk) |
+| `docs/roadmap/` | Roadmap data, highway map and task board (open the HTML files from disk) |
 | `scripts/` | Roadmap checker, `install.ps1`, `uninstall.ps1` |
 
 ## Development

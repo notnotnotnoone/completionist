@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repo = Split-Path -Parent (Split-Path -Parent $here)
 $out = Join-Path $here "..\out"
-$pipe = "\\.\pipe\typer-e2e-$PID"
+$pipe = "\\.\pipe\completionist-e2e-$PID"
 $probeExe = Join-Path $out "pipe_probe.exe"
 
 # Build the probe.
@@ -21,11 +21,11 @@ cmd /c "`"$buildCmd`" >nul 2>nul"
 if (-not (Test-Path $probeExe)) { throw "probe failed to build" }
 
 function Start-Engine {
-    Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "typer-engine", "--pipe", $pipe, "--config", "$out\no-such-config.toml") `
+    Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$repo\engine", "completionist-engine", "--pipe", $pipe, "--config", "$out\no-such-config.toml") `
         -PassThru -WindowStyle Hidden
 }
 function Stop-Engine($process) {
-    Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*typer-engine*" -and $_.CommandLine -like "*$pipe*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*completionist-engine*" -and $_.CommandLine -like "*$pipe*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
 
 # One probe run for the whole scenario (~30 s), engine started and stopped underneath it.

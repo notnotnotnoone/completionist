@@ -9,11 +9,11 @@
 
 #include "log.h"
 
-namespace typer {
+namespace completionist {
 
 namespace {
 
-constexpr wchar_t kDefaultPipe[] = L"\\\\.\\pipe\\typer-engine";
+constexpr wchar_t kDefaultPipe[] = L"\\\\.\\pipe\\completionist-engine";
 constexpr DWORD kFirstBackoffMs = 250;
 constexpr DWORD kMaxBackoffMs = 2000;
 constexpr DWORD kWriteTimeoutMs = 1000;
@@ -120,7 +120,7 @@ void EngineClient::Release() {
 }
 
 void EngineClient::Send(protocol::Request request, HWND replyTo) {
-    if (!connected_) return;  // the engine isn't there: behave as if Typer weren't installed
+    if (!connected_) return;  // the engine isn't there: behave as if Completionist weren't installed
     std::string frame = protocol::EncodeRequest(request);
     {
         std::lock_guard<std::mutex> guard(state_->lock);
@@ -281,7 +281,7 @@ void EngineClient::DispatchReply(const std::string& body) {
     }
     auto* heap = new (std::nothrow) protocol::WordReply(std::move(*reply));
     if (!heap) return;
-    if (!PostMessageW(target, WM_TYPER_REPLY, 0, reinterpret_cast<LPARAM>(heap))) delete heap;
+    if (!PostMessageW(target, WM_COMPLETIONIST_REPLY, 0, reinterpret_cast<LPARAM>(heap))) delete heap;
 }
 
-}  // namespace typer
+}  // namespace completionist

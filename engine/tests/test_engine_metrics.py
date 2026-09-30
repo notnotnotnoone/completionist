@@ -2,11 +2,11 @@ from datetime import date
 
 import pytest
 
-from typer_engine.config import Config, PhraseConfig
-from typer_engine.engine import Engine
-from typer_engine.metrics import Metrics
-from typer_engine.protocol import Request
-from typer_engine.words import WordCompleter
+from completionist_engine.config import Config, PhraseConfig
+from completionist_engine.engine import Engine
+from completionist_engine.metrics import Metrics
+from completionist_engine.protocol import Request
+from completionist_engine.words import WordCompleter
 
 VOCAB = [("recommend", 6.0), ("recommended", 5.0), ("world", 5.8), ("work", 6.0)]
 CONFIG = Config(block=frozenset({"code.exe"}), allow=frozenset(), phrase=PhraseConfig(enabled=False))
@@ -64,7 +64,7 @@ def test_accepting_a_phrase_counts_all_its_characters(parts):
 
 def test_a_phrase_accept_does_not_teach_the_word_store(parts):
     engine, _, session = parts
-    from typer_engine.personal import PersonalStore
+    from completionist_engine.personal import PersonalStore
 
     engine._store = PersonalStore()
     session.handle(Request(id=2, event="accept", app="discord.exe", before="Hello wor", accepted="ld is big", kind="phrase"))
@@ -108,7 +108,7 @@ def test_pausing_makes_every_request_silent_and_resuming_restores_it(parts):
 
 
 def test_nothing_is_learned_while_paused():
-    from typer_engine.personal import PersonalStore
+    from completionist_engine.personal import PersonalStore
 
     store = PersonalStore()
     engine = Engine(WordCompleter(VOCAB), CONFIG, personal=store)
@@ -128,7 +128,7 @@ def test_a_changed_config_applies_to_running_sessions(parts):
 
 
 def test_turning_learning_off_in_the_config_stops_learning_at_once():
-    from typer_engine.personal import PersonalStore
+    from completionist_engine.personal import PersonalStore
 
     store = PersonalStore()
     engine = Engine(WordCompleter(VOCAB), CONFIG, personal=store)

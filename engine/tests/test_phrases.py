@@ -3,11 +3,11 @@ import asyncio
 import pytest
 
 from tests.fake_provider import Script, fake_provider
-from typer_engine.config import PhraseConfig
-from typer_engine.context import INSTRUCTIONS
-from typer_engine.phrase_provider import ProviderSettings
-from typer_engine.phrases import PhraseService
-from typer_engine.protocol import PhraseUpdate, Request
+from completionist_engine.config import PhraseConfig
+from completionist_engine.context import INSTRUCTIONS
+from completionist_engine.phrase_provider import ProviderSettings
+from completionist_engine.phrases import PhraseService
+from completionist_engine.protocol import PhraseUpdate, Request
 
 
 def req(request_id: int, before: str, after: str = "", event: str = "keystroke", title: str = "Notes") -> Request:

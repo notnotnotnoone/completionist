@@ -1,4 +1,4 @@
-# Typer text service (the DLL)
+# Completionist text service (the DLL)
 
 A C++ TSF text service. Windows loads it into every app that has text input; it reads the text around the caret, asks the [engine](../engine) for word completions over the named pipe, and draws them in a popup at the caret. Tab, Up, Down and Esc drive the popup; Ctrl+Right takes the next word of a phrase and Ctrl+Space asks for one. Enter is never touched.
 
@@ -13,14 +13,14 @@ A C++ TSF text service. Windows loads it into every app that has text input; it 
 | `src/engine_client.{h,cpp}` | Worker-thread pipe client: reconnect with backoff, drops stale replies, checks the engine runs as the same user. |
 | `src/popup.{h,cpp}` | The popup window: DPI-aware, never takes focus, click-through, stays on the caret's monitor. |
 | `src/tsf_service.cpp` | The TSF shell: activation, edit sessions, key sink, COM registration. |
-| `src/log.{h,cpp}` | `%LOCALAPPDATA%\Typer\tip.log`. Create an empty file `%LOCALAPPDATA%\Typer\verbose` for debug lines. |
+| `src/log.{h,cpp}` | `%LOCALAPPDATA%\Completionist\tip.log`. Create an empty file `%LOCALAPPDATA%\Completionist\verbose` for debug lines. |
 | `tests/` | Native tests, an engine end-to-end check, a load/lifecycle smoke test and a full TSF harness. |
-| `assets/make_icon.py` | Generates `typer.ico`, which lets Settings list the keyboard. |
+| `assets/make_icon.py` | Generates `completionist.ico`, which lets Settings list the keyboard. |
 
 ## Build and test
 
 ```powershell
-.\build.cmd          # out\TyperTip.dll (x64, static CRT)
+.\build.cmd          # out\CompletionistTip.dll (x64, static CRT)
 .\test.cmd           # native tests: key router and protocol codec
 .\tests\e2e.ps1      # client against the real engine: no engine, late start, kill, restart
 .\tests\load_test.ps1  # loads the unregistered DLL, activates and tears it down 40 times on a real TSF thread manager
@@ -36,10 +36,10 @@ Most people should run `..\scripts\install.ps1`, which does all of this and also
 ```powershell
 .\build.cmd
 .\register.ps1            # UAC prompt: registers the DLL
-.\enable-keyboard.ps1     # adds the Typer keyboard to your English language(s)
+.\enable-keyboard.ps1     # adds the Completionist keyboard to your English language(s)
 ```
 
-Start the engine (`cd ..\engine; uv run typer-engine`), then switch to the Typer keyboard with Win+Space in the app you're typing in.
+Start the engine (`cd ..\engine; uv run completionist-engine`), then switch to the Completionist keyboard with Win+Space in the app you're typing in.
 
 To remove it: `.\enable-keyboard.ps1 -Remove`, then `.\register.ps1 -Unregister`.
 

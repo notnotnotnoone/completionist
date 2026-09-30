@@ -4,11 +4,11 @@
 
 #include "log.h"
 
-namespace typer {
+namespace completionist {
 
 namespace {
 
-constexpr wchar_t kClassName[] = L"TyperPopup";
+constexpr wchar_t kClassName[] = L"CompletionistPopup";
 
 constexpr COLORREF kBackground = RGB(31, 34, 42);
 constexpr COLORREF kBorder = RGB(66, 71, 84);
@@ -245,4 +245,4 @@ LRESULT CALLBACK Popup::WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
     return DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
-}  // namespace typer
+}  // namespace completionist

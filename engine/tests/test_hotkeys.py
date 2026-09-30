@@ -1,6 +1,6 @@
 import pytest
 
-from typer_engine.hotkeys import MOD_ALT, MOD_CONTROL, MOD_NOREPEAT, MOD_SHIFT, MOD_WIN, GlobalHotkey, parse_hotkey
+from completionist_engine.hotkeys import MOD_ALT, MOD_CONTROL, MOD_NOREPEAT, MOD_SHIFT, MOD_WIN, GlobalHotkey, parse_hotkey
 
 
 def test_letters_digits_and_function_keys_parse():

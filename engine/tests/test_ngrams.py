@@ -2,7 +2,7 @@ import gzip
 
 import pytest
 
-from typer_engine.ngrams import NgramTable, build_ngrams
+from completionist_engine.ngrams import NgramTable, build_ngrams
 
 CORPUS = """\
 I want to know the answer. I want to know more about it. We want to see the answer.

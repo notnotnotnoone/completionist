@@ -1,8 +1,8 @@
 import asyncio
 import os
 
-from typer_engine.config import Config
-from typer_engine.config_watch import ConfigWatcher
+from completionist_engine.config import Config
+from completionist_engine.config_watch import ConfigWatcher
 
 
 def write(path, text):

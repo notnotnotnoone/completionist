@@ -1,6 +1,6 @@
-# Adds the Typer keyboard to your English language(s) (or with -Remove, takes it away).
+# Adds the Completionist keyboard to your English language(s) (or with -Remove, takes it away).
 # This changes your Windows language settings, so you run it yourself. After adding it, switch to it
-# with Win+Space (the language indicator in the taskbar shows "Typer"). Typer never changes what keys
+# with Win+Space (the language indicator in the taskbar shows "Completionist"). Completionist never changes what keys
 # type; it only draws suggestions.
 param([switch]$Remove)
 
@@ -21,10 +21,10 @@ foreach ($language in $list) {
     }
 }
 if (-not $changed) {
-    if ($Remove) { 'Typer was not enabled for any language.' }
-    else { 'Nothing to do: no en-US, en-CA or en-GB language found, or Typer is already enabled.' }
+    if ($Remove) { 'Completionist was not enabled for any language.' }
+    else { 'Nothing to do: no en-US, en-CA or en-GB language found, or Completionist is already enabled.' }
     return
 }
 Set-WinUserLanguageList $list -Force
 $verb = if ($Remove) { 'removed from' } else { 'added to' }
-"Typer keyboard $verb $($changed -join ', '). Switch keyboards with Win+Space."
+"Completionist keyboard $verb $($changed -join ', '). Switch keyboards with Win+Space."

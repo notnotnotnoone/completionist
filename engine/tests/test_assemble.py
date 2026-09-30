@@ -1,7 +1,7 @@
-from typer_engine.config import Config
-from typer_engine.ngrams import build_ngrams
-from typer_engine.protocol import Request
-from typer_engine.assemble import assemble_engine
+from completionist_engine.config import Config
+from completionist_engine.ngrams import build_ngrams
+from completionist_engine.protocol import Request
+from completionist_engine.assemble import assemble_engine
 
 VOCAB = [("knowledge", 6.0), ("know", 5.0), ("knew", 4.0), ("the", 9.0)]
 
@@ -65,7 +65,7 @@ def test_learning_off_creates_no_personal_file(tmp_path):
 
 
 def test_build_cli_makes_a_file_the_engine_can_use(tmp_path, capsys):
-    from typer_engine.build_ngrams import main
+    from completionist_engine.build_ngrams import main
 
     corpus = tmp_path / "c.txt"
     corpus.write_text("we want to know. " * 10, encoding="utf-8")
@@ -80,7 +80,7 @@ def test_build_cli_makes_a_file_the_engine_can_use(tmp_path, capsys):
 def test_build_cli_reports_a_missing_source_without_a_traceback(tmp_path, capsys):
     import pytest
 
-    from typer_engine.build_ngrams import main
+    from completionist_engine.build_ngrams import main
 
     with pytest.raises(SystemExit) as exit_info:
         main([str(tmp_path / "nope.txt"), "--out", str(tmp_path / "o.sqlite")])

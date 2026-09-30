@@ -3,7 +3,7 @@ from datetime import date
 
 import pytest
 
-from typer_engine.metrics import Metrics, format_summary
+from completionist_engine.metrics import Metrics, format_summary
 
 DAY = date(2026, 9, 29)
 

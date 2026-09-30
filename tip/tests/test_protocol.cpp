@@ -1,7 +1,7 @@
 #include "../src/protocol.h"
 #include "test_harness.h"
 
-using namespace typer::protocol;
+using namespace completionist::protocol;
 
 namespace {
 std::string Frame(const std::string& body) {

@@ -17,7 +17,7 @@ RISK_STATUSES = {"open", "mitigated", "retired"}
 RELEASE_STATUSES = {"released", "next", "planned"}
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}$")
 VERSION = re.compile(r"(\d+)\.(\d+)\.(\d+)$")
-ASSIGNMENT = re.compile(r"window\.TYPER_ROADMAP\s*=\s*(\{.*\})\s*;\s*$", re.S)
+ASSIGNMENT = re.compile(r"window\.COMPLETIONIST_ROADMAP\s*=\s*(\{.*\})\s*;\s*$", re.S)
 SENTENCE_BREAK = re.compile(r"(?<=[.!?])[\"”’)]*\s+(?=[\"“(]?[A-Z0-9])")
 
 # Writing rules per release tier: patch = one sentence, minor = one paragraph, major = an essay.
@@ -30,7 +30,7 @@ MAJOR_MIN_WORDS = 450
 def load(path: Path = ROADMAP) -> dict:
     match = ASSIGNMENT.search(path.read_text(encoding="utf-8"))
     if not match:
-        raise ValueError("expected `window.TYPER_ROADMAP = { ... };`")
+        raise ValueError("expected `window.COMPLETIONIST_ROADMAP = { ... };`")
     return json.loads(match.group(1))
 
 
@@ -46,7 +46,50 @@ def tier(version: tuple[int, int, int]) -> str:
     return "patch" if version[2] else "minor" if version[1] else "major"
 
 
-def check_releases(data: dict, milestone_ids: set[str], errors: list[str]) -> None:
+def check_highways(data: dict, errors: list[str]) -> dict[str, tuple[int, int, int] | None]:
+    """Highways are the map's lanes: each owns some task areas. Returns id -> the version it opens at."""
+    highways = data.get("highways", [])
+    if not isinstance(highways, list) or not highways:
+        errors.append("top level: 'highways' must be a non-empty list")
+        return {}
+    opens: dict[str, tuple[int, int, int] | None] = {}
+    owner: dict[str, str] = {}
+    for h in highways:
+        hid = h.get("id")
+        where = f"highway {hid or '?'}"
+        if not isinstance(hid, str) or not hid:
+            errors.append(f"{where}: needs an 'id'")
+            continue
+        if hid in opens:
+            errors.append(f"{where}: duplicate id")
+        if not h.get("title"):
+            errors.append(f"{where}: needs a 'title'")
+        areas = h.get("areas")
+        if not isinstance(areas, list) or not areas or not all(isinstance(a, str) and a for a in areas):
+            errors.append(f"{where}: 'areas' must be a non-empty list of task areas")
+            areas = []
+        for a in areas:
+            if a in owner:
+                errors.append(f"{where}: area '{a}' already belongs to highway {owner[a]}")
+            owner[a] = hid
+        opened = None
+        if "opens" in h:
+            match = VERSION.match(str(h["opens"]))
+            opened = tuple(int(g) for g in match.groups()) if match else None
+            if not opened or opened[1] or opened[2]:
+                errors.append(f"{where}: 'opens' must be a major version (X.0.0)")
+                opened = None
+            elif h["opens"] not in {r.get("version") for r in data.get("releases", [])}:
+                errors.append(f"{where}: 'opens' names {h['opens']}, which is not in 'releases'")
+        opens[hid] = opened
+    for m in data.get("milestones", []):
+        for t in m.get("tasks", []):
+            if t.get("area") and t["area"] not in owner:
+                errors.append(f"task {t.get('id', '?')}: area '{t['area']}' is on no highway (add it to a highway's 'areas')")
+    return opens
+
+
+def check_releases(data: dict, milestone_ids: set[str], highways: dict, errors: list[str]) -> None:
     releases = data.get("releases", [])
     if not isinstance(releases, list) or not releases:
         errors.append("top level: 'releases' must be a non-empty list")
@@ -82,6 +125,18 @@ def check_releases(data: dict, milestone_ids: set[str], errors: list[str]) -> No
             errors.append(f"{where}: unknown milestone {r['milestone']}")
 
         kind = tier(parsed)
+        lanes = r.get("highways")
+        if lanes is not None or kind == "patch":
+            if not isinstance(lanes, list) or not lanes:
+                errors.append(f"{where}: a patch release names the 'highways' it touched (a non-empty list)")
+            else:
+                for lane in lanes:
+                    if lane not in highways:
+                        errors.append(f"{where}: unknown highway '{lane}'")
+                    elif highways[lane] is not None and parsed < highways[lane]:
+                        errors.append(f"{where}: highway '{lane}' only opens at {'.'.join(map(str, highways[lane]))}")
+        if "kind" in r and (r["kind"] != "fix" or kind != "patch"):
+            errors.append(f"{where}: 'kind' is only for patches, and the only kind is \"fix\" (drawn as a cul-de-sac)")
         text = r.get("text", "")
         if kind == "patch":
             if not isinstance(text, str) or "\n" in text or len(sentences(text)) != 1 or not text.rstrip().endswith((".", "!", "?")):
@@ -169,7 +224,7 @@ def check(data: dict) -> list[str]:
     if active != 1:
         errors.append(f"exactly one milestone must be 'active' (found {active})")
 
-    check_releases(data, milestone_ids, errors)
+    check_releases(data, milestone_ids, check_highways(data, errors), errors)
 
     for d in data.get("decisions", []):
         if not DATE.match(str(d.get("date", ""))) or not d.get("text"):

@@ -1,11 +1,11 @@
-// Typer's TSF text service: an English "keyboard" that never transforms keys itself. It watches the
+// Completionist's TSF text service: an English "keyboard" that never transforms keys itself. It watches the
 // text around the caret, asks the engine for word completions and a phrase continuation, draws them in
 // a popup at the caret and lets Tab/Up/Down/Esc/Ctrl+Right/Ctrl+Space drive it. Everything else about
 // typing is left to the app.
 //
 // Threading: TSF calls arrive on the app's UI thread. The engine round trip runs on the engine
-// client's worker thread; replies come back as WM_TYPER_REPLY messages on the UI thread.
-// No exception may cross a COM boundary, so every entry point is wrapped in TYPER_GUARD.
+// client's worker thread; replies come back as WM_COMPLETIONIST_REPLY messages on the UI thread.
+// No exception may cross a COM boundary, so every entry point is wrapped in COMPLETIONIST_GUARD.
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -32,16 +32,16 @@
 
 namespace {
 
-using typer::EngineClient;
-using typer::LogDebug;
-using typer::LogError;
+using completionist::EngineClient;
+using completionist::LogDebug;
+using completionist::LogError;
 
 // {71B17AFC-9D1A-4E42-A7C3-2F4151AC6ABF}
-constexpr CLSID CLSID_TyperService = {0x71b17afc, 0x9d1a, 0x4e42, {0xa7, 0xc3, 0x2f, 0x41, 0x51, 0xac, 0x6a, 0xbf}};
+constexpr CLSID CLSID_CompletionistService = {0x71b17afc, 0x9d1a, 0x4e42, {0xa7, 0xc3, 0x2f, 0x41, 0x51, 0xac, 0x6a, 0xbf}};
 // {61BEEED0-FFE4-4E6C-AEC1-9333F155674B}
-constexpr GUID GUID_TyperProfile = {0x61beeed0, 0xffe4, 0x4e6c, {0xae, 0xc1, 0x93, 0x33, 0xf1, 0x55, 0x67, 0x4b}};
+constexpr GUID GUID_CompletionistProfile = {0x61beeed0, 0xffe4, 0x4e6c, {0xae, 0xc1, 0x93, 0x33, 0xf1, 0x55, 0x67, 0x4b}};
 constexpr wchar_t kClsidKey[] = L"CLSID\\{71B17AFC-9D1A-4E42-A7C3-2F4151AC6ABF}";
-constexpr wchar_t kDescription[] = L"Typer";
+constexpr wchar_t kDescription[] = L"Completionist";
 // Registered under each English variant, so it shows up whichever one the user has installed.
 constexpr LANGID kLangIds[] = {
     MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
@@ -65,8 +65,8 @@ constexpr int kMaxRetries = 3;
 HINSTANCE g_module = nullptr;
 LONG g_objects = 0;  // live COM objects plus server locks
 
-#define TYPER_GUARD_BEGIN try {
-#define TYPER_GUARD_END(fallback)                       \
+#define COMPLETIONIST_GUARD_BEGIN try {
+#define COMPLETIONIST_GUARD_END(fallback)                       \
     }                                                   \
     catch (...) {                                       \
         LogError(L"exception caught in %S", __func__);  \
@@ -118,17 +118,17 @@ std::wstring ExeName() {
     return exe;
 }
 
-typer::Key ToKey(WPARAM vk) {
+completionist::Key ToKey(WPARAM vk) {
     switch (vk) {
-        case VK_TAB: return typer::Key::Tab;
-        case VK_UP: return typer::Key::Up;
-        case VK_DOWN: return typer::Key::Down;
-        case VK_LEFT: return typer::Key::Left;
-        case VK_RIGHT: return typer::Key::Right;
-        case VK_SPACE: return typer::Key::Space;
-        case VK_ESCAPE: return typer::Key::Escape;
-        case VK_RETURN: return typer::Key::Enter;
-        default: return typer::Key::Other;
+        case VK_TAB: return completionist::Key::Tab;
+        case VK_UP: return completionist::Key::Up;
+        case VK_DOWN: return completionist::Key::Down;
+        case VK_LEFT: return completionist::Key::Left;
+        case VK_RIGHT: return completionist::Key::Right;
+        case VK_SPACE: return completionist::Key::Space;
+        case VK_ESCAPE: return completionist::Key::Escape;
+        case VK_RETURN: return completionist::Key::Enter;
+        default: return completionist::Key::Other;
     }
 }
 
@@ -136,8 +136,8 @@ typer::Key ToKey(WPARAM vk) {
 // system one also works when keys are injected for tests while another window has the focus).
 bool KeyHeld(int vk) { return ((GetKeyState(vk) | GetAsyncKeyState(vk)) & 0x8000) != 0; }
 
-typer::Modifiers CurrentModifiers() {
-    typer::Modifiers m;
+completionist::Modifiers CurrentModifiers() {
+    completionist::Modifiers m;
     m.ctrl = KeyHeld(VK_CONTROL);
     m.alt = KeyHeld(VK_MENU);
     m.shift = KeyHeld(VK_SHIFT);
@@ -253,10 +253,10 @@ public:
         return refs;
     }
     STDMETHODIMP DoEditSession(TfEditCookie ec) override {
-        TYPER_GUARD_BEGIN
+        COMPLETIONIST_GUARD_BEGIN
         body_(ec);
         return S_OK;
-        TYPER_GUARD_END(E_FAIL)
+        COMPLETIONIST_GUARD_END(E_FAIL)
     }
 
 private:
@@ -268,13 +268,13 @@ private:
 // ---------------------------------------------------------------------------------------------
 // The text service
 
-class TyperService final : public ITfTextInputProcessorEx,
+class CompletionistService final : public ITfTextInputProcessorEx,
                            public ITfThreadMgrEventSink,
                            public ITfTextEditSink,
                            public ITfKeyEventSink,
                            public ITfCompositionSink {
 public:
-    TyperService() { InterlockedIncrement(&g_objects); }
+    CompletionistService() { InterlockedIncrement(&g_objects); }
 
     // IUnknown
     STDMETHODIMP QueryInterface(REFIID riid, void** ppv) override {
@@ -306,8 +306,8 @@ public:
     STDMETHODIMP Activate(ITfThreadMgr* threadMgr, TfClientId clientId) override { return ActivateEx(threadMgr, clientId, 0); }
 
     STDMETHODIMP ActivateEx(ITfThreadMgr* threadMgr, TfClientId clientId, DWORD flags) override {
-        TYPER_GUARD_BEGIN
-        typer::RefreshLogLevel();
+        COMPLETIONIST_GUARD_BEGIN
+        completionist::RefreshLogLevel();
         threadMgr_ = threadMgr;
         threadMgr_->AddRef();
         clientId_ = clientId;
@@ -324,7 +324,7 @@ public:
             keyHr = keystrokes->AdviseKeyEventSink(clientId_, static_cast<ITfKeyEventSink*>(this), TRUE);
             keystrokes->Release();
         }
-        if (!popup_.Create(g_module, &TyperService::PopupHook, this)) LogError(L"could not create the popup window");
+        if (!popup_.Create(g_module, &CompletionistService::PopupHook, this)) LogError(L"could not create the popup window");
         EngineClient::Instance().Acquire();
         acquired_ = true;
         LogDebug(L"activate flags=0x%lx keysink=0x%08lx app=%s", flags, keyHr, app_.c_str());
@@ -335,11 +335,11 @@ public:
             focus->Release();
         }
         return S_OK;
-        TYPER_GUARD_END(E_FAIL)
+        COMPLETIONIST_GUARD_END(E_FAIL)
     }
 
     STDMETHODIMP Deactivate() override {
-        TYPER_GUARD_BEGIN
+        COMPLETIONIST_GUARD_BEGIN
         WatchContext(nullptr);
         if (threadMgr_) {
             ITfKeystrokeMgr* keystrokes = nullptr;
@@ -366,7 +366,7 @@ public:
         clientId_ = TF_CLIENTID_NULL;
         LogDebug(L"deactivate");
         return S_OK;
-        TYPER_GUARD_END(S_OK)
+        COMPLETIONIST_GUARD_END(S_OK)
     }
 
     // ITfThreadMgrEventSink
@@ -375,7 +375,7 @@ public:
     STDMETHODIMP OnPushContext(ITfContext*) override { return S_OK; }
     STDMETHODIMP OnPopContext(ITfContext*) override { return S_OK; }
     STDMETHODIMP OnSetFocus(ITfDocumentMgr* focus, ITfDocumentMgr*) override {
-        TYPER_GUARD_BEGIN
+        COMPLETIONIST_GUARD_BEGIN
         ITfContext* context = nullptr;
         if (focus) focus->GetTop(&context);
         WatchContext(context);
@@ -385,70 +385,70 @@ public:
             context->Release();
         }
         return S_OK;
-        TYPER_GUARD_END(S_OK)
+        COMPLETIONIST_GUARD_END(S_OK)
     }
 
     // ITfTextEditSink
     STDMETHODIMP OnEndEdit(ITfContext* context, TfEditCookie, ITfEditRecord*) override {
-        TYPER_GUARD_BEGIN
+        COMPLETIONIST_GUARD_BEGIN
         model_.MarkStale();  // the words on screen belong to text that just changed
         retries_ = 0;
         QueueInspect(context);
         return S_OK;
-        TYPER_GUARD_END(S_OK)
+        COMPLETIONIST_GUARD_END(S_OK)
     }
 
     // ITfKeyEventSink
     STDMETHODIMP OnSetFocus(BOOL foreground) override {
-        TYPER_GUARD_BEGIN
+        COMPLETIONIST_GUARD_BEGIN
         if (!foreground) HideAll();
         return S_OK;
-        TYPER_GUARD_END(S_OK)
+        COMPLETIONIST_GUARD_END(S_OK)
     }
 
     STDMETHODIMP OnTestKeyDown(ITfContext*, WPARAM key, LPARAM, BOOL* eaten) override {
-        TYPER_GUARD_BEGIN
+        COMPLETIONIST_GUARD_BEGIN
         *eaten = model_.Peek(ToKey(key), CurrentModifiers(), NowMs()).consume;
         return S_OK;
-        TYPER_GUARD_END(S_OK)
+        COMPLETIONIST_GUARD_END(S_OK)
     }
 
     STDMETHODIMP OnKeyDown(ITfContext* context, WPARAM key, LPARAM, BOOL* eaten) override {
-        TYPER_GUARD_BEGIN
-        typer::KeyDecision decision = model_.OnKey(ToKey(key), CurrentModifiers(), NowMs());
+        COMPLETIONIST_GUARD_BEGIN
+        completionist::KeyDecision decision = model_.OnKey(ToKey(key), CurrentModifiers(), NowMs());
         *eaten = decision.consume;
         if (!decision.consume) return S_OK;
         eatenKey_ = key;
         switch (decision.action) {
-            case typer::Action::Accept: Accept(context, decision.index); break;
-            case typer::Action::AcceptPhrase:
+            case completionist::Action::Accept: Accept(context, decision.index); break;
+            case completionist::Action::AcceptPhrase:
                 popup_.Hide();
                 InsertPhrase(context, phrase_, "phrase");
                 break;
-            case typer::Action::AcceptPhraseWord: InsertPhrase(context, NextPhraseWord(phrase_), "phrase_word"); break;
-            case typer::Action::RequestPhrase:
+            case completionist::Action::AcceptPhraseWord: InsertPhrase(context, NextPhraseWord(phrase_), "phrase_word"); break;
+            case completionist::Action::RequestPhrase:
                 dismissed_ = false;  // asking outweighs an earlier Esc
                 dismissedBefore_.clear();
                 hotkeyPending_ = true;
                 QueueInspect(context);  // reads the text now, then sends the request
                 break;
-            case typer::Action::Dismiss: {
+            case completionist::Action::Dismiss: {
                 dismissed_ = true;
                 dismissedBefore_ = promptBefore_;
                 phrase_.clear();
                 popup_.Hide();
-                typer::protocol::Request dismiss;
+                completionist::protocol::Request dismiss;
                 dismiss.id = latestId_;
                 dismiss.event = "dismiss";
                 dismiss.app = app_;
                 EngineClient::Instance().Send(std::move(dismiss), nullptr);
                 break;
             }
-            case typer::Action::MoveHighlight: Render(); break;
-            case typer::Action::None: break;
+            case completionist::Action::MoveHighlight: Render(); break;
+            case completionist::Action::None: break;
         }
         return S_OK;
-        TYPER_GUARD_END(S_OK)
+        COMPLETIONIST_GUARD_END(S_OK)
     }
 
     // The key-up of a key we consumed is consumed too, so the app never sees half a keystroke.
@@ -470,7 +470,7 @@ public:
     STDMETHODIMP OnCompositionTerminated(TfEditCookie, ITfComposition*) override { return S_OK; }
 
 private:
-    ~TyperService() { InterlockedDecrement(&g_objects); }
+    ~CompletionistService() { InterlockedDecrement(&g_objects); }
 
     // Hide the popup and forget any words or phrase still being computed.
     void HideAll() {
@@ -491,7 +491,7 @@ private:
             return;
         }
         std::uint64_t now = NowMs();
-        typer::PopupContent content;
+        completionist::PopupContent content;
         content.words = words_;
         content.typedChars = static_cast<int>(promptWord_.size());
         content.phrase = phrase_;
@@ -632,7 +632,7 @@ private:
             phrase_.clear();
         }
 
-        typer::protocol::Request request;
+        completionist::protocol::Request request;
         request.id = EngineClient::Instance().NextId();
         request.event = "keystroke";
         request.app = app_;
@@ -649,7 +649,7 @@ private:
         uint32_t id = request.id;
         EngineClient::Instance().Send(std::move(request), popup_.hwnd());
         if (hotkey && caretOk) {
-            typer::protocol::Request ask;  // same id, so the streamed phrase comes back to this text
+            completionist::protocol::Request ask;  // same id, so the streamed phrase comes back to this text
             ask.id = id;
             ask.event = "hotkey";
             ask.app = app_;
@@ -662,10 +662,10 @@ private:
         LogDebug(L"inspect word=\"%s\" words=%d phrase=%d hotkey=%d", word.c_str(), wordsAllowed_, phraseAllowed_, hotkey);
     }
 
-    void OnReply(const typer::protocol::WordReply& reply) {
+    void OnReply(const completionist::protocol::WordReply& reply) {
         LogDebug(L"reply id=%u latest=%u words=%zu replace=%d typed=%zu wordsAllowed=%d", reply.id, latestId_, reply.words.size(), reply.replace, promptWord_.size(), wordsAllowed_);
         if (reply.id != latestId_) return;  // for text that has since changed
-        if (reply.kind == typer::protocol::ReplyKind::Phrase) {
+        if (reply.kind == completionist::protocol::ReplyKind::Phrase) {
             phrase_ = phraseAllowed_ ? reply.phrase : std::wstring();
             model_.SetPhrase(!phrase_.empty(), NowMs());
             Render();
@@ -746,7 +746,7 @@ private:
         if (SUCCEEDED(setHr)) {
             MoveCaretToEnd(context, ec, range);
             acceptedWord_ = chosen;  // don't pop straight back up for the word just inserted
-            typer::protocol::Request accept;
+            completionist::protocol::Request accept;
             accept.id = EngineClient::Instance().NextId();
             accept.event = "accept";
             accept.app = app_;
@@ -785,7 +785,7 @@ private:
         if (SUCCEEDED(setHr)) {
             MoveCaretToEnd(context, ec, range);
             phrase_.erase(0, std::min(text.size(), phrase_.size()));  // what's left, until the engine confirms
-            typer::protocol::Request accept;
+            completionist::protocol::Request accept;
             accept.id = EngineClient::Instance().NextId();
             accept.event = "accept";
             accept.kind = kind;
@@ -834,10 +834,10 @@ private:
     }
 
     static bool PopupHook(void* self, UINT message, WPARAM wParam, LPARAM lParam) {
-        auto* service = static_cast<TyperService*>(self);
+        auto* service = static_cast<CompletionistService*>(self);
         try {
-            if (message == typer::WM_TYPER_REPLY) {
-                std::unique_ptr<typer::protocol::WordReply> reply(reinterpret_cast<typer::protocol::WordReply*>(lParam));
+            if (message == completionist::WM_COMPLETIONIST_REPLY) {
+                std::unique_ptr<completionist::protocol::WordReply> reply(reinterpret_cast<completionist::protocol::WordReply*>(lParam));
                 if (reply) service->OnReply(*reply);
                 return true;
             }
@@ -867,8 +867,8 @@ private:
     bool acquired_ = false;
     std::wstring app_;
 
-    typer::Popup popup_;
-    typer::PopupModel model_;
+    completionist::Popup popup_;
+    completionist::PopupModel model_;
     std::vector<std::wstring> words_;
     std::wstring phrase_;  // the phrase continuation on screen (what's left of it)
     WPARAM eatenKey_ = 0;
@@ -904,16 +904,16 @@ public:
     STDMETHODIMP_(ULONG) AddRef() override { return 2; }  // static object
     STDMETHODIMP_(ULONG) Release() override { return 1; }
     STDMETHODIMP CreateInstance(IUnknown* outer, REFIID riid, void** ppv) override {
-        TYPER_GUARD_BEGIN
+        COMPLETIONIST_GUARD_BEGIN
         if (!ppv) return E_INVALIDARG;
         *ppv = nullptr;
         if (outer) return CLASS_E_NOAGGREGATION;
-        auto* service = new (std::nothrow) TyperService();
+        auto* service = new (std::nothrow) CompletionistService();
         if (!service) return E_OUTOFMEMORY;
         HRESULT hr = service->QueryInterface(riid, ppv);
         service->Release();
         return hr;
-        TYPER_GUARD_END(E_FAIL)
+        COMPLETIONIST_GUARD_END(E_FAIL)
     }
     STDMETHODIMP LockServer(BOOL lock) override {
         if (lock) InterlockedIncrement(&g_objects);
@@ -937,7 +937,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID) {
 STDAPI DllGetClassObject(REFCLSID clsid, REFIID riid, void** ppv) {
     if (!ppv) return E_INVALIDARG;
     *ppv = nullptr;
-    if (clsid != CLSID_TyperService) return CLASS_E_CLASSNOTAVAILABLE;
+    if (clsid != CLSID_CompletionistService) return CLASS_E_CLASSNOTAVAILABLE;
     return g_factory.QueryInterface(riid, ppv);
 }
 
@@ -947,13 +947,13 @@ STDAPI DllUnregisterServer() {
     ITfInputProcessorProfileMgr* profiles = nullptr;
     if (SUCCEEDED(CoCreateInstance(CLSID_TF_InputProcessorProfiles, nullptr, CLSCTX_INPROC_SERVER,
                                    IID_ITfInputProcessorProfileMgr, reinterpret_cast<void**>(&profiles)))) {
-        for (LANGID langId : kLangIds) profiles->UnregisterProfile(CLSID_TyperService, langId, GUID_TyperProfile, 0);
+        for (LANGID langId : kLangIds) profiles->UnregisterProfile(CLSID_CompletionistService, langId, GUID_CompletionistProfile, 0);
         profiles->Release();
     }
     ITfCategoryMgr* categories = nullptr;
     if (SUCCEEDED(CoCreateInstance(CLSID_TF_CategoryMgr, nullptr, CLSCTX_INPROC_SERVER, IID_ITfCategoryMgr,
                                    reinterpret_cast<void**>(&categories)))) {
-        for (const GUID& category : kCategories) categories->UnregisterCategory(CLSID_TyperService, category, CLSID_TyperService);
+        for (const GUID& category : kCategories) categories->UnregisterCategory(CLSID_CompletionistService, category, CLSID_CompletionistService);
         categories->Release();
     }
     RegDeleteTreeW(HKEY_CLASSES_ROOT, kClsidKey);
@@ -979,9 +979,9 @@ STDAPI DllRegisterServer() {
     if (SUCCEEDED(hr)) {
         for (LANGID langId : kLangIds) {
             // A negative icon index means "the icon resource with this id" (as the Windows IME samples do).
-            hr = profiles->RegisterProfile(CLSID_TyperService, langId, GUID_TyperProfile, kDescription,
+            hr = profiles->RegisterProfile(CLSID_CompletionistService, langId, GUID_CompletionistProfile, kDescription,
                                            static_cast<ULONG>(wcslen(kDescription)), path, length,
-                                           static_cast<ULONG>(-IDI_TYPER), nullptr, 0, TRUE, 0);
+                                           static_cast<ULONG>(-IDI_COMPLETIONIST), nullptr, 0, TRUE, 0);
             if (FAILED(hr)) break;
         }
         profiles->Release();
@@ -996,7 +996,7 @@ STDAPI DllRegisterServer() {
                           reinterpret_cast<void**>(&categories));
     if (SUCCEEDED(hr)) {
         for (const GUID& category : kCategories) {
-            hr = categories->RegisterCategory(CLSID_TyperService, category, CLSID_TyperService);
+            hr = categories->RegisterCategory(CLSID_CompletionistService, category, CLSID_CompletionistService);
             if (FAILED(hr)) break;
         }
         categories->Release();
