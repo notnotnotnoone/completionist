@@ -6,8 +6,8 @@
 
     [words]
     limit = 5                   # words shown in the popup
-    next = false                # offer likely next words after a space
-    chunks = false              # offer two- or three-word chunks while typing
+    next = true                 # offer likely next words after a space
+    chunks = true               # offer two- or three-word chunks while typing
     next_threshold = 0.05       # how likely a next word must be (0 to 1); 0 offers the best few whatever the odds
 
     [learning]
@@ -109,8 +109,8 @@ class Config:
     block: frozenset[str] = DEFAULT_BLOCK
     allow: frozenset[str] = DEFAULT_ALLOW
     word_limit: int = 5
-    next_words: bool = False
-    chunks: bool = False
+    next_words: bool = True
+    chunks: bool = True
     next_threshold: float = 0.05
     learning: bool = True
     promote_after: int = 3

@@ -162,13 +162,13 @@ def next_engine(**config) -> Engine:
     return Engine(WordCompleter(NEXT_VOCAB, ngrams=_After()), base)
 
 
-def test_a_space_brings_the_likely_next_words_when_switched_on():
+def test_a_space_brings_the_likely_next_words():
     engine = next_engine(next_words=True, next_threshold=0.1)
     assert engine.handle(keystroke("I'd like to ")) == WordReply(id=9, replace=0, words=("know", "see"), kinds=("next", "next"))
 
 
-def test_next_words_stay_off_unless_switched_on():
-    assert next_engine().handle(keystroke("I'd like to ")) == WordReply(id=9, replace=0, words=())
+def test_next_words_stay_off_when_switched_off():
+    assert next_engine(next_words=False).handle(keystroke("I'd like to ")) == WordReply(id=9, replace=0, words=())
 
 
 def test_next_words_respect_the_threshold_and_the_quiet_rules():
@@ -215,8 +215,8 @@ def test_chunks_come_before_words_and_each_suggestion_names_its_kind():
     assert reply.replace == 2
 
 
-def test_chunks_stay_off_unless_switched_on():
-    engine, _ = chain_engine()
+def test_chunks_stay_off_when_switched_off():
+    engine, _ = chain_engine(chunks=False)
     reply = engine.handle(keystroke("I'd like to kn"))
     assert reply.words == ("know", "known") and set(reply.kinds) <= {"word"}
 

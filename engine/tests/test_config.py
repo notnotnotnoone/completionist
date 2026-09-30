@@ -213,15 +213,15 @@ def test_legacy_migration_never_overwrites_the_new_folder(tmp_path):
     assert (local / "Typer" / "old.txt").exists()
 
 
-def test_next_words_are_off_by_default_with_a_five_percent_threshold():
+def test_next_words_are_on_by_default_with_a_five_percent_threshold():
     config = Config()
-    assert config.next_words is False
+    assert config.next_words is True
     assert config.next_threshold == 0.05
 
 
-def test_next_words_can_be_switched_on_and_the_threshold_set_or_switched_off(tmp_path):
-    config = load_config(write(tmp_path, "[words]\nnext = true\nnext_threshold = 0\n"))
-    assert config.next_words is True
+def test_next_words_can_be_switched_off_and_the_threshold_set_or_switched_off(tmp_path):
+    config = load_config(write(tmp_path, "[words]\nnext = false\nnext_threshold = 0\n"))
+    assert config.next_words is False
     assert config.next_threshold == 0.0
     assert load_config(write(tmp_path, "[words]\nnext_threshold = 0.2\n")).next_threshold == 0.2
 
@@ -234,8 +234,8 @@ def test_invalid_next_word_settings_are_rejected(tmp_path, text):
         load_config(write(tmp_path, text))
 
 
-def test_chunks_are_off_by_default_and_can_be_switched_on(tmp_path):
-    assert Config().chunks is False
-    assert load_config(write(tmp_path, "[words]\nchunks = true\n")).chunks is True
+def test_chunks_are_on_by_default_and_can_be_switched_off(tmp_path):
+    assert Config().chunks is True
+    assert load_config(write(tmp_path, "[words]\nchunks = false\n")).chunks is False
     with pytest.raises(ConfigError):
         load_config(write(tmp_path, "[words]\nchunks = 3\n"))

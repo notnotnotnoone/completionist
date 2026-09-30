@@ -624,7 +624,8 @@ private:
         // What may be shown for this text. The request is sent regardless, so the engine can learn from
         // what is typed even where suggestions are held back.
         bool caretOk = SUCCEEDED(extentHr) && !StartsWithLetter(after);
-        wordsAllowed_ = caretOk && !word.empty() && !suppressed && acceptedWord_.empty();
+        // With no word being typed the engine may still offer likely next words (after a space).
+        wordsAllowed_ = caretOk && !suppressed && acceptedWord_.empty();
         phraseAllowed_ = caretOk && !suppressed;
         if (!wordsAllowed_ && !phraseAllowed_) {
             popup_.Hide();
@@ -672,24 +673,34 @@ private:
             return;
         }
         model_.SetPhraseAvailable(reply.phrase_mode != "off");
-        bool useWords = wordsAllowed_ && !reply.words.empty() && reply.replace == static_cast<int>(promptWord_.size());
+        // Next words belong only where no word is being typed, and completions only where one is.
+        bool allNext = !reply.kinds.empty();
+        bool anyNext = false;
+        for (const std::string& kind : reply.kinds) {
+            allNext = allNext && kind == "next";
+            anyNext = anyNext || kind == "next";
+        }
+        bool kindsFit = promptWord_.empty() ? allNext : !anyNext;
+        bool useWords = wordsAllowed_ && !reply.words.empty() && reply.replace == static_cast<int>(promptWord_.size()) && kindsFit;
         words_ = useWords ? reply.words : std::vector<std::wstring>();
+        kinds_ = useWords ? reply.kinds : std::vector<std::string>();
         phrase_ = phraseAllowed_ ? reply.phrase : std::wstring();
-        model_.Open(words_.size());
+        model_.Open(words_.size(), /*highlightFirst=*/!(useWords && allNext));  // next words: Tab stays the app's until Down
         model_.SetPhrase(!phrase_.empty(), NowMs());
         Render();
     }
 
-    // Replaces the typed part of the current word with words_[index].
+    // Replaces the typed part of the current word with words_[index] (a next word is inserted at the caret).
     void Accept(ITfContext* context, std::size_t index) {
         popup_.Hide();
         if (index >= words_.size()) return;
         std::wstring chosen = words_[index];
         std::wstring typed = promptWord_;
-        if (typed.empty()) return;
+        std::string kind = index < kinds_.size() ? kinds_[index] : "word";
+        if (typed.empty() != (kind == "next")) return;  // a next word has nothing to replace; the others need a typed word
 
-        auto body = [this, context = ComPtrHold(context), chosen, typed](TfEditCookie ec) mutable {
-            ReplaceWord(context.get(), ec, typed, chosen);
+        auto body = [this, context = ComPtrHold(context), chosen, typed, kind](TfEditCookie ec) mutable {
+            ReplaceWord(context.get(), ec, typed, chosen, kind);
         };
         RunWriteSession(context, body);
     }
@@ -721,7 +732,7 @@ private:
         }
     }
 
-    void ReplaceWord(ITfContext* context, TfEditCookie ec, const std::wstring& typed, const std::wstring& chosen) {
+    void ReplaceWord(ITfContext* context, TfEditCookie ec, const std::wstring& typed, const std::wstring& chosen, const std::string& kind) {
         TF_SELECTION selection = {};
         ULONG fetched = 0;
         if (FAILED(context->GetSelection(ec, TF_DEFAULT_SELECTION, 1, &selection, &fetched)) || fetched == 0) return;
@@ -745,13 +756,14 @@ private:
         HRESULT setHr = range->SetText(ec, 0, chosen.c_str(), static_cast<LONG>(chosen.size()));
         if (SUCCEEDED(setHr)) {
             MoveCaretToEnd(context, ec, range);
-            acceptedWord_ = chosen;  // don't pop straight back up for the word just inserted
+            acceptedWord_ = TrailingWord(chosen);  // don't pop straight back up for the word just inserted
             completionist::protocol::Request accept;
             accept.id = EngineClient::Instance().NextId();
             accept.event = "accept";
             accept.app = app_;
             accept.before = promptBefore_;
             accept.accepted = chosen;
+            if (kind != "word") accept.kind = kind;
             EngineClient::Instance().Send(std::move(accept), nullptr);
         } else {
             LogError(L"SetText failed hr=0x%08lx", setHr);
@@ -870,6 +882,7 @@ private:
     completionist::Popup popup_;
     completionist::PopupModel model_;
     std::vector<std::wstring> words_;
+    std::vector<std::string> kinds_;  // what each of words_ is: "word", "chunk" or "next"
     std::wstring phrase_;  // the phrase continuation on screen (what's left of it)
     WPARAM eatenKey_ = 0;
 

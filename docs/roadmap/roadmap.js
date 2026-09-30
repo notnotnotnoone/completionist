@@ -966,29 +966,40 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.7",
           "title": "Popup shows words, chunks and the phrase in one box",
-          "status": "next",
+          "status": "done",
           "area": "dll",
           "stories": [
             64
           ],
-          "notes": "The phrase stays on top. First guess at the order: phrase, then chunks, then words. The row order gets polished in the UI redesign (M10). Checked in the TSF harness with a screenshot."
+          "notes": "The phrase stays on top. First guess at the order: phrase, then chunks, then words. The row order gets polished in the UI redesign (M10). Checked in the TSF harness with a screenshot. Built: the popup already drew the phrase row above the word rows, so chunks (engine-ordered first) and next words appear in the same box; the service now remembers each row's kind and sends it on accept. Not checked in the TSF harness: it steals focus, so it runs when you say you're away.",
+          "refs": [
+            "tip/src/tsf_service.cpp",
+            "tip/src/popup.cpp",
+            "branch m7-kinds"
+          ]
         },
         {
           "id": "M7.8",
           "title": "Open the popup after a space without stealing Tab or Enter",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             62,
             7,
             8
           ],
-          "notes": "Today the popup closes on space (story 9), so this changes the key router and needs native tests for every key. A next-word row is not highlighted by default until you press Down, so Tab still indents or moves on, like the 150 ms no-steal idea for phrases."
+          "notes": "Today the popup closes on space (story 9), so this changes the key router and needs native tests for every key. A next-word row is not highlighted by default until you press Down, so Tab still indents or moves on, like the 150 ms no-steal idea for phrases. Built: next-word rows open with nothing highlighted, so Tab and Enter stay the app's until Up or Down highlights a row; Esc dismisses. 12 native tests cover every key. [words] next and chunks now default to on.",
+          "refs": [
+            "tip/src/popup_model.h",
+            "tip/tests/test_popup_model.cpp",
+            "tip/src/tsf_service.cpp",
+            "branch m7-kinds"
+          ]
         },
         {
           "id": "M7.9",
           "title": "Check next words and chunks live in real apps",
-          "status": "todo",
+          "status": "next",
           "area": "test",
           "stories": [
             62,
@@ -1617,6 +1628,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M7.7 and M7.8 done: next words and chunks show in the one popup box; next-word rows open with nothing highlighted so Tab and Enter pass through; [words] next and chunks default on. 70 native and 442 engine tests pass; the DLL builds. M7.9 (live check) is next."
+    },
     {
       "date": "2026-09-30",
       "text": "M7.3 done: PersonalStore.words(search) lists learned words and forget(word) removes a word from the counts, pairs, triples and the saved file (built on request; no command line, the M8 viewer will call these)."
