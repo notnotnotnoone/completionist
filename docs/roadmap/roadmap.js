@@ -1058,6 +1058,10 @@ window.TYPER_ROADMAP = {
   "log": [
     {
       "date": "2026-09-29",
+      "text": "Task board moved to tasks.html and restyled in Evergreen, with highway stripes, a highway filter and highway strips on milestone cards."
+    },
+    {
+      "date": "2026-09-29",
       "text": "Started the highway-map roadmap (M1.15): highways in the data and on patch releases, checker rules for them, the Evergreen theme.css, shared common.js, a CLAUDE.md rule that every commit updates this file, and a spec plus plan for the map page, restyled task board and CONTEXT.md."
     },
     {
