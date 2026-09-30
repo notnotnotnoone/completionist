@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-09-30",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.2.0 is released. Next is 0.3.0 (Phrase suggestions): review its tasks and release it if they are built.",
+  "now": "0.3.0 is released. Next is 0.4.0 (Daily-driver polish).",
   "highways": [
     {
       "id": "engine",
@@ -492,7 +492,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M3",
       "title": "Phrase suggestions",
-      "status": "active",
+      "status": "done",
       "goal": "A greyed phrase continuation from a cheap cloud FIM model as the top popup row, accepted with Tab.",
       "done_when": "Allow-listed apps show a streaming phrase row after a pause, Ctrl+Space works everywhere, and heavy use stays under $0.50 a day.",
       "tasks": [
@@ -665,7 +665,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M4",
       "title": "Daily-driver polish",
-      "status": "planned",
+      "status": "active",
       "goal": "Completionist runs all day without attention and shows whether it's paying off.",
       "done_when": "One-command install and uninstall, autostart at logon, tray pause, hot-reloaded config and a stats summary.",
       "tasks": [
@@ -1295,14 +1295,15 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "version": "0.3.0",
-      "status": "next",
+      "status": "released",
       "title": "Phrase suggestions",
       "milestone": "M3",
-      "text": "The popup gains a greyed phrase row at the top, a continuation of your sentence written by a cheap and fast cloud completion model. In allow-listed apps it appears after a short pause and streams in as it is generated. It is highlighted by default, so Tab takes the whole phrase, and Ctrl+Right takes it one word at a time. In any other app, Ctrl+Space asks for a phrase on demand. Phrases come through OpenRouter from a list of cheap models you name in the config, each tried in turn if the one before fails. An anchored context window keeps requests cache-friendly so heavy use stays cheap, and the spending limit is set on your OpenRouter key. When the provider is slow or unavailable, Completionist quietly falls back to words."
+      "text": "The popup gained a greyed phrase row at the top, a continuation of your sentence written by a cheap and fast cloud completion model. In allow-listed apps it appears after a short pause, it is highlighted by default so Tab takes the whole phrase, and Ctrl+Right takes it one word at a time. In any other app, Ctrl+Space asks for a phrase on demand. Phrases come through OpenRouter from a list of cheap models you name in the config, each tried in turn if the one before fails. Models without fill-in-the-middle support get the text before the caret only, and a phrase is held back when text follows the caret on the same line. An anchored context window keeps requests cache-friendly. Completionist does not count spend, so the limit is set on your OpenRouter key. When the provider is slow or unavailable it quietly falls back to words. Checks against a live provider are left to daily use.",
+      "date": "2026-09-30"
     },
     {
       "version": "0.4.0",
-      "status": "planned",
+      "status": "next",
       "title": "Daily driver",
       "milestone": "M4",
       "text": "This release covers what it takes to leave Completionist running all day. The engine starts at logon, a tray icon pauses and resumes it, and edits to the config file apply without a restart. One script installs Completionist and another removes it. A local metrics store records how often suggestions are shown and accepted, how many keystrokes they save and how each phrase provider performs. It keeps counts and timings only. A stats summary shows whether Completionist is paying off."
@@ -1573,6 +1574,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Release 0.3.0 (Phrase suggestions): M3 done, tests pass; live provider checks left to daily use; M4 is active."
+    },
     {
       "date": "2026-09-30",
       "text": "Pushed main and tag v0.2.0 to origin."
