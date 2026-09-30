@@ -24,7 +24,7 @@ A C++ TSF text service. Windows loads it into every app that has text input; it 
 .\test.cmd           # native tests: key router and protocol codec
 .\tests\e2e.ps1      # client against the real engine: no engine, late start, kill, restart
 .\tests\load_test.ps1  # loads the unregistered DLL, activates and tears it down 40 times on a real TSF thread manager
-.	ests	sf_e2e.ps1     # the real DLL through real TSF against a simulated text field and the real engine (popup screenshots in out\shots); -Unaware runs it as a DPI-unaware app
+.\tests\tsf_e2e.ps1     # the real DLL through real TSF against a simulated text field and the real engine (popup screenshots in out\shots); -Unaware runs it as a DPI-unaware app
 ```
 
 ## Install
