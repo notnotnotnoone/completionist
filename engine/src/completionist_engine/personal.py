@@ -1,7 +1,7 @@
 """The writer's own word counts, kept in memory and saved to SQLite.
 
-Only counts of single words and of (previous word, word) pairs are stored: never sentences, never
-raw text. Words are plain lowercase English (letters with inner apostrophes) so numbers, codes and
+Only counts of single words, of (previous word, word) pairs and of (two previous words, word)
+triples are stored: never sentences, never raw text. Words are plain lowercase English (letters with inner apostrophes) so numbers, codes and
 other structured input never end up in it.
 """
 
@@ -26,6 +26,41 @@ def _clean(word: str) -> str | None:
     return word if len(word) <= _MAX_WORD_LENGTH and _WORD.fullmatch(word) else None
 
 
+class _Chains:
+    """Counts of words that followed a context of `order` words, with what needs saving."""
+
+    def __init__(self, table: str, order: int) -> None:
+        self.table = table
+        self.order = order
+        self.columns = ["prev"] if order == 1 else ["prev2", "prev1"]
+        self.rows: dict[tuple[str, ...], dict[str, int]] = {}
+        self.totals: dict[tuple[str, ...], int] = {}
+        self.dirty: set[tuple[tuple[str, ...], str]] = set()
+
+    def add(self, context: tuple[str, ...], word: str, count: int) -> None:
+        row = self.rows.setdefault(context, {})
+        row[word] = row.get(word, 0) + count
+        self.totals[context] = self.totals.get(context, 0) + count
+
+    def size(self) -> int:
+        return sum(len(row) for row in self.rows.values())
+
+    def clear(self) -> None:
+        self.rows.clear()
+        self.totals.clear()
+        self.dirty.clear()
+
+    def prune_singles(self) -> None:
+        for context in list(self.rows):
+            row = self.rows[context]
+            for word in [w for w, n in row.items() if n == 1]:
+                del row[word]
+                self.totals[context] -= 1
+            if not row:
+                del self.rows[context]
+                del self.totals[context]
+
+
 class PersonalStore:
     def __init__(self, path: Path | None = None, max_bigrams: int = 300_000) -> None:
         """Counts held in memory; with a `path`, loaded from and saved to that SQLite file."""
@@ -34,10 +69,8 @@ class PersonalStore:
         self._words: dict[str, int] = {}
         self._sorted: list[str] = []
         self._total = 0
-        self._bigrams: dict[str, dict[str, int]] = {}
-        self._bigram_totals: dict[str, int] = {}
+        self._chains = {1: _Chains("bigrams", 1), 2: _Chains("trigrams", 2)}
         self._dirty_words: set[str] = set()
-        self._dirty_bigrams: set[tuple[str, str]] = set()
         self._db: sqlite3.Connection | None = None
         if path is not None:
             self._open(path)
@@ -60,15 +93,15 @@ class PersonalStore:
         self._words[cleaned] += count
         self._total += count
         self._dirty_words.add(cleaned)
-        previous = _clean(context[-1]) if context else None
-        if previous is not None:
-            self._add_bigram(previous, cleaned, count)
-            self._dirty_bigrams.add((previous, cleaned))
-
-    def _add_bigram(self, previous: str, word: str, count: int) -> None:
-        row = self._bigrams.setdefault(previous, {})
-        row[word] = row.get(word, 0) + count
-        self._bigram_totals[previous] = self._bigram_totals.get(previous, 0) + count
+        for order, chains in self._chains.items():
+            if len(context) < order:
+                continue
+            previous = [_clean(w) for w in context[-order:]]
+            if None in previous:
+                continue
+            key = tuple(w for w in previous if w is not None)
+            chains.add(key, cleaned, count)
+            chains.dirty.add((key, cleaned))
 
     # -- querying --------------------------------------------------------------------------------
 
@@ -79,12 +112,13 @@ class PersonalStore:
             hi = bisect_left(self._sorted, prefix + _AFTER_LAST_KEY, lo)
             matches = {w: self._words[w] for w in self._sorted[lo:hi]}
             return Counts(_top(matches), self._total)
-        previous = context[-1].lower()
-        row = self._bigrams.get(previous)
+        chains = self._chains[min(len(context), 2)]
+        key = tuple(w.lower() for w in context[-chains.order :])
+        row = chains.rows.get(key)
         if not row:
             return Counts({}, 0)
         matches = {w: n for w, n in row.items() if w.startswith(prefix)}
-        return Counts(_top(matches), self._bigram_totals[previous])
+        return Counts(_top(matches), chains.totals[key])
 
     # -- persistence -----------------------------------------------------------------------------
 
@@ -112,29 +146,33 @@ class PersonalStore:
         db.execute("PRAGMA journal_mode=WAL")
         db.execute("PRAGMA synchronous=NORMAL")
         db.execute("CREATE TABLE IF NOT EXISTS words (word TEXT PRIMARY KEY, n INTEGER NOT NULL) WITHOUT ROWID")
-        db.execute(
-            "CREATE TABLE IF NOT EXISTS bigrams (prev TEXT NOT NULL, word TEXT NOT NULL, n INTEGER NOT NULL,"
-            " PRIMARY KEY (prev, word)) WITHOUT ROWID"
-        )
+        for chains in self._chains.values():
+            columns = ", ".join(f"{c} TEXT NOT NULL" for c in chains.columns)
+            key = ", ".join(chains.columns)
+            db.execute(
+                f"CREATE TABLE IF NOT EXISTS {chains.table} ({columns}, word TEXT NOT NULL, n INTEGER NOT NULL,"
+                f" PRIMARY KEY ({key}, word)) WITHOUT ROWID"
+            )
         for word, n in db.execute("SELECT word, n FROM words"):
             self._words[word] = n
             self._total += n
         self._sorted = sorted(self._words)
-        for previous, word, n in db.execute("SELECT prev, word, n FROM bigrams"):
-            self._add_bigram(previous, word, n)
+        for chains in self._chains.values():
+            cols = ", ".join(chains.columns)
+            for row in db.execute(f"SELECT {cols}, word, n FROM {chains.table}"):
+                chains.add(tuple(row[: chains.order]), row[chains.order], row[chains.order + 1])
         db.commit()
 
     def _reset_memory(self) -> None:
         self._words.clear()
         self._sorted.clear()
         self._total = 0
-        self._bigrams.clear()
-        self._bigram_totals.clear()
+        for chains in self._chains.values():
+            chains.clear()
         self._dirty_words.clear()
-        self._dirty_bigrams.clear()
 
     def flush(self) -> None:
-        if self._db is None or not (self._dirty_words or self._dirty_bigrams):
+        if self._db is None or not (self._dirty_words or any(c.dirty for c in self._chains.values())):
             return
         try:
             with self._db:
@@ -142,31 +180,29 @@ class PersonalStore:
                     "INSERT INTO words (word, n) VALUES (?, ?) ON CONFLICT(word) DO UPDATE SET n = excluded.n",
                     [(w, self._words[w]) for w in self._dirty_words],
                 )
-                self._db.executemany(
-                    "INSERT INTO bigrams (prev, word, n) VALUES (?, ?, ?)"
-                    " ON CONFLICT(prev, word) DO UPDATE SET n = excluded.n",
-                    [(p, w, self._bigrams[p][w]) for p, w in self._dirty_bigrams],
-                )
+                for chains in self._chains.values():
+                    cols = ", ".join(chains.columns)
+                    marks = ", ".join("?" * (chains.order + 2))
+                    self._db.executemany(
+                        f"INSERT INTO {chains.table} ({cols}, word, n) VALUES ({marks})"
+                        f" ON CONFLICT({cols}, word) DO UPDATE SET n = excluded.n",
+                        [(*p, w, chains.rows[p][w]) for p, w in chains.dirty],
+                    )
             self._dirty_words.clear()
-            self._dirty_bigrams.clear()
-            self._prune_bigrams()
+            for chains in self._chains.values():
+                chains.dirty.clear()
+            self._prune_chains()
         except sqlite3.Error as err:
             logger.warning("could not save the personal store: %s", err)  # keep the counts dirty; retry next time
 
-    def _prune_bigrams(self) -> None:
-        if sum(len(row) for row in self._bigrams.values()) <= self._max_bigrams:
-            return
-        for previous in list(self._bigrams):
-            row = self._bigrams[previous]
-            for word in [w for w, n in row.items() if n == 1]:
-                del row[word]
-                self._bigram_totals[previous] -= 1
-            if not row:
-                del self._bigrams[previous]
-                del self._bigram_totals[previous]
-        if self._db is not None:
-            with self._db:
-                self._db.execute("DELETE FROM bigrams WHERE n = 1")
+    def _prune_chains(self) -> None:
+        for chains in self._chains.values():
+            if chains.size() <= self._max_bigrams:
+                continue
+            chains.prune_singles()
+            if self._db is not None:
+                with self._db:
+                    self._db.execute(f"DELETE FROM {chains.table} WHERE n = 1")
 
     def clear(self) -> None:
         """Forget everything, including what's saved."""
@@ -174,7 +210,8 @@ class PersonalStore:
         if self._db is not None:
             with self._db:
                 self._db.execute("DELETE FROM words")
-                self._db.execute("DELETE FROM bigrams")
+                for chains in self._chains.values():
+                    self._db.execute(f"DELETE FROM {chains.table}")
 
     def close(self) -> None:
         self.flush()

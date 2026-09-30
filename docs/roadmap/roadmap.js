@@ -892,18 +892,22 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.2",
           "title": "Personal trigram counts next to the word and pair counts",
-          "status": "next",
+          "status": "done",
           "area": "engine",
           "stories": [
             66,
             17
           ],
-          "notes": "A trigram is three words typed in a row within one sentence, never across punctuation, a newline or a window switch. Counts only, stored on disk locally. Admission follows M7.1."
+          "notes": "A trigram is three words typed in a row within one sentence, never across punctuation, a newline or a window switch. Counts only, stored on disk locally. Admission follows M7.1.",
+          "refs": [
+            "engine/src/completionist_engine/personal.py",
+            "branch m7-next-words"
+          ]
         },
         {
           "id": "M7.3",
           "title": "`completionist-words` command: list and forget",
-          "status": "todo",
+          "status": "next",
           "area": "engine",
           "stories": [
             67
@@ -1585,6 +1589,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M7.2 done: the personal store counts trigrams (two words of context, same sentence only) next to words and pairs; counts only, saved locally."
+    },
     {
       "date": "2026-09-30",
       "text": "M7.1 done: a word backspaced over while typing is never learned (the 3-use admission already existed as promote_after)."
