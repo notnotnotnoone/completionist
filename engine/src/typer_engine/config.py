@@ -6,11 +6,18 @@
 
     [words]
     limit = 5                   # words shown in the popup
+
+    [learning]
+    enabled = true              # learn your words and habits (counts only, never text)
+    promote_after = 3           # uses before a word outside the dictionary is suggested
+
+    [data]
+    dir = "C:/somewhere"        # where personal counts and n-gram tables live
 """
 
 import os
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -38,11 +45,17 @@ DEFAULT_BLOCK = frozenset(
 )
 DEFAULT_ALLOW = frozenset({"obsidian.exe", "notepad.exe", "winword.exe", "outlook.exe", "olk.exe"})
 
-_SCHEMA = {"apps": {"block", "allow"}, "words": {"limit"}}
+_SCHEMA = {"apps": {"block", "allow"}, "words": {"limit"}, "learning": {"enabled", "promote_after"}, "data": {"dir"}}
 
 
 class ConfigError(Exception):
     """The config file can't be read or holds invalid settings."""
+
+
+def default_data_dir() -> Path:
+    localappdata = os.environ.get("LOCALAPPDATA")
+    base = Path(localappdata) if localappdata else Path.home() / "AppData" / "Local"
+    return base / "Typer"
 
 
 @dataclass(frozen=True)
@@ -50,6 +63,9 @@ class Config:
     block: frozenset[str] = DEFAULT_BLOCK
     allow: frozenset[str] = DEFAULT_ALLOW
     word_limit: int = 5
+    learning: bool = True
+    promote_after: int = 3
+    data_dir: Path = field(default_factory=default_data_dir)
 
 
 def default_config_path() -> Path:
@@ -69,11 +85,20 @@ def load_config(path: Path) -> Config:
 
     apps = data.get("apps", {})
     words = data.get("words", {})
+    learning = data.get("learning", {})
+    data_section = data.get("data", {})
     config = Config()
     return Config(
         block=_app_names(apps["block"], "apps.block") if "block" in apps else config.block,
         allow=_app_names(apps["allow"], "apps.allow") if "allow" in apps else config.allow,
         word_limit=_positive_int(words["limit"], "words.limit") if "limit" in words else config.word_limit,
+        learning=_boolean(learning["enabled"], "learning.enabled") if "enabled" in learning else config.learning,
+        promote_after=(
+            _positive_int(learning["promote_after"], "learning.promote_after")
+            if "promote_after" in learning
+            else config.promote_after
+        ),
+        data_dir=_directory(data_section["dir"], "data.dir") if "dir" in data_section else config.data_dir,
     )
 
 
@@ -98,3 +123,15 @@ def _positive_int(value: Any, name: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value < 1:
         raise ConfigError(f"{name} must be a whole number of at least 1")
     return value
+
+
+def _boolean(value: Any, name: str) -> bool:
+    if not isinstance(value, bool):
+        raise ConfigError(f"{name} must be true or false")
+    return value
+
+
+def _directory(value: Any, name: str) -> Path:
+    if not isinstance(value, str) or not value:
+        raise ConfigError(f"{name} must be a folder path")
+    return Path(value)

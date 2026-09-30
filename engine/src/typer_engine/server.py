@@ -12,7 +12,7 @@ logger = logging.getLogger("typer_engine.server")
 
 class _Connection(asyncio.Protocol):
     def __init__(self, engine: Engine) -> None:
-        self._engine = engine
+        self._session = engine.open_session()
         self._decoder = FrameDecoder()
         self._transport: asyncio.WriteTransport | None = None
 
@@ -25,7 +25,7 @@ class _Connection(asyncio.Protocol):
         assert self._transport is not None
         try:
             for message in self._decoder.feed(data):
-                reply = self._engine.handle(parse_request(message))
+                reply = self._session.handle(parse_request(message))
                 if reply is not None:
                     self._transport.write(encode(reply.to_message()))
         except ProtocolError as err:

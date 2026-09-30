@@ -7,11 +7,10 @@ import time
 from pathlib import Path
 
 from typer_engine.config import ConfigError, default_config_path, load_config
-from typer_engine.engine import Engine
+from typer_engine.assemble import Assembled, assemble_engine
 from typer_engine.protocol import DEFAULT_PIPE_NAME
 from typer_engine.server import start_server
 from typer_engine.vocabulary import load_wordfreq_vocabulary
-from typer_engine.words import WordCompleter
 
 logger = logging.getLogger("typer_engine")
 
@@ -31,20 +30,28 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     started = time.perf_counter()
-    completer = WordCompleter(load_wordfreq_vocabulary())
-    logger.info("vocabulary ready in %.2fs", time.perf_counter() - started)
+    assembled = assemble_engine(config, load_wordfreq_vocabulary())
+    logger.info("engine ready in %.2fs", time.perf_counter() - started)
 
     try:
-        asyncio.run(_serve(Engine(completer, config), args.pipe))
+        asyncio.run(_serve(assembled, args.pipe))
     except KeyboardInterrupt:
         logger.info("stopped")
+    finally:
+        assembled.close()  # saves what was learned
     return 0
 
 
-async def _serve(engine: Engine, pipe_name: str) -> None:
-    server = await start_server(engine, pipe_name)
+_FLUSH_SECONDS = 10
+
+
+async def _serve(assembled: Assembled, pipe_name: str) -> None:
+    server = await start_server(assembled.engine, pipe_name)
     logger.info("listening on %s", pipe_name)
     try:
-        await asyncio.Event().wait()
+        while True:
+            await asyncio.sleep(_FLUSH_SECONDS)
+            if assembled.personal is not None:
+                assembled.personal.flush()
     finally:
         server.close()

@@ -68,6 +68,8 @@ class Request:
     input_scope: tuple[str, ...] = ()
     before: str = ""
     after: str = ""
+    accepted: str = ""
+    """For `accept` events: the word that was inserted."""
 
 
 def parse_request(message: dict[str, Any]) -> Request:
@@ -78,7 +80,7 @@ def parse_request(message: dict[str, Any]) -> Request:
     if event not in _EVENT_TYPES:
         raise ProtocolError(f"unknown event {event!r}")
     strings = {}
-    for field in ("app", "title", "before", "after"):
+    for field in ("app", "title", "before", "after", "accepted"):
         value = message.get(field, "")
         if not isinstance(value, str):
             raise ProtocolError(f"{field} must be a string, got {type(value).__name__}")

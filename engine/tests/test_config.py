@@ -65,3 +65,32 @@ def test_invalid_config_is_rejected(tmp_path, text):
 def test_default_path_is_under_appdata(monkeypatch, tmp_path):
     monkeypatch.setenv("APPDATA", str(tmp_path))
     assert default_config_path() == tmp_path / "Typer" / "config.toml"
+
+
+def test_learning_defaults_on_with_promotion_after_three_uses():
+    config = Config()
+    assert config.learning is True
+    assert config.promote_after == 3
+
+
+def test_learning_can_be_tuned_or_switched_off(tmp_path):
+    path = write(tmp_path, "[learning]\nenabled = false\npromote_after = 5\n")
+    config = load_config(path)
+    assert config.learning is False
+    assert config.promote_after == 5
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["[learning]\nenabled = 'yes'\n", "[learning]\npromote_after = 0\n", "[learning]\nturbo = true\n", "[data]\ndir = 3\n"],
+)
+def test_invalid_learning_or_data_settings_are_rejected(tmp_path, text):
+    with pytest.raises(ConfigError):
+        load_config(write(tmp_path, text))
+
+
+def test_data_dir_defaults_under_localappdata_and_can_move(monkeypatch, tmp_path):
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    assert Config().data_dir == tmp_path / "Typer"
+    moved = load_config(write(tmp_path, f"[data]\ndir = '{tmp_path / 'elsewhere'}'\n"))
+    assert moved.data_dir == tmp_path / "elsewhere"
