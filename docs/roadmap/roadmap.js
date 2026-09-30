@@ -933,17 +933,21 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.5",
           "title": "Multi-word chunks from the n-gram tables",
-          "status": "next",
+          "status": "done",
           "area": "engine",
           "stories": [
             63
           ],
-          "notes": "Extend the top continuation one word at a time while its probability stays above a cutoff, up to 3 words. Offer a chunk only when it reads coherently."
+          "notes": "Extend the top continuation one word at a time while its probability stays above a cutoff, up to 3 words. Offer a chunk only when it reads coherently. Built as WordCompleter.chunks (cutoff 0.3, at most 3 words, never ends on the/a/of/to/and). Not yet in replies: M7.6 carries the kind and wires it in. Quality is limited by the WikiText corpus; judge it in M7.9.",
+          "refs": [
+            "engine/src/completionist_engine/words.py",
+            "branch m7-next-words"
+          ]
         },
         {
           "id": "M7.6",
           "title": "Protocol: each suggestion carries its kind (word, chunk or next)",
-          "status": "todo",
+          "status": "next",
           "area": "engine",
           "stories": [
             64
@@ -1594,6 +1598,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M7.5 done: WordCompleter.chunks extends the top words into two- or three-word chunks while the next word is likely; wiring into replies is M7.6."
+    },
     {
       "date": "2026-09-30",
       "text": "M7.4 done: next-word candidates after a space with a confidence threshold, behind [words] next (off until M7.8). M7.3 is left to the user, who is doing it hands-on."

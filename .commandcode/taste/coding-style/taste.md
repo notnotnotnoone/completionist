@@ -1,0 +1,1 @@
+- Prefers existing pre-made tools/libraries over re-inventing the wheel. Confidence: 0.7

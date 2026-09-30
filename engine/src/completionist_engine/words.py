@@ -33,6 +33,7 @@ _PERSONAL_MIN_COUNT = 2  # one use of a word is noise
 _PERSONAL_SMOOTHING = 500.0
 _PERSONAL_BIGRAM_SMOOTHING = 3.0
 _BASE_CANDIDATES = 24
+_HANGING = frozenset({"the", "a", "an", "of", "to", "and", "or", "but"})  # a chunk never ends on these
 _NGRAM_ORDERS = (1, 2)  # context lengths asked of the n-gram source: bigram, then trigram
 
 
@@ -123,6 +124,33 @@ class WordCompleter:
         likely = [(p, w) for w, p in scores.items() if p > 0 and p >= threshold]
         likely.sort(key=lambda pair: (-pair[0], pair[1]))
         return Completion(replace=0, words=tuple(_display(w) for _, w in likely[:limit]))
+
+    def chunks(self, before: str, limit: int = 2, cutoff: float = 0.3, max_words: int = 3) -> Completion:
+        """Two- or three-word suggestions for the word being typed.
+
+        Each of the top `limit` words is extended with the word most likely to follow it, then the
+        next, for as long as that word scores at least `cutoff` and the chunk has fewer than
+        `max_words`. A chunk never ends on a word that leaves it hanging ("the", "of", "and"), and a
+        word that can't be extended gives no chunk.
+        """
+        prefix = current_word(before)
+        if not prefix:
+            return Completion(replace=0, words=())
+        context = previous_words(before, 2)
+        found: list[str] = []
+        for seed in self.complete(before, limit=limit).words:
+            chunk = [seed.lower()]
+            while len(chunk) < max_words:
+                scores = self._next_scores((*context, *chunk)[-2:])
+                best = [(p, w) for w, p in scores.items() if p > 0 and p >= cutoff and w not in chunk]
+                if not best:
+                    break
+                chunk.append(min(best, key=lambda pair: (-pair[0], pair[1]))[1])
+            while len(chunk) > 1 and chunk[-1] in _HANGING:
+                chunk.pop()
+            if len(chunk) > 1:
+                found.append(" ".join([seed, *(_display(w) for w in chunk[1:])]))
+        return Completion(replace=len(prefix), words=tuple(found))
 
     def _next_scores(self, context: tuple[str, ...]) -> dict[str, float]:
         scores: dict[str, float] = {}
