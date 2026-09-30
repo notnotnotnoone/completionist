@@ -8,7 +8,7 @@ window.TYPER_ROADMAP = {
   "updated": "2026-09-29",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "Build the real TSF text service and its key router",
+  "now": "Try the real text service and learning in real apps (your checklist), then merge branch m1-tsf-dll to main as 0.0.5",
   "milestones": [
     {
       "id": "M0",
@@ -288,61 +288,96 @@ window.TYPER_ROADMAP = {
         {
           "id": "M2.1",
           "title": "N-gram builder: bigram and trigram tables from a public corpus",
-          "status": "todo",
+          "status": "done",
           "area": "data",
           "stories": [
             11
           ],
-          "notes": "Wikipedia plus subtitles, stored compactly (SQLite or marisa-trie), not as in-memory dicts."
+          "notes": "`typer-build-ngrams` counts words, bigrams and trigrams from text files or folders (`.txt`/`.gz`), prunes rare entries while counting so memory stays bounded, and writes a SQLite file. Built from WikiText-103: 81M words, 100k vocabulary, 0.8M bigrams, 1.6M trigrams, 66 MB, 6.5 minutes.",
+          "refs": [
+            "engine/src/typer_engine/ngrams.py",
+            "engine/src/typer_engine/build_ngrams.py"
+          ]
         },
         {
           "id": "M2.2",
           "title": "N-gram re-ranking in the word completer",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             11
+          ],
+          "notes": "The completer mixes Zipf frequency with bigram and trigram counts (contexts seen under 5 times are ignored). \"What do you th\" now ranks \"think\" first. Pipe round trip stays fast: p95 1.2 ms uncached against the real table.",
+          "refs": [
+            "engine/src/typer_engine/words.py"
           ]
         },
         {
           "id": "M2.3",
           "title": "Filter misspellings and junk out of the base vocabulary",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             10
           ],
-          "notes": "wordfreq includes entries like \"tomorow\"."
+          "notes": "Beyond the 20,000 most common words, a word must appear written lowercase at least 3 times in the corpus. \"tomorow\", \"tomorrowland\" and \"Updike\" no longer appear; the vocabulary went from 146k to 53k words.",
+          "refs": [
+            "engine/src/typer_engine/vocabulary.py"
+          ]
         },
         {
           "id": "M2.4",
           "title": "Personal store: accept and typed-word counts in SQLite",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             16,
             17
           ],
-          "notes": "Counts only, never raw text."
+          "notes": "`PersonalStore` keeps word and word-pair counts in memory, saved to `personal.sqlite` every 10 s and on exit. Only plain lowercase English words are stored. Corrupt files are set aside; rare pairs are pruned past 300k.",
+          "refs": [
+            "engine/src/typer_engine/personal.py"
+          ]
         },
         {
           "id": "M2.5",
           "title": "Promote new words to the vocabulary after N uses",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             15
+          ],
+          "notes": "A word outside the dictionary is suggested once used 3 times (`[learning] promote_after`). Learning counts only real typing, one character at a time, so pasted text, caret jumps and backspacing never count. Silent fields and block-listed apps never teach it anything.",
+          "refs": [
+            "engine/src/typer_engine/learning.py",
+            "engine/src/typer_engine/engine.py"
           ]
         },
         {
           "id": "M2.6",
           "title": "Accept events name the accepted item",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             16
           ],
-          "notes": "Protocol change on both sides so the engine can learn from accepts."
+          "notes": "The DLL sends an `accept` event with the inserted word, and the engine learns it and the word before it. The protocol field is covered by tests on both sides.",
+          "refs": [
+            "tip/src/tsf_service.cpp",
+            "engine/src/typer_engine/protocol.py"
+          ]
+        },
+        {
+          "id": "M2.7",
+          "title": "Check learning and n-gram ranking live through the DLL",
+          "status": "next",
+          "area": "test",
+          "stories": [
+            11,
+            15,
+            16
+          ],
+          "notes": "Needs you: with the engine running and the Typer keyboard on, type a made-up word (like \"zorblax\") three or more times, then confirm it shows up as a suggestion. Also check \"I'd like to kn\" puts \"know\" first."
         }
       ]
     },
@@ -623,8 +658,14 @@ window.TYPER_ROADMAP = {
       "text": "The engine and spike branches were merged into main, and the project gained a task board and a left-to-right release timeline that agents keep current under the rules in CLAUDE.md."
     },
     {
-      "version": "0.1.0",
+      "version": "0.0.5",
       "status": "next",
+      "title": "Real text service and smarter engine",
+      "text": "The real Typer text service replaces the spike, and the engine ranks words by the preceding words and learns your own vocabulary, all covered by automated tests and waiting for a check in real apps before it lands on main."
+    },
+    {
+      "version": "0.1.0",
+      "status": "planned",
       "title": "Words everywhere",
       "milestone": "M1",
       "text": "This is the first release you can type with. The real text service replaces the spike and connects to the engine, so a list of word completions appears at the caret in Notepad, Chrome, Edge, Discord and other Electron apps. Tab accepts the highlighted word, the arrow keys move through the list and Esc closes it. Enter is never intercepted, so chat messages still send. Password, URL, email and number fields stay silent, as do code editors and terminals. If the engine stops, apps carry on as if Typer weren’t installed and reconnect when it returns. A keyboard icon lets Windows list Typer in Settings, so it can be switched on without PowerShell."
@@ -744,6 +785,10 @@ window.TYPER_ROADMAP = {
   "decisions": [
     {
       "date": "2026-09-29",
+      "text": "N-gram corpus is WikiText-103 (encyclopedic English, from Hugging Face; the original S3 link is gone). It helps formal writing most; a chat-style corpus such as subtitles would help casual text and can be added later."
+    },
+    {
+      "date": "2026-09-29",
       "text": "Releases follow semantic versioning, and each gets writing that matches its size: one sentence for a patch, a paragraph for a minor release (one per milestone), an essay for a major release."
     },
     {
@@ -799,6 +844,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "M2 engine work done on branch m1-tsf-dll: n-gram tables built from WikiText-103, bigram/trigram ranking, misspelling filter, personal learning and accept events. 197 engine tests pass; p95 lookup 1.2 ms. Waiting on your live checks (M1.10-M1.12, M2.7) before merging."
+    },
     {
       "date": "2026-09-29",
       "text": "M1 code complete on branch m1-tsf-dll: real DLL, key router, engine client, popup, icon and install scripts. Native tests, the engine end-to-end check and the lifecycle smoke test pass. Popup look and the manual app matrix (M1.10-M1.12) still need you."

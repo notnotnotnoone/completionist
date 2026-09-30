@@ -131,9 +131,13 @@ def test_round_trip_with_the_real_vocabulary_is_under_10ms_at_p95():
 
 
 @pytest.fixture
-def engine_process():
+def engine_process(tmp_path):
     name = unique_pipe_name()
-    process = subprocess.Popen([sys.executable, "-m", "typer_engine", "--pipe", name])
+    # Own data folder, so the test never reads or writes the real n-gram and personal files.
+    config = tmp_path / "config.toml"
+    data_dir = (tmp_path / "data").as_posix()
+    config.write_text(f"[data]\ndir = '{data_dir}'\n", encoding="utf-8")
+    process = subprocess.Popen([sys.executable, "-m", "typer_engine", "--pipe", name, "--config", str(config)])
     try:
         yield name
     finally:
