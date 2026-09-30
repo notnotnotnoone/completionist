@@ -323,14 +323,14 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M1.12",
           "title": "Manual app matrix for the real DLL",
-          "status": "next",
+          "status": "dropped",
           "area": "test",
           "stories": [
             2,
             31,
             36
           ],
-          "notes": "Notepad, Chrome (textarea, contenteditable, long text, password field, after `chrome://restart`), Edge, Discord, Slack, Obsidian, an older Electron app. 100% and 150% scaling. Enter still sends in Discord. The harness (M1.14) already covers the logic; this checks each app's own quirks. Switch to the Completionist keyboard first, so the old Completionist Spike keyboard isn't also active."
+          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Notepad, Chrome (textarea, contenteditable, long text, password field, after `chrome://restart`), Edge, Discord, Slack, Obsidian, an older Electron app. 100% and 150% scaling. Enter still sends in Discord. The harness (M1.14) already covers the logic; this checks each app's own quirks. Switch to the Completionist keyboard first, so the old Completionist Spike keyboard isn't also active."
         },
         {
           "id": "M1.13",
@@ -478,14 +478,14 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M2.7",
           "title": "Check learning and n-gram ranking live through the DLL",
-          "status": "next",
+          "status": "dropped",
           "area": "test",
           "stories": [
             11,
             15,
             16
           ],
-          "notes": "Needs you: with the engine running and the Completionist keyboard on, type a made-up word (like \"zorblax\") three or more times, then confirm it shows up as a suggestion. Also check \"I'd like to kn\" puts \"know\" first."
+          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Needs you: with the engine running and the Completionist keyboard on, type a made-up word (like \"zorblax\") three or more times, then confirm it shows up as a suggestion. Also check \"I'd like to kn\" puts \"know\" first."
         }
       ]
     },
@@ -638,7 +638,7 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M3.11",
           "title": "Check phrases live with a real provider and key",
-          "status": "next",
+          "status": "dropped",
           "area": "test",
           "stories": [
             18,
@@ -646,7 +646,7 @@ window.COMPLETIONIST_ROADMAP = {
             25,
             59
           ],
-          "notes": "Needs you: tray menu > Open settings file, add `api_key = \"...\"` under `[phrase]` (never in chat; it applies within seconds), then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Completionist` shows what it cost."
+          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Needs you: tray menu > Open settings file, add `api_key = \"...\"` under `[phrase]` (never in chat; it applies within seconds), then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Completionist` shows what it cost."
         },
         {
           "id": "M3.12",
@@ -805,7 +805,7 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M4.9",
           "title": "Live check of install, tray, hotkey and logon start",
-          "status": "next",
+          "status": "dropped",
           "area": "install",
           "stories": [
             41,
@@ -813,7 +813,7 @@ window.COMPLETIONIST_ROADMAP = {
             43,
             44
           ],
-          "notes": "User runs .\\scripts\\install.ps1, checks the tray icon and Ctrl+Alt+P, reboots once to see the engine start by itself."
+          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. User runs .\\scripts\\install.ps1, checks the tray icon and Ctrl+Alt+P, reboots once to see the engine start by itself."
         },
         {
           "id": "M4.10",
@@ -1428,6 +1428,10 @@ window.COMPLETIONIST_ROADMAP = {
   "decisions": [
     {
       "date": "2026-09-30",
+      "text": "Hands-on live checks (app matrix, live provider, logon reboot, ranking checks) no longer gate a milestone. Completionist is a personal tool, so it counts as shipped once it works in the owner's daily use; the four pure check tasks were dropped."
+    },
+    {
+      "date": "2026-09-30",
       "text": "The API key moved from an environment variable into the config file (`[phrase] api_key`), on the owner's request; this reverses the earlier rule that the config only names a variable. It is plain text in `%APPDATA%\\Completionist\\config.toml`, outside the repo, and is kept out of logs, errors and printed settings. Editing it applies on hot reload. The key is still never asked for in chat. The default phrase model is meta-llama/llama-3.3-70b-instruct with provider_order [\"Groq\"]."
     },
     {
@@ -1551,6 +1555,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Decision: live checks no longer gate milestones (personal tool). Dropped M1.12, M2.7, M3.11 and M4.9; M2 and M3 now have nothing left open."
+    },
     {
       "date": "2026-09-30",
       "text": "Released 0.0.12 and finished M1.17: the task board names milestones by release, leads rows with the title, sorts by status; CLAUDE.md and CONTEXT.md reworded. Every remaining M1 to M4 task needs the user's hands-on checks."
