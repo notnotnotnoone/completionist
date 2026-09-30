@@ -5,7 +5,7 @@ The background process behind Typer. It serves word completions (and later phras
 ```bash
 uv sync
 uv run pytest
-uv run typer-engine            # serve on \.\pipe\typer-engine
+uv run typer-engine            # serve on \\.\pipe	yper-engine
 uv run typer-probe "I'd like to recomm"   # ask a running engine, without the DLL
 ```
 
