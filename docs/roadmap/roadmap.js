@@ -641,7 +641,7 @@ window.COMPLETIONIST_ROADMAP = {
             25,
             59
           ],
-          "notes": "Needs you: `setx OPENROUTER_API_KEY \"...\"` in a terminal (never in chat), restart the engine, then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Completionist` shows what it cost."
+          "notes": "Needs you: tray menu > Open settings file, add `api_key = \"...\"` under `[phrase]` (never in chat; it applies within seconds), then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Completionist` shows what it cost."
         },
         {
           "id": "M3.12",
@@ -1226,6 +1226,17 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The phrase model now gets a longer autocomplete prompt with thirty numbered rules and two worked examples, and the roadmap gained milestones M7 to M10 for n-gram suggestions, a personal viewer, typo tolerance and a UI redesign."
     },
     {
+      "version": "0.0.10",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Groq default, key in the config",
+      "highways": [
+        "engine",
+        "tooling"
+      ],
+      "text": "The phrase prompt now tells the model not to over-complete, the default model is Llama 3.3 70B on Groq through OpenRouter with a provider_order setting, and the API key moved from an environment variable into the config file."
+    },
+    {
       "version": "0.1.0",
       "status": "next",
       "title": "Words everywhere",
@@ -1281,7 +1292,7 @@ window.COMPLETIONIST_ROADMAP = {
       "essay": [
         "Completionist 1.0 puts the suggestions of a code editor into every place you write English on Windows. Type a few letters in Discord, a browser text box or an email and a short list of completions appears just under the caret, ranked by the words before it and by the words you actually use. Tab takes the top one. In apps you choose, and on Ctrl+Space everywhere else, a greyed phrase appears above the list, a continuation of your sentence that you take whole with Tab or one word at a time with Ctrl+Right. Enter is never touched, and nothing in a password field is read or sent.",
         "The unusual decision is that Completionist is a Text Services Framework text service, the mechanism Windows uses for input methods, and not a keyboard hook with a screen-scraping overlay. That choice cost a milestone of throwaway spiking and a C++ DLL that lives inside every app, but it is why the caret position, the surrounding text, the key handling and the insertion of accepted text all come from Windows itself and work the same in Notepad, Chrome, Edge, Discord and Teams. The DLL stays deliberately thin: it draws the popup, decides which keys it consumes, and talks over a named pipe to a Python engine, reconnecting quietly if the engine is gone. The key router is pure logic with native tests, and the whole DLL is exercised through real TSF against a simulated text field, including the engine being killed and restarted mid-typing.",
-        "Word ranking is local and instant. A 146,000-word frequency list gives the base order, bigram and trigram counts built from WikiText-103 re-rank by context, and a personal store of word and word-pair counts, never text, boosts what you use and adds names and slang after a few uses. The same tables predict the next word after a space and offer two- and three-word chunks, all in the one popup box, and a typo still finds its word, with the guessed letters drawn in a different colour. A viewer opened from the tray shows the personal dictionary and the stats. Lookups take about a millisecond at the 95th percentile. Phrases are the only thing that leaves the machine, and they are built to be cheap: a plain completion request through OpenRouter to a low-cost model you choose from a list in the config, seeing only the text before the caret and held back when other text follows it on the same line, with the context cut at paragraph boundaries so the provider's prefix cache does the work, a debounce so it asks once per pause, and no spend counting of its own: you cap the key in OpenRouter, and when the cap is hit phrases quietly fall back to words. The key lives in an environment variable and never in a config file.",
+        "Word ranking is local and instant. A 146,000-word frequency list gives the base order, bigram and trigram counts built from WikiText-103 re-rank by context, and a personal store of word and word-pair counts, never text, boosts what you use and adds names and slang after a few uses. The same tables predict the next word after a space and offer two- and three-word chunks, all in the one popup box, and a typo still finds its word, with the guessed letters drawn in a different colour. A viewer opened from the tray shows the personal dictionary and the stats. Lookups take about a millisecond at the 95th percentile. Phrases are the only thing that leaves the machine, and they are built to be cheap: a plain completion request through OpenRouter to a low-cost model you choose from a list in the config, seeing only the text before the caret and held back when other text follows it on the same line, with the context cut at paragraph boundaries so the provider's prefix cache does the work, a debounce so it asks once per pause, and no spend counting of its own: you cap the key in OpenRouter, and when the cap is hit phrases quietly fall back to words. The key is typed into the config file by the user and is never logged or shown in errors.",
         "It is not finished in every way, and this release is honest about that. The automated tests pass, but the checks that need a person at a real desktop are still open: registering the DLL and using it in real apps, a live phrase request with a real key, the tray icon and pause hotkey, and starting at logon after a reboot. Which OpenRouter models accept plain completions, and cleanly, is untested, so the default model is a starting guess to be swapped after real use. The n-gram corpus is encyclopedic, which suits formal writing more than chat. The harness that tests the real DLL needs the foreground window, so it only runs when nobody is using the machine.",
         "What 1.0 leaves out is as deliberate as what it includes. It does not read the conversation you are replying to, so a Discord phrase knows your sentence but not the message above it; that is the next release. It has no browser extension, no macOS or Linux, no languages other than English, and no cloud account, sync or telemetry: the only network traffic is the phrase request you configured, and the only record of your typing is a set of counts on your own disk. Those limits keep the promise small enough to keep, which is that Completionist starts with Windows, stays out of the way, and shows you the numbers on whether it is paying for itself."
       ]
@@ -1392,6 +1403,10 @@ window.COMPLETIONIST_ROADMAP = {
   "decisions": [
     {
       "date": "2026-09-30",
+      "text": "The API key moved from an environment variable into the config file (`[phrase] api_key`), on the owner's request; this reverses the earlier rule that the config only names a variable. It is plain text in `%APPDATA%\\Completionist\\config.toml`, outside the repo, and is kept out of logs, errors and printed settings. Editing it applies on hot reload. The key is still never asked for in chat. The default phrase model is meta-llama/llama-3.3-70b-instruct with provider_order [\"Groq\"]."
+    },
+    {
+      "date": "2026-09-30",
       "text": "The phrase prompt changed again, to a version that adds a \"do not over-complete\" section: stop before details only the writer knows, so Tab saves typing without writing the person's thoughts. It supersedes the 30-rule prompt from earlier today. Provider preference is `[phrase] provider_order`, sent to OpenRouter as `provider.order`; fallbacks stay on, so it prefers a provider and never requires one."
     },
     {
@@ -1465,6 +1480,11 @@ window.COMPLETIONIST_ROADMAP = {
   ],
   "risks": [
     {
+      "text": "The OpenRouter key is plain text in config.toml, so anyone who can read the user's profile, a backup or a shared copy of the file can use it.",
+      "status": "open",
+      "mitigation": "The file lives outside the repo, the key is never logged or printed, and the key on OpenRouter has a spending limit. Revoke and replace it if the file is ever shared."
+    },
+    {
       "text": "A popup after every space could be noisy, and Tab could be stolen right after a space.",
       "status": "open",
       "mitigation": "A confidence threshold that can be switched off, and next-word rows not highlighted by default (M7.4, M7.8)."
@@ -1508,7 +1528,7 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-09-30",
-      "text": "On branch prompt-and-provider-order (not merged yet, so no release): replaced the phrase prompt with the owner's shorter \"do not over-complete\" version (ends with a TEXT TO CONTINUE label; build_prompt adds the header and text), and added `[phrase] provider_order` so the config can ask OpenRouter to prefer providers."
+      "text": "Released 0.0.10 (merged into main): the \"do not over-complete\" phrase prompt (ends with a TEXT TO CONTINUE label; build_prompt adds the header and text), `[phrase] provider_order`, default model meta-llama/llama-3.3-70b-instruct on Groq, and `[phrase] api_key` in the config instead of the OPENROUTER_API_KEY environment variable (`api_key_env` removed; docs, tray template, install script and harness updated)."
     },
     {
       "date": "2026-09-30",

@@ -18,8 +18,8 @@ VOCAB = [("world", 5.8), ("work", 6.0), ("worry", 5.0)]
 
 @contextlib.asynccontextmanager
 async def serving_phrases(url: str, allow: frozenset[str] = frozenset({"notepad.exe"})):
-    phrase = PhraseConfig(provider=ProviderSettings(base_url=url, timeout=1.0), debounce=0.05)
-    service = PhraseService(phrase, "key")
+    phrase = PhraseConfig(provider=ProviderSettings(base_url=url, timeout=1.0, api_key="key"), debounce=0.05)
+    service = PhraseService(phrase)
     engine = Engine(WordCompleter(VOCAB), Config(block=frozenset(), allow=allow, phrase=phrase), phrases=service)
     name = rf"\\.\pipe\completionist-test-{uuid4().hex}"
     server = await start_server(engine, name)

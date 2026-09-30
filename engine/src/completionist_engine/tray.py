@@ -28,8 +28,9 @@ CONFIG_TEMPLATE = """# Completionist settings. Everything here is optional; chan
 
 [phrase]
 # enabled = true
-# The API key is never stored here: set the environment variable named by api_key_env
-# (default OPENROUTER_API_KEY) with:  setx OPENROUTER_API_KEY "your key"
+# api_key = "sk-or-..."          # your OpenRouter key; phrases stay off until you add it
+# models = ["meta-llama/llama-3.3-70b-instruct"]
+# provider_order = ["Groq"]      # OpenRouter providers to prefer
 
 [hotkeys]
 # pause = "ctrl+alt+p"

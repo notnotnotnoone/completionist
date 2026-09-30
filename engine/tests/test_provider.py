@@ -66,7 +66,7 @@ def test_a_preferred_openrouter_provider_order_is_sent_when_configured():
 def test_without_a_provider_order_no_routing_preference_is_sent():
     async def scenario():
         async with fake_provider() as (url, received):
-            await collect(PhraseProvider(settings(url), "k"), PhraseRequest(prompt="Hi"))
+            await collect(PhraseProvider(settings(url, provider_order=()), "k"), PhraseRequest(prompt="Hi"))
             return received[0].body
 
     assert "provider" not in run(scenario())
@@ -190,6 +190,11 @@ def test_every_model_failing_raises_a_provider_error():
 def test_the_defaults_point_at_openrouter_without_fim():
     defaults = ProviderSettings()
     assert defaults.base_url == "https://openrouter.ai/api/v1"
-    assert defaults.api_key_env == "OPENROUTER_API_KEY"
+    assert defaults.api_key == ""  # no key until the user adds one to the config
     assert defaults.fim is False
-    assert defaults.models
+    assert defaults.models == ("meta-llama/llama-3.3-70b-instruct",)
+    assert defaults.provider_order == ("Groq",)
+
+
+def test_the_api_key_is_not_shown_when_settings_are_printed():
+    assert "sk-secret" not in repr(ProviderSettings(api_key="sk-secret"))

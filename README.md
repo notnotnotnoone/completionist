@@ -22,13 +22,14 @@ It installs the engine's dependencies, builds and registers the DLL (one UAC pro
 .\scripts\uninstall.ps1              # add -DeleteData to remove %LOCALAPPDATA%\Completionist too
 ```
 
-Phrases (the greyed continuation) run through OpenRouter and need its key, set once as a user environment variable. The key is never stored in Completionist's config:
+Phrases (the greyed continuation) run through OpenRouter and need its key. Choose "Open settings file" in the tray menu and add it under `[phrase]`:
 
-```powershell
-setx OPENROUTER_API_KEY "your key"
+```toml
+[phrase]
+api_key = "your key"
 ```
 
-Then restart the engine from the tray icon. Completionist doesn't count what phrases cost: set a spending limit on the key itself in OpenRouter.
+The file is `%APPDATA%\Completionist\config.toml` and the key sits in it as plain text, so don't share or commit the file. Changes apply within a couple of seconds, with no restart. Completionist doesn't count what phrases cost: set a spending limit on the key itself in OpenRouter.
 
 ## Using it
 

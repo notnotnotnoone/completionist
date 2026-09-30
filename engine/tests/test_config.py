@@ -102,10 +102,11 @@ def test_data_dir_defaults_under_localappdata_and_can_move(monkeypatch, tmp_path
 def test_phrase_defaults():
     phrase = Config().phrase
     assert phrase.enabled is True
-    assert phrase.provider.api_key_env == "OPENROUTER_API_KEY"
+    assert phrase.provider.api_key == ""
     assert phrase.provider.base_url == "https://openrouter.ai/api/v1"
     assert phrase.provider.fim is False
-    assert phrase.provider.provider_order == ()
+    assert phrase.provider.models == ("meta-llama/llama-3.3-70b-instruct",)
+    assert phrase.provider.provider_order == ("Groq",)
     assert phrase.debounce == pytest.approx(0.35)
     assert (phrase.context_before, phrase.context_after) == (8000, 2000)
 
@@ -119,7 +120,7 @@ def test_phrase_settings_can_be_overridden(tmp_path):
         base_url = "https://api.example.com/v1"
         models = ["small-fim", "backup-fim"]
         provider_order = ["DeepInfra", "Fireworks"]
-        api_key_env = "MY_KEY"
+        api_key = "  test-key-123  "
         fim = false
         max_tokens = 24
         temperature = 0
@@ -131,7 +132,7 @@ def test_phrase_settings_can_be_overridden(tmp_path):
     )
     phrase = load_config(path).phrase
     assert phrase.enabled is False
-    assert (phrase.provider.base_url, phrase.provider.models, phrase.provider.api_key_env) == ("https://api.example.com/v1", ("small-fim", "backup-fim"), "MY_KEY")
+    assert (phrase.provider.base_url, phrase.provider.models, phrase.provider.api_key) == ("https://api.example.com/v1", ("small-fim", "backup-fim"), "test-key-123")
     assert phrase.provider.fim is False and phrase.provider.max_tokens == 24 and phrase.provider.temperature == 0
     assert phrase.provider.timeout == 2.5
     assert phrase.provider.provider_order == ("DeepInfra", "Fireworks")
@@ -139,15 +140,26 @@ def test_phrase_settings_can_be_overridden(tmp_path):
     assert (phrase.context_before, phrase.context_after) == (4000, 0)
 
 
-def test_the_api_key_itself_cannot_be_put_in_the_config(tmp_path):
-    with pytest.raises(ConfigError, match="api_key"):
-        load_config(write(tmp_path, "[phrase]\napi_key = 'sk-secret'\n"))
+def test_an_empty_api_key_is_allowed_and_means_phrases_are_off(tmp_path):
+    assert load_config(write(tmp_path, "[phrase]\napi_key = ''\n")).phrase.provider.api_key == ""
+
+
+def test_the_old_environment_variable_setting_is_gone(tmp_path):
+    with pytest.raises(ConfigError, match="api_key_env"):
+        load_config(write(tmp_path, "[phrase]\napi_key_env = 'OPENROUTER_API_KEY'\n"))
+
+
+def test_a_bad_key_error_never_shows_the_key(tmp_path):
+    with pytest.raises(ConfigError) as info:
+        load_config(write(tmp_path, "[phrase]\napi_key = 12345\n"))
+    assert "12345" not in str(info.value)
 
 
 @pytest.mark.parametrize(
     "line",
     [
         "enabled = 'yes'", "base_url = ''", "models = 3", "models = []", "models = ['a', 3]", "models = 'a'", "fim = 1", "max_tokens = 0", "temperature = -1", "timeout = 0",
+        "api_key = 3", "api_key = ['a']",
         "provider_order = 'DeepInfra'", "provider_order = [3]", "provider_order = ['']",
         "debounce_ms = -5", "context_before = 0", "context_after = -1",
         "turbo = true", "daily_budget_usd = 0.5", "price_input_per_m = 0.3",

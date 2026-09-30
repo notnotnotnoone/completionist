@@ -41,7 +41,6 @@ $provider = Start-Process -FilePath "uv" -ArgumentList @("run", "--project", "$r
 for ($i = 0; $i -lt 120 -and -not ((Test-Path $providerLog) -and (Get-Content $providerLog -ErrorAction SilentlyContinue | Select-String "http://")); $i++) { Start-Sleep -Milliseconds 500 }
 $providerUrl = (Get-Content $providerLog | Select-String "http://" | Select-Object -First 1).ToString().Trim()
 if (-not $providerUrl) { throw "fake provider did not start" }
-$env:COMPLETIONIST_E2E_KEY = "test-key"
 
 function Invoke-Run($label, $allow, $extraArgs) {
     $config = Join-Path $data "config.toml"
@@ -55,7 +54,7 @@ dir = '$dataDir'
 
 [phrase]
 base_url = "$providerUrl"
-api_key_env = "COMPLETIONIST_E2E_KEY"
+api_key = "test-key"
 debounce_ms = 100
 timeout = 3.0
 "@

@@ -61,7 +61,7 @@ It is built as a **Text Services Framework (TSF) text service**, the same mechan
 - **Anchored context:** the engine sends up to 8,000 characters before the caret and 2,000 after, cut at paragraph and sentence boundaries so the provider's prefix cache hits. OpenRouter has no fill-in-the-middle, so the model sees only the text before the caret, and phrases are held back while other text follows the caret on the same line.
 - **Cost:** spend is counted per day. Phrases stop for the day at a **$0.50 daily cap**. Three provider failures in a row pause phrases for 30 seconds.
 - **When:** in apps listed under `[apps] allow`, a phrase is requested 350 ms after you pause. Everywhere else, only when you press Ctrl+Space.
-- **The API key** comes from an environment variable that the user sets (`setx OPENROUTER_API_KEY ...`). The config only names the variable. Never ask for a key in chat.
+- **The API key** is `api_key` under `[phrase]` in `%APPDATA%\Completionist\config.toml`, typed there by the user. It is plain text in that file, never shown in logs, errors or printed settings. Never ask for a key in chat.
 
 ## 7. Privacy and safety
 

@@ -89,8 +89,8 @@ Completionist uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `
 - **Engine extras:** `completionist-stats` (usage numbers), tray icon and Ctrl+Alt+P pause (`--no-tray` to skip), config hot reload, `engine.log` and `metrics.sqlite` in `%LOCALAPPDATA%\Completionist`.
 - **Don't over-engineer.** Completionist is a typing tool. Build what the user asked for, the simplest way. Don't add side tools, benchmarks, dashboards or config knobs on your own, and don't turn a choice (like which model) into a project or homework for the user: pick a sensible default, say so, and make it easy to swap. Ask before adding anything beyond the request.
 - **Never ask for API keys in chat.**
-  - Keys live in user environment variables that the user sets (e.g. `setx OPENROUTER_API_KEY ...`).
-  - Config only names the variable.
+  - The key lives in `api_key` under `[phrase]` in the user's `config.toml` (`%APPDATA%\Completionist`), typed there by the user. It is never in the repo, never logged, and never printed in errors or settings.
+  - Don't read the config file to look at the key.
 - **Colors and type:** use the Evergreen tokens and fonts in CONTEXT.md. Don't add colors without validating them as it describes.
 - **Don't change Windows system settings yourself.** Give the user the command:
   - enabling or removing the keyboard (`Set-WinUserLanguageList`)

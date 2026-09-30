@@ -17,9 +17,9 @@
     [phrase]                    # phrase continuations from a cloud completion model
     enabled = true
     base_url = "https://openrouter.ai/api/v1"    # OpenRouter, or any OpenAI-compatible /completions endpoint
-    models = ["mistralai/codestral-2508"]        # tried in order; the next only if the one before fails
-    provider_order = ["DeepInfra"]               # OpenRouter providers to prefer, in order (others stay as fallbacks)
-    api_key_env = "OPENROUTER_API_KEY"           # name of the environment variable holding the key
+    models = ["meta-llama/llama-3.3-70b-instruct"]    # tried in order; the next only if the one before fails
+    provider_order = ["Groq"]                    # OpenRouter providers to prefer, in order (others stay as fallbacks)
+    api_key = "sk-or-..."                        # your OpenRouter key; empty turns phrases off
     fim = false                 # send the text after the caret too (fill-in-the-middle); OpenRouter has none
     max_tokens = 40
     temperature = 0.2
@@ -69,7 +69,7 @@ DEFAULT_BLOCK = frozenset(
 DEFAULT_ALLOW = frozenset({"obsidian.exe", "notepad.exe", "winword.exe", "outlook.exe", "olk.exe"})
 
 _PHRASE_KEYS = {
-    "enabled", "base_url", "models", "provider_order", "api_key_env", "fim", "max_tokens", "temperature", "timeout", "debounce_ms",
+    "enabled", "base_url", "models", "provider_order", "api_key", "fim", "max_tokens", "temperature", "timeout", "debounce_ms",
     "context_before", "context_after",
 }  # fmt: skip
 _SCHEMA = {
@@ -179,7 +179,7 @@ def _phrase(section: dict[str, Any]) -> PhraseConfig:
         base_url=get("base_url", p.base_url, _text),
         models=get("models", p.models, _model_list),
         provider_order=get("provider_order", p.provider_order, _provider_list),
-        api_key_env=get("api_key_env", p.api_key_env, _text),
+        api_key=get("api_key", p.api_key, _api_key),
         fim=get("fim", p.fim, _boolean),
         max_tokens=get("max_tokens", p.max_tokens, _positive_int),
         temperature=get("temperature", p.temperature, _non_negative_number),
@@ -247,6 +247,12 @@ def _model_list(value: Any, name: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not value or not all(isinstance(m, str) and m.strip() for m in value):
         raise ConfigError(f"{name} must be a non-empty list of model names")
     return tuple(m.strip() for m in value)
+
+
+def _api_key(value: Any, name: str) -> str:
+    if not isinstance(value, str):
+        raise ConfigError(f"{name} must be text in quotes")  # never echo the value: it may be a key
+    return value.strip()
 
 
 def _provider_list(value: Any, name: str) -> tuple[str, ...]:

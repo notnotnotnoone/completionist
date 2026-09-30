@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import os
 import time
 from collections.abc import Callable
 
@@ -19,29 +18,29 @@ _FAILURES_BEFORE_PAUSE = 3
 _PAUSE_SECONDS = 30.0
 
 
+def _build_provider(config: PhraseConfig) -> PhraseProvider | None:
+    key = config.provider.api_key
+    return PhraseProvider(config.provider, key) if key and config.enabled else None
+
+
 class PhraseService:
     """Shared by every connection: the provider and its health."""
 
     def __init__(
         self,
         config: PhraseConfig,
-        api_key: str | None,
         *,
         provider: PhraseProvider | None = None,
         clock: Callable[[], float] = time.monotonic,
         metrics: Metrics | None = None,
-        key_from_env: bool = False,
     ) -> None:
-        """`key_from_env`: the key came from the environment variable the config names, so a reloaded
-        config that names another variable picks up that one."""
+        """The API key is `config.provider.api_key`; with none, phrases are off."""
         self.config = config
         self.metrics = metrics
         self.clock = clock
         self._provider = provider
-        self._api_key = api_key
-        self._key_from_env = key_from_env
-        if provider is None and api_key and config.enabled:
-            self._provider = PhraseProvider(config.provider, api_key)
+        if provider is None:
+            self._provider = _build_provider(config)
         self._failures = 0
         self._paused_until = 0.0
 
@@ -57,11 +56,9 @@ class PhraseService:
         """Apply reloaded settings: a new provider or model, debounce, or switching off."""
         old = self.config
         self.config = config
-        if self._key_from_env and config.provider.api_key_env != old.provider.api_key_env:
-            self._api_key = os.environ.get(config.provider.api_key_env)
-        if config.provider != old.provider or config.enabled != old.enabled:
+        if config.provider != old.provider or config.enabled != old.enabled:  # includes a new or removed key
             stale = self._provider
-            self._provider = PhraseProvider(config.provider, self._api_key) if self._api_key and config.enabled else None
+            self._provider = _build_provider(config)
             if stale is not None:
                 try:
                     asyncio.get_running_loop().create_task(stale.aclose())

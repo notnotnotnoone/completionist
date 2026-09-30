@@ -1,7 +1,6 @@
 """Puts the engine together from the config and whatever data files exist."""
 
 import logging
-import os
 from dataclasses import dataclass
 
 from completionist_engine.config import Config
@@ -54,11 +53,10 @@ def assemble_engine(
     vocabulary: list[tuple[str, float]],
     *,
     core_rank: int = 20_000,
-    phrase_api_key: str | None = None,
 ) -> Assembled:
     """The engine with n-gram ranking (if `ngrams.sqlite` is in the data folder), personal learning and phrases.
 
-    Phrases need an API key: pass `phrase_api_key`, or set the environment variable the config names.
+    Phrases need an API key: `api_key` under `[phrase]` in the config.
     """
     ngrams = _open_ngrams(config)
     if ngrams is not None:
@@ -66,7 +64,7 @@ def assemble_engine(
     personal = PersonalStore(config.data_dir / PERSONAL_FILE) if config.learning else None
     completer = WordCompleter(vocabulary, ngrams=ngrams, personal=personal, promote_after=config.promote_after)
     metrics = Metrics(config.data_dir / METRICS_FILE)
-    phrases = _phrase_service(config, phrase_api_key, metrics)
+    phrases = _phrase_service(config, metrics)
     engine = Engine(completer, config, personal=personal, phrases=phrases, metrics=metrics)
     return Assembled(engine, personal, ngrams, phrases, metrics)
 
@@ -85,12 +83,11 @@ def _open_ngrams(config: Config) -> NgramTable | None:
     return table
 
 
-def _phrase_service(config: Config, api_key: str | None, metrics: Metrics) -> PhraseService | None:
+def _phrase_service(config: Config, metrics: Metrics) -> PhraseService | None:
     phrase = config.phrase
-    key = api_key if api_key is not None else os.environ.get(phrase.provider.api_key_env)
-    service = PhraseService(phrase, key, metrics=metrics, key_from_env=api_key is None)
+    service = PhraseService(phrase, metrics=metrics)
     if service.available:
         logger.info("phrases on: %s at %s", ", ".join(phrase.provider.models), phrase.provider.base_url)
     else:
-        logger.info("phrases off: set %s to turn them on", phrase.provider.api_key_env)
+        logger.info("phrases off: add your key as api_key under [phrase] in the config file to turn them on")
     return service

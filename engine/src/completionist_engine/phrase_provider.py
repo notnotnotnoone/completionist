@@ -3,7 +3,7 @@
 import asyncio
 import json
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import httpx
 
@@ -15,9 +15,9 @@ class ProviderError(Exception):
 @dataclass(frozen=True)
 class ProviderSettings:
     base_url: str = "https://openrouter.ai/api/v1"
-    models: tuple[str, ...] = ("mistralai/codestral-2508",)  # tried in order: the next only if the one before fails
-    provider_order: tuple[str, ...] = ()  # OpenRouter providers to try first, e.g. ("DeepInfra",); others stay as fallbacks
-    api_key_env: str = "OPENROUTER_API_KEY"
+    models: tuple[str, ...] = ("meta-llama/llama-3.3-70b-instruct",)  # tried in order: the next only if the one before fails
+    provider_order: tuple[str, ...] = ("Groq",)  # OpenRouter providers to try first; others stay as fallbacks
+    api_key: str = field(default="", repr=False)  # from the config file; empty means phrases are off
     fim: bool = False  # send the text after the caret as `suffix` (fill-in-the-middle); OpenRouter documents none
     max_tokens: int = 40
     temperature: float = 0.2

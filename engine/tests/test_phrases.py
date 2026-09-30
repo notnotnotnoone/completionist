@@ -16,11 +16,11 @@ def req(request_id: int, before: str, after: str = "", event: str = "keystroke",
 
 def make_service(url: str, *, key: str | None = "k", **overrides) -> PhraseService:
     config = PhraseConfig(
-        provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, fim=True),
+        provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, fim=True, api_key=key or ""),
         debounce=overrides.pop("debounce", 0.05),
         context_before=overrides.pop("context_before", 8000),
     )
-    return PhraseService(config, key)
+    return PhraseService(config)
 
 
 async def settle(pushes: list[PhraseUpdate], until=lambda p: p and p[-1].done, timeout=3.0):
@@ -299,21 +299,24 @@ def test_reloading_can_switch_phrases_off_and_on():
 
 
 
-def test_naming_another_key_variable_picks_up_that_variable(monkeypatch):
+def test_adding_or_changing_the_key_in_the_config_applies_on_reload():
     from dataclasses import replace
 
-    monkeypatch.setenv("KEY_TWO", "second")
-    config = PhraseConfig(provider=ProviderSettings(api_key_env="KEY_ONE"))
-    monkeypatch.delenv("KEY_ONE", raising=False)
-    service = PhraseService(config, None, key_from_env=True)
+    config = PhraseConfig(provider=ProviderSettings(api_key=""))
+    service = PhraseService(config)
     assert not service.available
-    service.reconfigure(replace(config, provider=replace(config.provider, api_key_env="KEY_TWO")))
+    service.reconfigure(replace(config, provider=replace(config.provider, api_key="first")))
     assert service.available
+    first = service._provider
+    service.reconfigure(replace(config, provider=replace(config.provider, api_key="second")))
+    assert service.available and service._provider is not first  # a new provider holds the new key
+    service.reconfigure(config)
+    assert not service.available  # removing the key turns phrases off
 
 
 def make_prefix_only_service(url: str) -> PhraseService:
-    config = PhraseConfig(provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, fim=False), debounce=0.05)
-    return PhraseService(config, "k")
+    config = PhraseConfig(provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, fim=False, api_key="k"), debounce=0.05)
+    return PhraseService(config)
 
 
 def test_without_fim_text_after_the_caret_on_the_same_line_holds_the_phrase_back():
