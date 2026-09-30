@@ -18,6 +18,8 @@ def store() -> PersonalStore:
         for _ in range(times):
             personal.record_typed(word, ())
     personal.record_typed("fig", ("apple", "mango"))
+    for _ in range(3):
+        personal.record_typed("pie", ("apple", "tart"))
     return personal
 
 
@@ -74,7 +76,7 @@ def test_the_address_is_local_and_carries_the_token(tmp_path):
         async with running(tmp_path) as server:
             assert server.url == f"http://127.0.0.1:{server.port}/?t={TOKEN}"
             status, headers, text = await http(server, "GET", f"/?t={TOKEN}")
-            assert status == 200 and "Completionist viewer" in text
+            assert status == 200 and "Completionist Viewer" in text
             assert headers["cache-control"] == "no-store"
             assert "default-src 'none'" in headers["content-security-policy"]
 
@@ -186,13 +188,13 @@ def test_words_are_listed_most_used_first_and_can_be_searched_and_sorted(tmp_pat
             _, _, text = await api(server, "GET", "/api/words")
             data = json.loads(text)
             assert data["learning"] is True
-            assert [w["word"] for w in data["words"]][:3] == ["apple", "zebra", "mango"]
+            assert [w["word"] for w in data["words"]][:3] == ["apple", "zebra", "pie"]
             _, _, text = await api(server, "GET", "/api/words?sort=alpha")
             assert [w["word"] for w in json.loads(text)["words"]][:2] == ["apple", "fig"]
             _, _, text = await api(server, "GET", "/api/words?q=ZEB")
             assert json.loads(text) == {"learning": True, "total": 1, "words": [{"word": "zebra", "count": 5}]}
             _, _, text = await api(server, "GET", "/api/words?limit=1")
-            assert json.loads(text)["total"] == 4 and len(json.loads(text)["words"]) == 1
+            assert json.loads(text)["total"] == 5 and len(json.loads(text)["words"]) == 1
 
     run(go())
 
@@ -284,5 +286,50 @@ def test_a_bad_key_error_does_not_echo_the_key(tmp_path):
         async with running(tmp_path) as server:
             _, _, text = await api(server, "POST", "/api/settings", {"phrase": {"api_key": 424242424242}})
             assert "424242424242" not in text
+
+    run(go())
+
+
+# --- trigrams ------------------------------------------------------------------------------------
+
+
+def test_trigrams_are_listed_with_counts_and_can_be_searched(tmp_path):
+    async def go():
+        async with running(tmp_path, store()) as server:
+            data = json.loads((await api(server, "GET", "/api/trigrams"))[2])
+            assert data["learning"] is True and data["total"] == 2
+            assert data["trigrams"][0] == {"words": ["apple", "tart", "pie"], "count": 3}
+            found = json.loads((await api(server, "GET", "/api/trigrams?q=mango+fig"))[2])
+            assert found["trigrams"] == [{"words": ["apple", "mango", "fig"], "count": 1}]
+            assert len(json.loads((await api(server, "GET", "/api/trigrams?limit=1"))[2])["trigrams"]) == 1
+
+    run(go())
+
+
+def test_removing_a_trigram_keeps_its_words(tmp_path):
+    async def go():
+        personal = store()
+        async with running(tmp_path, personal) as server:
+            status, _, text = await api(server, "POST", "/api/forget-trigram", {"words": ["apple", "tart", "pie"]})
+            assert (status, json.loads(text)) == (200, {"forgotten": True})
+            assert [t for t, _ in personal.trigrams()] == [("apple", "mango", "fig")]
+            assert "pie" in [w for w, _ in personal.words()]
+            assert json.loads((await api(server, "POST", "/api/forget-trigram", {"words": ["apple", "tart", "pie"]}))[2]) == {"forgotten": False}
+            for bad in ({"words": ["a", "b"]}, {"words": "a b c"}, {"words": ["a", "b", 3]}, {}):
+                assert (await api(server, "POST", "/api/forget-trigram", bad))[0] == 400
+
+    run(go())
+
+
+def test_trigram_changes_are_guarded_like_the_rest(tmp_path):
+    async def go():
+        async with running(tmp_path, store()) as server:
+            assert (await http(server, "GET", "/api/trigrams"))[0] == 403
+            status, _, _ = await api(server, "POST", "/api/forget-trigram", {"words": ["apple", "tart", "pie"]}, Origin="https://evil.example")
+            assert status == 403
+            assert len(server._personal.trigrams()) == 2
+        async with running(tmp_path, None) as server:
+            assert json.loads((await api(server, "GET", "/api/trigrams"))[2]) == {"learning": False, "total": 0, "trigrams": []}
+            assert (await api(server, "POST", "/api/forget-trigram", {"words": ["a", "b", "c"]}))[0] == 404
 
     run(go())

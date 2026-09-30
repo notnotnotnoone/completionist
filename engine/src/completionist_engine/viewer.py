@@ -156,6 +156,10 @@ class ViewerServer:
             return _json(200, self._words(query))
         if (method, path) == ("POST", "/api/forget"):
             return self._forget(body)
+        if (method, path) == ("GET", "/api/trigrams"):
+            return _json(200, self._trigrams(query))
+        if (method, path) == ("POST", "/api/forget-trigram"):
+            return self._forget_trigram(body)
         if (method, path) == ("GET", "/api/stats"):
             return _json(200, self._stats(query))
         if (method, path) == ("GET", "/api/settings"):
@@ -179,6 +183,22 @@ class ViewerServer:
         if self._personal is None:
             return _json(404, {"error": "learning is off"})
         return _json(200, {"forgotten": self._personal.forget(word)})
+
+    def _trigrams(self, query: dict[str, list[str]]) -> dict[str, Any]:
+        search = query.get("q", [""])[0]
+        limit = max(1, min(_number(query.get("limit", ["200"])[0], 200), WORD_LIMIT_MAX))
+        found = self._personal.trigrams(search) if self._personal is not None else []
+        if query.get("sort", ["count"])[0] == "alpha":
+            found = sorted(found)
+        return {"learning": self._personal is not None, "total": len(found), "trigrams": [{"words": list(t), "count": n} for t, n in found[:limit]]}
+
+    def _forget_trigram(self, body: Any) -> tuple[int, bytes, str]:
+        words = body.get("words") if isinstance(body, dict) else None
+        if not (isinstance(words, list) and len(words) == 3 and all(isinstance(w, str) and w for w in words)):
+            return _json(400, {"error": "say which three words"})
+        if self._personal is None:
+            return _json(404, {"error": "learning is off"})
+        return _json(200, {"forgotten": self._personal.forget_trigram(*words)})
 
     def _stats(self, query: dict[str, list[str]]) -> dict[str, Any]:
         days = max(1, min(_number(query.get("days", ["7"])[0], 7), 365))

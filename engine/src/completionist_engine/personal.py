@@ -65,6 +65,18 @@ class _Chains:
                 del self.totals[context]
         self.dirty = {(c, w) for c, w in self.dirty if c in self.rows and w in self.rows[c]}
 
+    def remove(self, context: tuple[str, ...], word: str) -> bool:
+        """Drop one count row (this word after this context), leaving everything else. False if it wasn't there."""
+        row = self.rows.get(context)
+        if row is None or word not in row:
+            return False
+        self.totals[context] -= row.pop(word)
+        if not row:
+            del self.rows[context]
+            del self.totals[context]
+        self.dirty.discard((context, word))
+        return True
+
     def prune_singles(self) -> None:
         for context in list(self.rows):
             row = self.rows[context]
@@ -225,6 +237,37 @@ class PersonalStore:
         found = [(w, n) for w, n in self._words.items() if search in w]
         found.sort(key=lambda item: (-item[1], item[0]))
         return found if limit is None else found[:limit]
+
+    def trigrams(self, search: str = "", limit: int | None = None) -> list[tuple[tuple[str, str, str], int]]:
+        """The three-word sequences learned and how often each was typed, most used first.
+
+        `search` keeps the ones that contain it (any word, or a phrase like "thank you").
+        """
+        search = search.lower().strip()
+        found = [
+            ((a, b, c), n)
+            for (a, b), row in self._chains[2].rows.items()
+            for c, n in row.items()
+            if search in f"{a} {b} {c}"
+        ]
+        found.sort(key=lambda item: (-item[1], item[0]))
+        return found if limit is None else found[:limit]
+
+    def forget_trigram(self, first: str, second: str, third: str) -> bool:
+        """Forget one three-word sequence. The words and the two-word pairs stay, since other sentences use them.
+
+        False if it wasn't known.
+        """
+        first, second, third = first.lower(), second.lower(), third.lower()
+        if not self._chains[2].remove((first, second), third):
+            return False
+        if self._db is not None:
+            try:
+                with self._db:
+                    self._db.execute("DELETE FROM trigrams WHERE prev2 = ? AND prev1 = ? AND word = ?", (first, second, third))
+            except sqlite3.Error as err:
+                logger.warning("could not remove a trigram from the personal store file: %s", err)
+        return True
 
     def forget(self, word: str) -> bool:
         """Forget a word, and every pair and triple it is part of, in memory and in the file.
