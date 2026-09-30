@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Completionist viewer</title>
+<style>
+/* Evergreen tokens from CONTEXT.md; this page is self-contained because the server allows no outside files. */
+:root {
+  --paper: #EEF2EC; --paper-2: #E3EAE1; --surface: #FBFCF8; --ink: #16221C; --muted: #55635B;
+  --line: #D5DDD6; --line-strong: #B7C3BA; --sign: #0A5A3D; --sign-deep: #06402B; --sign-ink: #FFFFFF; --sign-dim: #CFE6DA;
+  --accent: #AB3F84; --accent-ink: #9A3576; --accent-soft: #F4E1EC; --on-accent: #FFFFFF;
+  --ok: #1F6B45; --ok-soft: #DCEDE2; --bad: #B3261E; --bad-soft: #F8DEDA;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0E1512; --paper-2: #121B17; --surface: #141C18; --ink: #E4EBE6; --muted: #97A69D;
+    --line: #25302A; --line-strong: #34423A; --sign: #0F6B48; --sign-deep: #094A31; --sign-ink: #FFFFFF; --sign-dim: #BFE3CF;
+    --accent: #C0188D; --accent-ink: #EE8FC6; --accent-soft: #3A1830; --on-accent: #FFFFFF;
+    --ok: #5FCB8E; --ok-soft: #15301F; --bad: #FF8C7E; --bad-soft: #3A1916;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 "Overpass", "Segoe UI", system-ui, sans-serif; }
+header { background: var(--sign); color: var(--sign-ink); border-bottom: 4px solid var(--sign-deep); padding: 14px 20px 0; }
+header h1 { margin: 0 0 2px; font-size: 1.25rem; }
+header p { margin: 0 0 10px; color: var(--sign-dim); font-size: .8125rem; }
+nav { display: flex; gap: 4px; }
+nav button { border: 0; border-radius: 8px 8px 0 0; padding: 8px 16px; background: transparent; color: var(--sign-dim); font: inherit; cursor: pointer; }
+nav button[aria-selected="true"] { background: var(--paper); color: var(--ink); }
+main { max-width: 860px; margin: 0 auto; padding: 20px; }
+h2 { font-size: 1.125rem; margin: 0 0 4px; }
+.hint { color: var(--muted); font-size: .8125rem; margin: 0 0 14px; }
+.bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+input[type=text], input[type=number], select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 10px; }
+input[type=password] { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 10px; }
+input:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.act { font: inherit; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 5px 12px; cursor: pointer; }
+button.primary { background: var(--sign); border-color: var(--sign-deep); color: var(--sign-ink); }
+button.danger { color: var(--bad); }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); }
+th { background: var(--paper-2); font-size: .8125rem; color: var(--muted); font-weight: 600; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card b { display: block; font-size: 1.5rem; }
+.card span { color: var(--muted); font-size: .8125rem; }
+fieldset { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; margin: 0 0 14px; padding: 10px 14px 12px; }
+legend { font-weight: 600; padding: 0 6px; }
+label.row { display: grid; grid-template-columns: 210px 1fr; gap: 10px; align-items: center; margin: 8px 0; }
+label.row small { display: block; color: var(--muted); font-size: .75rem; }
+textarea { font: inherit; width: 100%; min-height: 70px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 10px; }
+.msg { padding: 8px 12px; border-radius: 8px; margin: 10px 0; }
+.msg.ok { background: var(--ok-soft); color: var(--ok); }
+.msg.bad { background: var(--bad-soft); color: var(--bad); }
+.tag { background: var(--accent-soft); color: var(--accent-ink); border-radius: 99px; padding: 1px 9px; font-size: .75rem; }
+.empty { color: var(--muted); padding: 18px 0; }
+@media (max-width: 560px) { label.row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Completionist viewer</h1>
+  <p>Shown only on this computer. It holds counts, never what you typed.</p>
+  <nav role="tablist">
+    <button role="tab" id="t-dict" aria-selected="true">Dictionary</button>
+    <button role="tab" id="t-stats" aria-selected="false">Stats</button>
+    <button role="tab" id="t-set" aria-selected="false">Settings</button>
+  </nav>
+</header>
+<main>
+  <div id="note" class="msg bad" hidden></div>
+
+  <section id="dict">
+    <h2>What Completionist has learned</h2>
+    <p class="hint">Words you type often enough to be suggested, with how many times. Remove one and it is forgotten everywhere, including pairs and triples it was part of.</p>
+    <div class="bar">
+      <input type="text" id="q" placeholder="Search words" aria-label="Search words">
+      <select id="sort" aria-label="Sort"><option value="count">Most used first</option><option value="alpha">A to Z</option></select>
+    </div>
+    <div id="dict-off" class="empty" hidden>Learning is switched off, so there is nothing to show.</div>
+    <table id="words"><thead><tr><th>Word</th><th class="n">Used</th><th></th></tr></thead><tbody></tbody></table>
+    <p class="hint" id="count"></p>
+  </section>
+
+  <section id="stats" hidden>
+    <h2>Your numbers</h2>
+    <div class="bar"><select id="days" aria-label="Period"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></div>
+    <div id="stats-body"></div>
+  </section>
+
+  <section id="settings" hidden>
+    <h2>Settings</h2>
+    <p class="hint">Saved into your settings file, and picked up within a couple of seconds.</p>
+    <form id="form"></form>
+    <div id="set-msg" class="msg" hidden></div>
+  </section>
+</main>
+<script>
+"use strict";
+// The token arrives in the address, then is kept in memory only and removed from the address bar.
+const token = new URLSearchParams(location.search).get("t") || "";
+history.replaceState(null, "", location.pathname);
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, props, ...kids) => { const e = Object.assign(document.createElement(tag), props || {}); e.append(...kids); return e; };
+
+async function api(path, body) {
+  const opts = { headers: { "X-Completionist-Token": token } };
+  if (body !== undefined) { opts.method = "POST"; opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  let r;
+  try { r = await fetch(path, opts); } catch (e) { fail("Can't reach Completionist. Is it still running?"); throw e; }
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { const err = new Error(data.error || ("Error " + r.status)); err.status = r.status; throw err; }
+  $("note").hidden = true;
+  return data;
+}
+function fail(text) { const n = $("note"); n.textContent = text; n.hidden = false; }
+
+// ---- tabs
+const tabs = { dict: $("t-dict"), stats: $("t-stats"), settings: $("t-set") };
+function show(name) {
+  for (const [k, b] of Object.entries(tabs)) { b.setAttribute("aria-selected", String(k === name)); $(k).hidden = k !== name; }
+  if (name === "dict") loadWords(); else if (name === "stats") loadStats(); else loadSettings();
+}
+for (const [k, b] of Object.entries(tabs)) b.addEventListener("click", () => show(k));
+
+// ---- dictionary
+let timer;
+async function loadWords() {
+  try {
+    const d = await api("/api/words?limit=300&sort=" + $("sort").value + "&q=" + encodeURIComponent($("q").value));
+    $("dict-off").hidden = d.learning;
+    const body = $("words").querySelector("tbody");
+    body.replaceChildren(...d.words.map((w) => {
+      const rm = el("button", { className: "act danger", textContent: "Remove", ariaLabel: "Remove " + w.word });
+      rm.addEventListener("click", async () => { try { await api("/api/forget", { word: w.word }); } catch (e) { fail(e.message); } loadWords(); });
+      return el("tr", {}, el("td", { textContent: w.word }), el("td", { className: "n", textContent: String(w.count) }), el("td", { className: "n" }, rm));
+    }));
+    $("count").textContent = d.total ? (d.total > d.words.length ? "Showing " + d.words.length + " of " + d.total + " words. Search to narrow it down." : d.total + " words.") : "No words match.";
+  } catch (e) { if (e.status) fail(e.message); }
+}
+$("q").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(loadWords, 200); });
+$("sort").addEventListener("change", loadWords);
+
+// ---- stats
+const pct = (x) => Math.round(x * 100) + "%";
+function card(big, small) { return el("div", { className: "card" }, el("b", { textContent: big }), el("span", { textContent: small })); }
+function table(heads, rows) {
+  return el("table", {}, el("thead", {}, el("tr", {}, ...heads.map((h, i) => el("th", { className: i ? "n" : "", textContent: h })))),
+    el("tbody", {}, ...rows.map((r) => el("tr", {}, ...r.map((c, i) => el("td", { className: i ? "n" : "", textContent: String(c) }))))));
+}
+async function loadStats() {
+  try {
+    const s = await api("/api/stats?days=" + $("days").value);
+    const box = $("stats-body");
+    if (!s.available) { box.replaceChildren(el("p", { className: "empty", textContent: "Stats are switched off." })); return; }
+    const parts = [el("div", { className: "cards" },
+      card(s.keystrokes_saved.toLocaleString(), "keystrokes saved"),
+      card(pct(s.words.rate), "of word suggestions taken (" + s.words.accepted + " of " + s.words.shown + ")"),
+      card(String(s.phrases.accepted + s.phrases.partial), "phrases taken (" + s.phrases.shown + " shown)"),
+      card(String(s.dismissed), "dismissed"))];
+    parts.push(el("h2", { textContent: "By day" }), table(["Day", "Shown", "Taken", "Keystrokes saved"], s.daily.map((d) => [d.day, d.shown, d.accepted, d.saved])));
+    if (s.apps.length) parts.push(el("h2", { style: "margin-top:18px", textContent: "By app" }), table(["App", "Shown", "Taken", "Keystrokes saved"], s.apps.map((a) => [a.app, a.shown, a.accepted, a.saved])));
+    if (s.providers.length) parts.push(el("h2", { style: "margin-top:18px", textContent: "Phrase provider speed" }), table(["Provider", "Requests", "Errors", "First word, typical (ms)", "First word, slow (ms)"], s.providers.map((p) => [p.name, p.requests, p.errors, p.p50_ms, p.p95_ms])));
+    box.replaceChildren(...parts);
+  } catch (e) { if (e.status) fail(e.message); }
+}
+$("days").addEventListener("change", loadStats);
+
+// ---- settings
+const FIELDS = [
+  ["words", "Words", [
+    ["limit", "number", "How many words to show", { min: 1 }],
+    ["next", "bool", "Offer likely next words after a space"],
+    ["chunks", "bool", "Offer two- or three-word chunks while typing"],
+    ["next_threshold", "number", "How likely a next word must be", { min: 0, max: 1, step: 0.01, hint: "0 to 1; 0 shows the best few whatever the odds" }],
+  ]],
+  ["learning", "Learning", [
+    ["enabled", "bool", "Learn my words and habits"],
+    ["promote_after", "number", "Uses before a new word is suggested", { min: 1 }],
+  ]],
+  ["phrase", "Phrases", [
+    ["enabled", "bool", "Suggest phrases"],
+    ["models", "list", "Models, one per line", { hint: "Tried in order; the next only if the one before fails" }],
+    ["api_key", "key", "OpenRouter key"],
+  ]],
+  ["apps", "Apps", [
+    ["block", "list", "Stay silent in these apps", { hint: "One program name per line, like code.exe" }],
+    ["allow", "list", "Show phrases on their own in these apps"],
+  ]],
+  ["hotkeys", "Hotkey", [["pause", "text", "Pause and resume", { hint: "Like ctrl+alt+p; leave empty for none" }]]],
+];
+let loaded = {};
+async function loadSettings() {
+  try {
+    loaded = await api("/api/settings");
+    const form = $("form");
+    form.replaceChildren(...FIELDS.map(([sec, title, rows]) => el("fieldset", {}, el("legend", { textContent: title }), ...rows.map(([key, kind, label, opt]) => field(sec, key, kind, label, opt || {})))),
+      el("button", { className: "act primary", type: "submit", textContent: "Save settings" }));
+  } catch (e) { if (e.status) { $("form").replaceChildren(); fail(e.message); } }
+}
+function field(sec, key, kind, label, opt) {
+  const id = "f-" + sec + "-" + key;
+  const value = (loaded[sec] || {})[key];
+  let input;
+  if (kind === "bool") { input = el("input", { type: "checkbox", id, checked: !!value }); }
+  else if (kind === "number") { input = el("input", { type: "number", id, value: value, min: opt.min, max: opt.max, step: opt.step || 1 }); }
+  else if (kind === "list") { input = el("textarea", { id, value: (value || []).join("\n") }); }
+  else if (kind === "key") { input = el("input", { type: "password", id, autocomplete: "off", placeholder: loaded.phrase.api_key_set ? "A key is set. Type to replace it." : "Not set" }); }
+  else { input = el("input", { type: "text", id, value: value || "" }); }
+  input.dataset.sec = sec; input.dataset.key = key; input.dataset.kind = kind;
+  const small = opt.hint ? el("small", { textContent: opt.hint }) : "";
+  const row = el("label", { className: "row", htmlFor: id }, el("span", {}, label, small), input);
+  if (kind === "key" && loaded.phrase.api_key_set) {
+    const clear = el("button", { className: "act danger", type: "button", textContent: "Remove key" });
+    clear.addEventListener("click", () => save({ phrase: { api_key: "" } }, "Key removed."));
+    row.append(clear);
+  }
+  return row;
+}
+function readForm() {
+  const out = {};
+  for (const i of $("form").querySelectorAll("[data-key]")) {
+    const { sec, key, kind } = i.dataset;
+    let v;
+    if (kind === "bool") v = i.checked;
+    else if (kind === "number") { if (i.value === "") continue; v = Number(i.value); }
+    else if (kind === "list") v = i.value.split("\n").map((s) => s.trim()).filter(Boolean);
+    else if (kind === "key") { if (!i.value) continue; v = i.value.trim(); }
+    else v = i.value.trim();
+    if (kind !== "key" && JSON.stringify(v) === JSON.stringify(loaded[sec][key])) continue;  // send only what changed
+    (out[sec] = out[sec] || {})[key] = v;
+  }
+  return out;
+}
+async function save(changes, okText) {
+  const m = $("set-msg");
+  try {
+    loaded = await api("/api/settings", changes);
+    m.className = "msg ok"; m.textContent = okText || "Saved. It takes effect within a couple of seconds.";
+    const key = $("f-phrase-api_key"); if (key) key.value = "";
+    loadSettings().then(() => { m.hidden = false; });
+  } catch (e) { m.className = "msg bad"; m.textContent = e.message; }
+  m.hidden = false;
+}
+$("form").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const changes = readForm();
+  if (!Object.keys(changes).length) { const m = $("set-msg"); m.className = "msg ok"; m.textContent = "Nothing changed."; m.hidden = false; return; }
+  save(changes);
+});
+
+show("dict");
+</script>
+</body>
+</html>

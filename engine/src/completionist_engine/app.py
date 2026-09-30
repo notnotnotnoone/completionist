@@ -13,6 +13,7 @@ from completionist_engine.hotkeys import GlobalHotkey
 from completionist_engine.logsetup import setup_logging
 from completionist_engine.protocol import DEFAULT_PIPE_NAME
 from completionist_engine.server import start_server
+from completionist_engine.viewer import ViewerServer
 from completionist_engine.vocabulary import load_wordfreq_vocabulary
 
 logger = logging.getLogger("completionist_engine")
@@ -59,6 +60,7 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
     stop = asyncio.Event()
     tray = None
     hotkey = None
+    viewer = None
 
     def toggle_pause() -> bool:
         engine.paused = not engine.paused
@@ -70,6 +72,8 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
     if not args.no_tray:
         from completionist_engine.tray import Tray  # imported here: it needs a desktop, which the tests don't have
 
+        viewer = ViewerServer(assembled.personal, assembled.metrics, args.config)
+        await viewer.start()
         tray = Tray(
             toggle_pause=toggle_pause,
             is_paused=lambda: engine.paused,
@@ -77,6 +81,7 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
             config_path=args.config,
             log_dir=config.data_dir,
             quit_engine=lambda: loop.call_soon_threadsafe(stop.set),
+            viewer_url=lambda: viewer.url,
         )
         tray.start()
         if config.pause_hotkey:
@@ -104,5 +109,7 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
             hotkey.stop()
         if tray is not None:
             tray.stop()
+        if viewer is not None:
+            viewer.close()
         server.close()
         await assembled.aclose()

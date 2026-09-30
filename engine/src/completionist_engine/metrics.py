@@ -148,6 +148,22 @@ class Metrics:
             )
         return s
 
+    def daily(self, days: int = 7) -> list[tuple[str, int, int, int]]:
+        """One (day, shown, accepted, keystrokes saved) row for each of the last `days` days, oldest first."""
+        first = self._today() - timedelta(days=days - 1)
+        rows = {(first + timedelta(n)).isoformat(): [0, 0, 0] for n in range(days)}
+        found = [(day, kind, count, saved) for (day, _app, kind), (count, _chars, saved) in self._events.items()]
+        if self._db is not None:
+            found += self._db.execute("SELECT day, kind, count, saved FROM daily WHERE day >= ?", (first.isoformat(),)).fetchall()
+        for day, kind, count, saved in found:
+            if day in rows:
+                if kind.startswith("shown_"):
+                    rows[day][0] += count
+                elif kind.startswith("accept_"):
+                    rows[day][1] += count
+                    rows[day][2] += saved
+        return [(day, *values) for day, values in rows.items()]
+
     def _merged_events(self, since: str) -> dict[tuple[str, str], list[int]]:
         merged: dict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0, 0])
         for (day, app, kind), values in self._events.items():

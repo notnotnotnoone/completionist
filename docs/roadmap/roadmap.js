@@ -1015,63 +1015,114 @@ window.COMPLETIONIST_ROADMAP = {
       "id": "M8",
       "title": "Personal viewer",
       "status": "active",
-      "goal": "Let you see your personal dictionary and your stats, opened from the tray.",
-      "done_when": "The tray's Open viewer writes a local HTML page with your learned words, trigrams and stats and opens it in the browser, without a server, and it holds no typed-text history.",
+      "goal": "Let you see your personal dictionary and stats, remove words and change settings, from a page opened from the tray.",
+      "done_when": "The tray's Open viewer opens a page served by the engine on this machine. It lists learned words, trigrams and stats; removing a word there forgets it; changes in the settings panel reach config.toml and take effect without a restart; the API key can be typed in but is never shown back; it holds no typed-text history; and another website can't drive it.",
       "tasks": [
         {
           "id": "M8.1",
           "title": "Snapshot writer: personal dictionary and stats into one local HTML file",
-          "status": "todo",
+          "status": "dropped",
           "area": "viewer",
           "stories": [
             68,
             69
           ],
-          "notes": "Written into `%LOCALAPPDATA%\\Completionist` each time, from `personal.sqlite` and `metrics.sqlite`. No server and no open port: like the roadmap pages, it is a plain file opened from disk."
+          "notes": "Dropped 2026-09-30: a page opened from disk can't remove words or save settings, so the viewer is served by the engine instead (M8.6)."
         },
         {
           "id": "M8.2",
-          "title": "Viewer page: searchable, sortable dictionary and the stats, in the Evergreen theme",
-          "status": "todo",
+          "title": "Viewer page: searchable, sortable dictionary with remove, a settings form and the stats, in the Evergreen theme",
+          "status": "done",
           "area": "viewer",
           "stories": [
+            67,
             68,
-            69
+            69,
+            75
           ],
-          "notes": "Dictionary entries (words and trigrams) sortable by count and last seen, marked as learned or base words you use often. Stats per day and per app: shown, accepted, keystrokes saved, latency. Read-only, with the `completionist-words forget` command shown beside each entry."
+          "notes": "Built as one self-contained page the engine serves: a searchable, sortable dictionary of words with counts and a Remove button, a settings form (only changed fields are saved), and stats by day, app and provider speed, in the Evergreen colours. Left out: a trigram list, because the store has no way to list or remove a single trigram; forgetting a word still removes the pairs and triples it was in.",
+          "refs": [
+            "m8-viewer",
+            "engine/src/completionist_engine/viewer.html",
+            "0.6.0"
+          ]
         },
         {
           "id": "M8.3",
           "title": "Tray item: Open viewer",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             70
           ],
-          "notes": "Next to the existing \"Show stats\" item."
+          "notes": "Next to the existing \"Show stats\" item; opens the engine's local address with its token.",
+          "refs": [
+            "m8-viewer",
+            "engine/src/completionist_engine/tray.py",
+            "engine/src/completionist_engine/app.py",
+            "0.6.0"
+          ]
         },
         {
           "id": "M8.4",
-          "title": "Tests: the snapshot holds counts and dictionary entries only",
-          "status": "todo",
+          "title": "Tests: the page serves counts and dictionary entries only, and other websites can't drive it",
+          "status": "done",
           "area": "test",
           "stories": [
             17,
             56
           ],
-          "notes": "No typed-text history, no text from silent fields or blocked apps."
+          "notes": "No typed-text history, no text from silent fields or blocked apps. Requests without the token or from another origin are refused.",
+          "refs": [
+            "m8-viewer",
+            "engine/tests/test_viewer.py",
+            "engine/tests/test_settings.py",
+            "0.6.0"
+          ]
         },
         {
           "id": "M8.5",
           "title": "Check the viewer live",
-          "status": "todo",
+          "status": "dropped",
           "area": "test",
           "stories": [
             68,
             69,
             70
           ],
-          "notes": "Needs you: open it from the tray after some typing and check that the dictionary and stats look right."
+          "notes": "Dropped for the release: live checks no longer gate a milestone (see the 2026-09-30 decision); the viewer was driven in the browser pane instead. Checklist for when you want it: restart the engine, choose Open viewer in the tray, type for a while, check the dictionary and stats, remove a word, change the words limit and watch it apply within a couple of seconds, and type your key once to see the page say it is set but never show it."
+        },
+        {
+          "id": "M8.6",
+          "title": "Local viewer server in the engine, on this machine only",
+          "status": "done",
+          "area": "engine",
+          "stories": [
+            69,
+            70
+          ],
+          "notes": "Binds 127.0.0.1 only and needs a secret token that the tray's Open viewer puts in the address. Checks the Host and Origin headers so another website can't call it. Serves the page and a small JSON interface: list words, forget a word, read and write settings.",
+          "refs": [
+            "m8-viewer",
+            "engine/src/completionist_engine/viewer.py",
+            "0.6.0"
+          ]
+        },
+        {
+          "id": "M8.7",
+          "title": "Settings: show the config as a form and write changes back to config.toml",
+          "status": "done",
+          "area": "engine",
+          "stories": [
+            75
+          ],
+          "notes": "Only known options, validated, written back without losing the user's comments if practical. The phrase api_key is typed into the page by the user and saved to config.toml, but it is write-only: the engine never sends it to the page, the page shows only \"set\" or \"not set\", and it is never logged or printed in errors. The existing config hot reload applies changes.",
+          "refs": [
+            "m8-viewer",
+            "engine/src/completionist_engine/settings.py",
+            "engine/tests/test_settings.py",
+            "0.6.0"
+          ]
         }
       ]
     },
@@ -1386,7 +1437,7 @@ window.COMPLETIONIST_ROADMAP = {
       "status": "next",
       "title": "Personal viewer",
       "milestone": "M8",
-      "text": "You can now see what Completionist has learned. An Open viewer item in the tray writes a snapshot of your personal dictionary and your usage stats to a local HTML page and opens it in the browser. The dictionary lists the words and trigrams you use, searchable and sortable by how often and how recently you typed them. The stats show how often suggestions were shown and accepted, how many keystrokes they saved and how fast they were, by day and by app. The page is read-only, opens straight from disk with no server, and is never published. Forgetting a word stays a command-line job."
+      "text": "You can now see what Completionist has learned and change it. An Open viewer item in the tray opens a page in your browser, served to your own machine only by the running engine. The dictionary lists the words and trigrams you use, searchable and sortable by how often and how recently you typed them, and any entry can be removed from there. A settings panel shows the config file’s options as a form and writes changes back, so you don’t have to open the file; you can type the phrase API key there too, but the page can only write it and never shows it back. The stats show how often suggestions were shown and accepted, how many keystrokes they saved and how fast they were, by day and by app. The page holds counts only, never your typed text, and only the page the engine itself opened can change anything."
     },
     {
       "version": "0.7.0",
@@ -1508,7 +1559,8 @@ window.COMPLETIONIST_ROADMAP = {
     "71": "Suggest through typos",
     "72": "Mark the guessed letters",
     "73": "A guess never outranks a real prefix match",
-    "74": "One deliberate popup design"
+    "74": "One deliberate popup design",
+    "75": "Change my settings in the viewer"
   },
   "decisions": [
     {
@@ -1590,6 +1642,10 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "date": "2026-09-29",
       "text": "Google Docs and the Google search box are out of scope: canvas rendering and Google's own suggestion dropdown."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "The viewer is no longer a read-only file opened from disk. It is served by the engine on 127.0.0.1, can remove words and edit settings, and the `completionist-words` command is dropped; this replaces the earlier 'no server, forgetting stays a command' decision. The phrase API key can be typed into the settings page but is write-only: never sent back to the page, never logged."
     }
   ],
   "risks": [
@@ -1637,9 +1693,27 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "Chromium might expose only a small window of text through TSF.",
       "status": "retired",
       "mitigation": "Discord exposed 2,239 characters and Notepad the whole document."
+    },
+    {
+      "text": "A local server that can delete words and edit config could be driven by any web page the user visits.",
+      "status": "open",
+      "mitigation": "Bind 127.0.0.1 only, require a secret token, check Host and Origin, and tests for each (M8.4)."
+    },
+    {
+      "text": "The API key passes through the viewer's local server when typed on the settings page.",
+      "status": "open",
+      "mitigation": "Write-only: saved straight to config.toml, never returned, logged or printed, and the page is covered by the token and Origin checks (M8.4)."
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M8 built on branch m8-viewer: engine-served viewer (viewer.py and viewer.html), settings writer (settings.py), Metrics.daily, tray Open viewer, 38 new tests; M8.5 dropped."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "M8 replanned on main from the other session's draft: an engine-served viewer that removes words and edits settings (M8.1 dropped, M8.6 and M8.7 added, story 75, two risks). M8 active; M8.6 started. Trigram listing is left out: the store has no method for it."
+    },
     {
       "date": "2026-09-30",
       "text": "Pushed main and tag v0.5.0 to origin. Next is 0.6.0 (Personal viewer); its plan is being reworked in another session."
