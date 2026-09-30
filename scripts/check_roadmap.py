@@ -158,6 +158,45 @@ def check_releases(data: dict, milestone_ids: set[str], highways: dict, errors: 
         errors.append("releases: at most one release can be 'next'")
 
 
+def check_task_versions(data: dict, errors: list[str]) -> None:
+    """Every task carries the version it ships in. Shipped work names the release it went out in (several tasks can
+    share one). Work not shipped yet gets its own patch number, counting up from the last release before its group."""
+    releases = data.get("releases", [])
+    by_version = {r.get("version") for r in releases if r.get("status") == "released"}
+    ends: dict[str, tuple[int, int, int]] = {}
+    for r in releases:
+        match = VERSION.match(str(r.get("version", "")))
+        if r.get("milestone") and match:
+            ends[r["milestone"]] = tuple(int(g) for g in match.groups())
+    order = sorted(ends.values())
+    claimed: set[str] = set()
+    for m in data.get("milestones", []):
+        end = ends.get(m.get("id"))
+        before = order[order.index(end) - 1] if end and order.index(end) else None
+        after = order[order.index(end) + 1] if end and order.index(end) + 1 < len(order) else None
+        for t in m.get("tasks", []):
+            where = f"task {t.get('id', '?')}"
+            v = str(t.get("version", ""))
+            match = VERSION.match(v)
+            if not match:
+                errors.append(f"{where}: needs a 'version' (MAJOR.MINOR.PATCH)")
+                continue
+            parsed = tuple(int(g) for g in match.groups())
+            # Shipped work may name a patch released after its group's minor (a fix that followed it), so it only
+            # has to stay before the next group's release; unshipped work must land on or before its own.
+            top, inclusive = (after, False) if v in by_version and after else (end, True)
+            if top and not ((before is None or parsed > before) and (parsed <= top if inclusive else parsed < top)):
+                errors.append(f"{where}: version {v} must be after {'.'.join(map(str, before)) if before else 'the start'} "
+                              f"and {'no later than' if inclusive else 'before'} {'.'.join(map(str, top))}")
+            if v not in by_version:
+                if not parsed[2]:
+                    errors.append(f"{where}: version {v} is a finish-line release that has not shipped; "
+                                  "an unshipped task takes a patch number")
+                if v in claimed:
+                    errors.append(f"{where}: version {v} is used by another task (only a shipped release can hold several)")
+                claimed.add(v)
+
+
 def check(data: dict) -> list[str]:
     errors: list[str] = []
 
@@ -225,6 +264,7 @@ def check(data: dict) -> list[str]:
         errors.append(f"exactly one milestone must be 'active' (found {active})")
 
     check_releases(data, milestone_ids, check_highways(data, errors), errors)
+    check_task_versions(data, errors)
 
     for d in data.get("decisions", []):
         if not DATE.match(str(d.get("date", ""))) or not d.get("text"):

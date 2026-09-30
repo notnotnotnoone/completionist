@@ -53,7 +53,7 @@
     $("#posts").innerHTML = post(t.done, t.total, "tasks built")
       + post(released.length, releases.length, "releases shipped")
       + post(open, R.highways.length, "highways open")
-      + (ap ? post(ap.done, ap.total, `${active.id} progress`) : "")
+      + (ap ? post(ap.done, ap.total, `${R.releaseForMilestone[active.id].version} progress`) : "")
       + post(delivered, nums.length, "PRD stories delivered");
   }
 
@@ -97,7 +97,7 @@
   }
 
   // ---- travel guide
-  const taskLink = (t) => `<li class="g-task"><span class="pill s-${esc(t.status)}">${esc(R.STATUS[t.status].label)}</span><a class="mono" href="tasks.html#${esc(t.id)}">${esc(t.id)}</a><span>${rich(t.title)}</span></li>`;
+  const taskLink = (t) => `<li class="g-task"><span class="pill s-${esc(t.status)}">${esc(R.STATUS[t.status].label)}</span><a class="mono" href="tasks.html#${esc(t.id)}">${esc(t.version)}</a><span>${rich(t.title)}</span></li>`;
 
   function milestoneBox(m, hws) {
     const meters = hws.map((id) => {
@@ -108,7 +108,7 @@
       const list = R.tasksOn(m, id).slice().sort((a, b) => R.STATUS[a.status].rank - R.STATUS[b.status].rank);
       return list.length ? `<div class="g-group" style="--hw:${R.hwColor(id)}"><h4>${esc(R.hwById[id].title)}</h4><ul>${list.map(taskLink).join("")}</ul></div>` : "";
     }).join("");
-    return `<aside class="g-box"><p class="lbl">${esc(m.id)} · milestone</p><h4 class="g-goal">${esc(m.title)}</h4><p>${rich(m.goal)}</p>
+    return `<aside class="g-box"><p class="lbl">${esc(R.releaseForMilestone[m.id].version)} · release</p><h4 class="g-goal">${esc(m.title)}</h4><p>${rich(m.goal)}</p>
       <p class="g-done"><span class="lbl">Done when</span> ${rich(m.done_when)}</p>${meters}${groups}</aside>`;
   }
 

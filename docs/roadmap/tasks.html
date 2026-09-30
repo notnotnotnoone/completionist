@@ -169,7 +169,7 @@
     </div>
   </header>
 
-  <nav class="track" id="track" aria-label="Milestones"></nav>
+  <nav class="track" id="track" aria-label="Releases"></nav>
 
   <div class="filters" role="search">
     <label class="search"><input id="q" type="search" placeholder="Search tasks, files, notes" autocomplete="off" aria-label="Search tasks"><kbd>/</kbd></label>
@@ -249,7 +249,7 @@
     const live = list.filter((t) => t.status !== "dropped");
     return { done: live.filter((t) => t.status === "done").length, total: live.length };
   };
-  // A milestone is shown as its release and name ("0.2.0 · Smarter words"); the M-id stays a small key.
+  // A group of work is shown as its release and name ("0.2.0 · Smarter words"); a task shows the version it ships in. The M-ids are internal keys and never shown.
   const msVer = (m) => { const r = releaseFor[m.id]; return r ? r.version : m.id; };
   const msName = (m) => `${msVer(m)} · ${m.title}`;
   const byRank = (a, b) => STATUS[a.status].rank - STATUS[b.status].rank;
@@ -276,7 +276,7 @@
       else if (view.status !== "all" && t.status !== view.status) return false;
     }
     if (view.q) {
-      const hay = [t.id, t.title, t.notes, (t.refs || []).join(" "), areaName(t.area), t.ms.title].join(" ").toLowerCase();
+      const hay = [t.id, t.version, t.title, t.notes, (t.refs || []).join(" "), areaName(t.area), t.ms.title].join(" ").toLowerCase();
       if (!view.q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w))) return false;
     }
     return true;
@@ -299,7 +299,7 @@
     if (active) for (const t of active.tasks) if (queue.length < 5 && t.status === "todo") queue.push(t);
     const rows = queue.slice(0, 5);
     $("#pop-list").innerHTML = rows.length
-      ? rows.map((t, i) => `<button type="button" class="pop-row${i === 0 ? " hl" : ""}" data-task="${esc(t.id)}"><span class="pop-id">${esc(t.id)}</span><span>${esc(t.title)}</span><span class="pop-st">${STATUS[t.status].label}</span></button>`).join("")
+      ? rows.map((t, i) => `<button type="button" class="pop-row${i === 0 ? " hl" : ""}" data-task="${esc(t.id)}"><span class="pop-id">${esc(t.version)}</span><span>${esc(t.title)}</span><span class="pop-st">${STATUS[t.status].label}</span></button>`).join("")
       : `<p class="pop-empty">Nothing queued. Add tasks with status "next".</p>`;
     if (active) {
       const ap = progress(active.tasks);
@@ -320,7 +320,7 @@
         ${m ? strip(m) : ""}
         <span class="trk-meta num">${p.done}/${p.total} tasks</span>
       </button>`;
-    $("#track").innerHTML = card("all", "All", "planned", "", `All ${data.milestones.length} milestones`, all)
+    $("#track").innerHTML = card("all", "All", "planned", "", `All ${data.milestones.length} releases`, all)
       + data.milestones.map((m) => card(m.id, msVer(m), m.status, MS_STATUS[m.status] || m.status, m.title, progress(m.tasks), m)).join("");
   }
 
@@ -354,7 +354,7 @@
     const refs = t.refs && t.refs.length ? `<div class="t-row"><span class="lbl">Where</span><span class="refs">${t.refs.map(refHtml).join("")}</span></div>` : "";
     const body = (t.notes ? `<p>${rich(t.notes)}</p>` : "") + stories + refs;
     return `<li><details class="task${t.status === "dropped" ? " is-dropped" : ""}" id="${esc(t.id)}" style="--hw:${t.hw ? RM.hwColor(t.hw.id) : 'var(--line-strong)'}"${opened.has(t.id) ? " open" : ""}>
-      <summary><span class="pill s-${esc(t.status)}">${esc(STATUS[t.status]?.label || t.status)}</span><span class="t-id">${esc(t.id)}</span><span class="t-title">${rich(t.title)}</span><span class="t-area">${esc(t.hw ? t.hw.title : "")} · ${esc(areaName(t.area))}</span><span class="chev" aria-hidden="true">›</span></summary>
+      <summary><span class="pill s-${esc(t.status)}">${esc(STATUS[t.status]?.label || t.status)}</span><span class="t-id">${esc(t.version)}</span><span class="t-title">${rich(t.title)}</span><span class="t-area">${esc(t.hw ? t.hw.title : "")} · ${esc(areaName(t.area))}</span><span class="chev" aria-hidden="true">›</span></summary>
       <div class="t-body">${body || `<p class="mit">No notes yet.</p>`}</div>
     </details></li>`;
   }
@@ -388,7 +388,7 @@
 
   function storyInfo(n) {
     const live = (byStory[n] || []).filter((t) => t.status !== "dropped");
-    const by = live.length ? " · " + live.map((t) => `${esc(t.id)} (${STATUS[t.status].label.toLowerCase()})`).join(", ") : " · no task covers it yet";
+    const by = live.length ? " · " + live.map((t) => `${esc(t.version)} (${STATUS[t.status].label.toLowerCase()})`).join(", ") : " · no task covers it yet";
     return `<strong>#${n} ${esc(data.stories[n])}</strong> · ${COVER[storyState(n)]}${by}`;
   }
 

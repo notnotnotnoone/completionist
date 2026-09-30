@@ -97,7 +97,7 @@ It is built as a **Text Services Framework (TSF) text service**, the same mechan
 | Metrics | Counts and timings in `metrics.sqlite`, shown by `completionist-stats` |
 | Harness | The scripts under `tip/tests` that drive the real DLL through real TSF. `tsf_e2e.ps1` steals focus |
 | Spike | The throwaway M0 experiment in `tip/spike/` that proved the TSF approach |
-| Milestone | A group of tasks (M0, M1, ...). Each minor release is one milestone, and the pages show it as that release and name ("0.2.0 · Smarter words"). M-ids are stable keys only |
+| Release group | The tasks leading to one minor release. Kept in the `milestones` list as an internal key (M0, M1, ...); the pages show only the release and name ("0.2.0 · Smarter words"). A task shows the version it ships in: shipped work names its release, unshipped work gets one patch number each (0.6.2 ... 0.6.10, then 0.7.0 is the finish line) |
 | Release tiers | Patch (a sentence), minor (a paragraph, one milestone), major (an essay) |
 | Highway | On the roadmap map, one part of the app: Engine, Text service, Tooling, Browser extension |
 | Interchange | A major release: every open highway meets here |
