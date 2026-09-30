@@ -1642,6 +1642,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-09-30",
+      "text": "Pushed main and tag v0.5.0 to origin. Next is 0.6.0 (Personal viewer); its plan is being reworked in another session."
+    },
+    {
+      "date": "2026-09-30",
       "text": "Release 0.5.0 (N-gram suggestions): M7 done; M7.9 dropped (live checks no longer gate); smoke-tested through the real engine; M8 is active and 0.6.0 is next."
     },
     {
