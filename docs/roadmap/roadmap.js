@@ -1610,6 +1610,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-09-30",
+      "text": "Pushed main and tag v0.4.1 to origin; engine tests pass on main (422)."
+    },
+    {
+      "date": "2026-09-30",
       "text": "Release 0.4.1: merged m7-next-words and m7-words-command into main; .commandcode is now gitignored and untracked."
     },
     {
