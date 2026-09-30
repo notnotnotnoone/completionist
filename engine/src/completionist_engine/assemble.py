@@ -4,7 +4,6 @@ import logging
 import os
 from dataclasses import dataclass
 
-from completionist_engine.budget import DailyBudget
 from completionist_engine.config import Config
 from completionist_engine.engine import Engine
 from completionist_engine.metrics import Metrics
@@ -18,7 +17,6 @@ logger = logging.getLogger("completionist_engine")
 
 NGRAMS_FILE = "ngrams.sqlite"
 PERSONAL_FILE = "personal.sqlite"
-SPEND_FILE = "spend.json"
 METRICS_FILE = "metrics.sqlite"
 
 
@@ -90,16 +88,9 @@ def _open_ngrams(config: Config) -> NgramTable | None:
 def _phrase_service(config: Config, api_key: str | None, metrics: Metrics) -> PhraseService | None:
     phrase = config.phrase
     key = api_key if api_key is not None else os.environ.get(phrase.provider.api_key_env)
-    budget = DailyBudget(phrase.daily_budget_usd, phrase.prices, path=config.data_dir / SPEND_FILE)
-    service = PhraseService(phrase, key, budget, metrics=metrics, key_from_env=api_key is None)
+    service = PhraseService(phrase, key, metrics=metrics, key_from_env=api_key is None)
     if service.available:
-        logger.info(
-            "phrases on: %s at %s, budget $%.2f/day ($%.4f spent today)",
-            ", ".join(phrase.provider.models),
-            phrase.provider.base_url,
-            phrase.daily_budget_usd,
-            budget.spent_today,
-        )
+        logger.info("phrases on: %s at %s", ", ".join(phrase.provider.models), phrase.provider.base_url)
     else:
         logger.info("phrases off: set %s to turn them on", phrase.provider.api_key_env)
     return service

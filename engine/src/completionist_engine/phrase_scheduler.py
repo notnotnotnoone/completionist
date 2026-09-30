@@ -5,8 +5,8 @@ plain numbers. The async service (`phrases.py`) carries out the actions it retur
 
 Rules:
   * In "auto" mode a request starts after a pause (default 350 ms) with no new keystroke; in "hotkey"
-    mode only the hotkey starts one; "off" never does. Nothing starts when the budget is spent or the
-    field is empty.
+    mode only the hotkey starts one; "off" never does. Nothing starts while phrases are paused (the
+    provider kept failing) or the field is empty.
   * Typing what the phrase says trims it in place (no new request). Typing anything else cancels the
     request, clears the phrase, and in auto mode asks again after the next pause.
   * A chunk that arrives after the writer has typed something different is dropped.
@@ -61,7 +61,7 @@ class PhraseScheduler:
 
     # -- events ----------------------------------------------------------------------------------
 
-    def request(self, request: Request, mode: Mode, now: float, budget_ok: bool) -> Update:
+    def request(self, request: Request, mode: Mode, now: float, usable: bool) -> Update:
         """A keystroke (or caret move): the text before the caret is now `request.before`."""
         self._latest = request
         self._mode = mode
@@ -74,12 +74,12 @@ class PhraseScheduler:
             actions += self._clear()
         self._pending = None
         self._due = None
-        if mode == "auto" and budget_ok and request.before.strip():
+        if mode == "auto" and usable and request.before.strip():
             self._pending = request
             self._due = now + self.debounce
         return Update(tuple(actions), "", True, request.id)
 
-    def hotkey(self, request: Request, mode: Mode, now: float, budget_ok: bool) -> Update:
+    def hotkey(self, request: Request, mode: Mode, now: float, usable: bool) -> Update:
         """The writer pressed the phrase hotkey."""
         del now
         self._latest = request
@@ -91,7 +91,7 @@ class PhraseScheduler:
         actions = self._clear()
         self._pending = None
         self._due = None
-        if mode == "off" or not budget_ok or not request.before.strip():
+        if mode == "off" or not usable or not request.before.strip():
             return Update(tuple(actions), "", True, request.id)
         return Update((*actions, *self._start(request)), "", False, request.id)
 

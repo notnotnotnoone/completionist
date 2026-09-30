@@ -33,7 +33,6 @@ class ProviderSummary:
     ttft_p50: float = 0.0
     ttft_p95: float = 0.0
     total_avg: float = 0.0
-    cost: float = 0.0
 
     @property
     def error_rate(self) -> float:
@@ -68,7 +67,7 @@ class Metrics:
         self._db: sqlite3.Connection | None = None
         # (day, app, kind) -> [count, chars, saved]; "shown_*", "accept_*", "dismiss" kinds
         self._events: dict[tuple[str, str, str], list[int]] = defaultdict(lambda: [0, 0, 0])
-        self._providers: dict[tuple[str, str], list[float]] = defaultdict(lambda: [0, 0, 0.0, 0.0])  # requests, errors, total_s, cost
+        self._providers: dict[tuple[str, str], list[float]] = defaultdict(lambda: [0, 0, 0.0])  # requests, errors, total_s
         self._ttft: dict[tuple[str, str, int], int] = defaultdict(int)
         self._dirty = False
         if path is not None:
@@ -93,7 +92,7 @@ class Metrics:
         self._events[(self._day(), app, "dismiss")][0] += 1
         self._dirty = True
 
-    def record_provider(self, provider: str, ttft: float | None, total: float | None, ok: bool, cost: float) -> None:
+    def record_provider(self, provider: str, ttft: float | None, total: float | None, ok: bool) -> None:
         day = self._day()
         entry = self._providers[(day, provider)]
         entry[0] += 1
@@ -103,7 +102,6 @@ class Metrics:
             entry[2] += total or 0.0
             if ttft is not None:
                 self._ttft[(day, provider, min(int(ttft * 1000) // _BUCKET_MS, _BUCKETS - 1))] += 1
-        entry[3] += cost
         self._dirty = True
 
     def _day(self) -> str:
@@ -138,7 +136,7 @@ class Metrics:
                 s.dismissed += count
         s.per_app = {a: v for a, v in s.per_app.items() if v.shown or v.accepted}
         totals, buckets = self._merged_providers(since)
-        for provider, (requests, errors, total_s, cost) in totals.items():
+        for provider, (requests, errors, total_s) in totals.items():
             ok = requests - errors
             counts = buckets.get(provider, {})
             s.providers[provider] = ProviderSummary(
@@ -147,7 +145,6 @@ class Metrics:
                 ttft_p50=_percentile(counts, 0.50),
                 ttft_p95=_percentile(counts, 0.95),
                 total_avg=total_s / ok if ok > 0 else 0.0,
-                cost=cost,
             )
         return s
 
@@ -166,20 +163,20 @@ class Metrics:
         return merged
 
     def _merged_providers(self, since: str):
-        totals: dict[str, list[float]] = defaultdict(lambda: [0, 0, 0.0, 0.0])
+        totals: dict[str, list[float]] = defaultdict(lambda: [0, 0, 0.0])
         buckets: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int))
         for (day, provider), values in self._providers.items():
             if day >= since:
-                for i in range(4):
+                for i in range(3):
                     totals[provider][i] += values[i]
         for (day, provider, bucket), count in self._ttft.items():
             if day >= since:
                 buckets[provider][bucket] += count
         if self._db is not None:
-            for provider, requests, errors, total_s, cost in self._db.execute(
-                "SELECT provider, SUM(requests), SUM(errors), SUM(total_s), SUM(cost) FROM provider_daily WHERE day >= ? GROUP BY provider", (since,)
+            for provider, requests, errors, total_s in self._db.execute(
+                "SELECT provider, SUM(requests), SUM(errors), SUM(total_s) FROM provider_daily WHERE day >= ? GROUP BY provider", (since,)
             ):
-                for i, v in enumerate((requests, errors, total_s, cost)):
+                for i, v in enumerate((requests, errors, total_s)):
                     totals[provider][i] += v
             for provider, bucket, count in self._db.execute(
                 "SELECT provider, bucket, SUM(count) FROM ttft WHERE day >= ? GROUP BY provider, bucket", (since,)
@@ -216,11 +213,13 @@ class Metrics:
             CREATE TABLE IF NOT EXISTS daily (day TEXT NOT NULL, app TEXT NOT NULL, kind TEXT NOT NULL,
                 count INTEGER NOT NULL, chars INTEGER NOT NULL, saved INTEGER NOT NULL, PRIMARY KEY (day, app, kind)) WITHOUT ROWID;
             CREATE TABLE IF NOT EXISTS provider_daily (day TEXT NOT NULL, provider TEXT NOT NULL, requests INTEGER NOT NULL,
-                errors INTEGER NOT NULL, total_s REAL NOT NULL, cost REAL NOT NULL, PRIMARY KEY (day, provider)) WITHOUT ROWID;
+                errors INTEGER NOT NULL, total_s REAL NOT NULL, PRIMARY KEY (day, provider)) WITHOUT ROWID;
             CREATE TABLE IF NOT EXISTS ttft (day TEXT NOT NULL, provider TEXT NOT NULL, bucket INTEGER NOT NULL,
                 count INTEGER NOT NULL, PRIMARY KEY (day, provider, bucket)) WITHOUT ROWID;
             """
         )
+        if "cost" in [row[1] for row in db.execute("PRAGMA table_info(provider_daily)")]:
+            db.execute("ALTER TABLE provider_daily DROP COLUMN cost")  # older files counted spend; that's gone
         db.commit()
 
     def flush(self) -> None:
@@ -235,12 +234,12 @@ class Metrics:
                         "count = count + excluded.count, chars = chars + excluded.chars, saved = saved + excluded.saved",
                         (day, app, kind, count, chars, saved),
                     )
-                for (day, provider), (requests, errors, total_s, cost) in self._providers.items():
+                for (day, provider), (requests, errors, total_s) in self._providers.items():
                     self._db.execute(
-                        "INSERT INTO provider_daily VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(day, provider) DO UPDATE SET "
+                        "INSERT INTO provider_daily VALUES (?, ?, ?, ?, ?) ON CONFLICT(day, provider) DO UPDATE SET "
                         "requests = requests + excluded.requests, errors = errors + excluded.errors, "
-                        "total_s = total_s + excluded.total_s, cost = cost + excluded.cost",
-                        (day, provider, requests, errors, total_s, cost),
+                        "total_s = total_s + excluded.total_s",
+                        (day, provider, requests, errors, total_s),
                     )
                 for (day, provider, bucket), count in self._ttft.items():
                     self._db.execute(
@@ -295,6 +294,6 @@ def format_summary(s: Summary, days: int) -> str:
         for name, p in s.providers.items():
             lines.append(
                 f"    {name:<16} {p.requests:,} requests, {p.error_rate:.0%} errors, first token p50 {p.ttft_p50 * 1000:.0f} ms"
-                f" / p95 {p.ttft_p95 * 1000:.0f} ms, ${p.cost:.4f}"
+                f" / p95 {p.ttft_p95 * 1000:.0f} ms"
             )
     return "\n".join(lines)

@@ -99,7 +99,7 @@ def test_data_dir_defaults_under_localappdata_and_can_move(monkeypatch, tmp_path
 # --- phrase settings --------------------------------------------------------------------------
 
 
-def test_phrase_defaults_match_the_budget_plan():
+def test_phrase_defaults():
     phrase = Config().phrase
     assert phrase.enabled is True
     assert phrase.provider.api_key_env == "OPENROUTER_API_KEY"
@@ -107,7 +107,6 @@ def test_phrase_defaults_match_the_budget_plan():
     assert phrase.provider.fim is False
     assert phrase.debounce == pytest.approx(0.35)
     assert (phrase.context_before, phrase.context_after) == (8000, 2000)
-    assert phrase.daily_budget_usd == pytest.approx(0.50)
 
 
 def test_phrase_settings_can_be_overridden(tmp_path):
@@ -126,10 +125,6 @@ def test_phrase_settings_can_be_overridden(tmp_path):
         debounce_ms = 500
         context_before = 4000
         context_after = 0
-        daily_budget_usd = 0.25
-        price_input_per_m = 0.1
-        price_cached_per_m = 0.01
-        price_output_per_m = 0.4
         """,
     )
     phrase = load_config(path).phrase
@@ -139,8 +134,6 @@ def test_phrase_settings_can_be_overridden(tmp_path):
     assert phrase.provider.timeout == 2.5
     assert phrase.debounce == pytest.approx(0.5)
     assert (phrase.context_before, phrase.context_after) == (4000, 0)
-    assert phrase.daily_budget_usd == 0.25
-    assert (phrase.prices.input_per_m, phrase.prices.cached_per_m, phrase.prices.output_per_m) == (0.1, 0.01, 0.4)
 
 
 def test_the_api_key_itself_cannot_be_put_in_the_config(tmp_path):
@@ -152,8 +145,8 @@ def test_the_api_key_itself_cannot_be_put_in_the_config(tmp_path):
     "line",
     [
         "enabled = 'yes'", "base_url = ''", "models = 3", "models = []", "models = ['a', 3]", "models = 'a'", "fim = 1", "max_tokens = 0", "temperature = -1", "timeout = 0",
-        "debounce_ms = -5", "context_before = 0", "context_after = -1", "daily_budget_usd = -0.5", "price_input_per_m = 'x'",
-        "turbo = true",
+        "debounce_ms = -5", "context_before = 0", "context_after = -1",
+        "turbo = true", "daily_budget_usd = 0.5", "price_input_per_m = 0.3",
     ],
 )  # fmt: skip
 def test_invalid_phrase_settings_are_rejected(tmp_path, line):

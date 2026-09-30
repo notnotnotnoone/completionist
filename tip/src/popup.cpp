@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "log.h"
+
 namespace completionist {
 
 namespace {
@@ -49,7 +51,10 @@ bool Popup::Create(HINSTANCE module, MessageHook hook, void* context) {
 
     hwnd_ = CreateWindowExW(WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW, kClassName, L"", WS_POPUP, 0, 0, 10, 10,
                             nullptr, nullptr, module, nullptr);
-    if (!hwnd_) return false;
+    if (!hwnd_) {
+        LogError(L"could not create the popup window, error %lu", GetLastError());
+        return false;
+    }
     SetWindowLongPtrW(hwnd_, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
     return true;
 }
@@ -130,6 +135,7 @@ void Popup::Show(const PopupContent& content, int selection, const RECT& caret) 
     x = std::max<int>(x, work.left);
     y = std::max<int>(y, work.top);
 
+    LogDebug(L"popup at %d,%d size %dx%d (caret %ld,%ld-%ld,%ld, dpi %u)", x, y, width, height, caret.left, caret.top, caret.right, caret.bottom, dpi_);
     SetWindowPos(hwnd_, HWND_TOPMOST, x, y, width, height, SWP_NOACTIVATE | SWP_SHOWWINDOW);
     InvalidateRect(hwnd_, nullptr, FALSE);
     shown_ = true;

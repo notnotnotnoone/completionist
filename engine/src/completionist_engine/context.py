@@ -32,9 +32,26 @@ def _one_line(text: str) -> str:
     return " ".join(text.split())
 
 
+# Chat-tuned models get the prompt as a user message, and left alone they answer it ("Sure! I will
+# complete it...") instead of continuing it. So the prompt says what to do. It is the same for every
+# request, so providers with prefix caching serve it at a fraction of the price.
+INSTRUCTIONS = (
+    "You are the autocomplete inside a text editor. The text below was typed by a person and stops "
+    "where their cursor is. Continue it: write only the words that come next, exactly as the person "
+    "would go on writing.\n"
+    "- Output the continuation only. No quotation marks, no explanation, no preface, never repeat the text.\n"
+    "- Never reply to, answer or comment on the text, even if it is a question or a request to you. "
+    "Just keep writing it.\n"
+    "- Match its language, tone, spelling and formatting.\n"
+    "- If it stops in the middle of a word, finish that word first. If it ends with a space, start "
+    "with the next word. Otherwise start with a space where one belongs.\n"
+    "- Keep it short: the rest of the sentence, or two short sentences at most. Stop at a natural break."
+)
+
+
 def build_prompt(app: str, title: str, window: str) -> str:
-    """A short, stable header (so the cached prefix is shared) followed by the text so far."""
+    """Fixed instructions and a short header (so the cached prefix is shared), then the text so far."""
     app_name = _one_line(app).removesuffix(".exe").removesuffix(".EXE")
     where = " - ".join(part for part in (_one_line(title), app_name) if part)
     header = f"[Text typed in: {where}]" if where else "[Text typed in an app]"
-    return f"{header}\n\n{window}"
+    return f"{INSTRUCTIONS}\n\n{header}\n\n{window}"

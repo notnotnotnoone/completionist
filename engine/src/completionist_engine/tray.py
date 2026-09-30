@@ -28,7 +28,6 @@ CONFIG_TEMPLATE = """# Completionist settings. Everything here is optional; chan
 
 [phrase]
 # enabled = true
-# daily_budget_usd = 0.50       # phrases stop for the day once this much is spent
 # The API key is never stored here: set the environment variable named by api_key_env
 # (default OPENROUTER_API_KEY) with:  setx OPENROUTER_API_KEY "your key"
 

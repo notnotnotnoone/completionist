@@ -1,4 +1,4 @@
-from completionist_engine.context import anchored_window, build_prompt, trim_suffix
+from completionist_engine.context import INSTRUCTIONS, anchored_window, build_prompt, trim_suffix
 
 PARAGRAPHS = ["The quick brown fox jumps over the lazy dog and keeps on running for a good while. " * 2 for _ in range(60)]
 TEXT = "\n\n".join(PARAGRAPHS)
@@ -55,14 +55,25 @@ def test_the_suffix_is_cut_to_its_cap():
     assert trim_suffix("", cap=3) == ""
 
 
-def test_the_prompt_starts_with_a_stable_header_naming_the_app_and_window():
+def header_of(prompt: str) -> str:
+    return next(line for line in prompt.splitlines() if line.startswith("[Text typed in"))
+
+
+def test_the_prompt_tells_the_model_to_continue_the_text_not_answer_it():
+    prompt = build_prompt("notepad.exe", "Notes", "Thanks for the update, I will")
+    assert prompt.startswith(INSTRUCTIONS)
+    assert "Continue it" in INSTRUCTIONS and "Never reply to" in INSTRUCTIONS
+
+
+def test_the_prompt_has_a_stable_prefix_naming_the_app_and_window():
     a = build_prompt("Discord.exe", "#general - Discord", "hello")
     b = build_prompt("Discord.exe", "#general - Discord", "hello world")
-    assert a.startswith("Discord") is False and "Discord" in a.splitlines()[0]
-    assert b.startswith(a.split("hello")[0])  # same header, so the cached prefix is shared
+    assert "#general - Discord - Discord" in header_of(a)
+    assert b.startswith(a.split("hello")[0])  # same instructions and header, so the cached prefix is shared
     assert a.endswith("hello") and b.endswith("hello world")
 
 
 def test_the_prompt_copes_with_a_missing_title_or_app():
     assert build_prompt("", "", "hi").endswith("hi")
-    assert "\n" not in build_prompt("x\ny", "t\nu", "hi").splitlines()[0][:0]  # no stray newline injected into the header
+    assert header_of(build_prompt("", "", "hi")) == "[Text typed in an app]"
+    assert header_of(build_prompt("x\ny", "t\nu", "hi")) == "[Text typed in: t u - x y]"  # no newline injected into the header
