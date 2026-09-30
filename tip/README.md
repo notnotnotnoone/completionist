@@ -1,6 +1,6 @@
 # Typer text service (the DLL)
 
-A C++ TSF text service. Windows loads it into every app that has text input; it reads the text around the caret, asks the [engine](../engine) for word completions over the named pipe, and draws them in a popup at the caret. Tab, Up, Down and Esc drive the popup; Enter is never touched.
+A C++ TSF text service. Windows loads it into every app that has text input; it reads the text around the caret, asks the [engine](../engine) for word completions over the named pipe, and draws them in a popup at the caret. Tab, Up, Down and Esc drive the popup; Ctrl+Right takes the next word of a phrase and Ctrl+Space asks for one. Enter is never touched.
 
 `spike/` holds the throwaway Milestone 0 spike this grew out of.
 
@@ -8,7 +8,7 @@ A C++ TSF text service. Windows loads it into every app that has text input; it 
 
 | File | What |
 |---|---|
-| `src/popup_model.h` | Pure popup state and key rules. Tested natively. |
+| `src/popup_model.h` | Pure popup state and key rules: phrase row, a 150 ms window before a fresh phrase can take Tab, Esc quieting. Tested natively. |
 | `src/protocol.{h,cpp}` | Frame codec, JSON, UTF-8/UTF-16. Pure. Tested natively. |
 | `src/engine_client.{h,cpp}` | Worker-thread pipe client: reconnect with backoff, drops stale replies, checks the engine runs as the same user. |
 | `src/popup.{h,cpp}` | The popup window: DPI-aware, never takes focus, click-through, stays on the caret's monitor. |
@@ -24,12 +24,14 @@ A C++ TSF text service. Windows loads it into every app that has text input; it 
 .\test.cmd           # native tests: key router and protocol codec
 .\tests\e2e.ps1      # client against the real engine: no engine, late start, kill, restart
 .\tests\load_test.ps1  # loads the unregistered DLL, activates and tears it down 40 times on a real TSF thread manager
-.\tests\tsf_e2e.ps1     # the real DLL through real TSF against a simulated text field and the real engine (popup screenshots in out\shots); -Unaware runs it as a DPI-unaware app
+.\tests\tsf_e2e.ps1     # the real DLL through real TSF against a simulated text field, the real engine and a fake phrase provider: words, both phrase modes, and the engine being killed and restarted (screenshots in out\shots). -Unaware runs it DPI-unaware; -ResilienceOnly runs just the kill/restart part
 ```
+
+**The TSF harness takes over the screen.** It opens a real window, needs the foreground for TSF to give it focus, and taps real Ctrl. Run it while you're away from the PC, not while working; a busy desktop makes it fail.
 
 ## Install
 
-Apps keep the DLL loaded (and locked). `build.cmd` renames the old DLL out of the way, so rebuilding always works, but an app only picks up the new build after it restarts. Chrome keeps running in the background: use `chrome://restart`.
+Most people should run `..\scripts\install.ps1`, which does all of this and also sets up the engine. By hand: apps keep the DLL loaded (and locked). `build.cmd` renames the old DLL out of the way, so rebuilding always works, but an app only picks up the new build after it restarts. Chrome keeps running in the background: use `chrome://restart`.
 
 ```powershell
 .\build.cmd

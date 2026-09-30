@@ -1,13 +1,19 @@
 # typer-engine
 
-The background process behind Typer. It serves word completions (and later phrase continuations) to the TSF text service over a named pipe. See the [PRD](https://github.com/notnotnotnoone/typer/issues/1).
+The background process behind Typer. It serves word completions and phrase continuations to the TSF text service over the named pipe `\\.\pipe\typer-engine`, learns your vocabulary, and keeps usage numbers. See the [PRD](https://github.com/notnotnotnoone/typer/issues/1).
 
 ```bash
 uv sync
 uv run pytest
-uv run typer-engine            # serve on \\.\pipe\typer-engine
-uv run typer-probe "I'd like to recomm"   # ask a running engine, without the DLL
+uv run typer-engine                         # serve, with the tray icon and pause hotkey
+uv run typer-engine --no-tray               # serve without them (tests, servers)
+uv run typer-probe "I'd like to recomm"     # ask a running engine, without the DLL
+uv run typer-stats --days 7                 # what Typer has saved you, and how the phrase provider is doing
+uv run typer-build-ngrams corpus.txt        # build the n-gram file (see below)
+uv run typer-bench --help                   # compare phrase providers (see ../bench)
 ```
+
+Normally `..\scripts\install.ps1` starts it at logon, so you don't run it by hand.
 
 ## How words are ranked
 
@@ -15,14 +21,36 @@ uv run typer-probe "I'd like to recomm"   # ask a running engine, without the DL
 2. **Context.** With `ngrams.sqlite` in the data folder, bigram and trigram counts re-rank by the previous one or two words ("I'd like to" -> "know" over "knowledge"). The same corpus stats drop misspellings and surnames from the rare end of the vocabulary.
 3. **Habits.** The personal store boosts words and word pairs you use, and adds words outside the dictionary (names, slang) after 3 uses. It holds counts of single words and word pairs only, never text. Only real typing counts (one character at a time); pasted text, caret jumps and backspacing do not. Nothing is learned in password/URL/email/number fields or block-listed apps.
 
+## How phrases work
+
+A phrase is a continuation of your sentence from a cheap cloud completion model, streamed into the popup's top row.
+
+- **Provider:** any OpenAI-compatible `/completions` endpoint. The default is DeepSeek (`https://api.deepseek.com/beta`, `deepseek-chat`, key in `DEEPSEEK_API_KEY`). The text after the caret is sent as `suffix` (fill-in-the-middle) so the phrase fits what follows.
+- **Context sent:** up to 8,000 characters before the caret and 2,000 after, cut at paragraph/sentence boundaries so the provider's prefix cache hits.
+- **When:** in apps listed under `[apps] allow`, a phrase is requested 350 ms after you pause. Everywhere else, only when you press Ctrl+Space.
+- **Cost:** spend is counted per day (`spend.json`); phrases stop for the day at `daily_budget_usd` (default $0.50). Three provider failures in a row pause phrases for 30 s.
+- **Privacy:** nothing is sent from password fields or block-listed apps. Text goes only to the provider you configured.
+- **Key:** never stored in the config. Set the environment variable named by `api_key_env`.
+
+## Tray, hotkey, stats and logs
+
+- **Tray icon:** pause/resume, show stats, open the settings file, open the log folder, quit. Blue when on, grey when paused.
+- **Pause hotkey:** Ctrl+Alt+P by default (`[hotkeys] pause`, or `""` to turn it off). While paused, replies are empty and nothing is learned.
+- **Stats:** `metrics.sqlite` holds counts and timings only (shown, accepted, keystrokes saved, provider latency and cost per day, app and provider), never typed text. `typer-stats` prints a summary.
+- **Logs:** `engine.log` (rotating). Requests slower than 25 ms and provider errors are logged.
+- **Hot reload:** edits to `config.toml` apply within a couple of seconds. A bad edit keeps the old settings and logs why. Changing `[data] dir` needs a restart.
+
 ## Data files
 
-Both live in `%LOCALAPPDATA%\Typer` (change with `[data] dir` in the config).
+All live in `%LOCALAPPDATA%\Typer` (change with `[data] dir` in the config).
 
 | File | Made by | What |
 |---|---|---|
 | `ngrams.sqlite` | `typer-build-ngrams` | Word counts and pruned bigram/trigram tables from a text corpus. Optional. |
 | `personal.sqlite` | the engine | Your word and word-pair counts. Saved every 10 s and on exit. |
+| `metrics.sqlite` | the engine | Usage counts and timings. |
+| `spend.json` | the engine | Today's phrase spend. |
+| `engine.log` | the engine | Log. |
 
 Build the n-gram file from any plain text (`.txt`, `.gz`, or folders of them):
 
@@ -30,16 +58,16 @@ Build the n-gram file from any plain text (`.txt`, `.gz`, or folders of them):
 uv run typer-build-ngrams corpus1.txt corpus2.txt
 ```
 
-The current file was built from WikiText-103 (81M words): 100k-word vocabulary, 0.8M bigrams, 1.6M trigrams, 66 MB, ~6.5 minutes. It is encyclopedic English, so it helps most on formal text.
+The current file was built from WikiText-103 (81M words): 100k-word vocabulary, 0.8M bigrams, 1.6M trigrams, 66 MB, ~6.5 minutes. It is encyclopedic English, so it helps most on formal text; a chat corpus would suit Discord better.
 
 ## Config
 
-`%APPDATA%\Typer\config.toml`, all optional:
+`%APPDATA%\Typer\config.toml`, all optional (the tray's "Open settings file" creates a commented template):
 
 ```toml
 [apps]
 block = ["code.exe"]        # no suggestions at all
-allow = ["obsidian.exe"]    # automatic phrase suggestions (Milestone 3)
+allow = ["obsidian.exe"]    # phrases appear on their own here
 
 [words]
 limit = 5
@@ -47,6 +75,26 @@ limit = 5
 [learning]
 enabled = true
 promote_after = 3
+
+[phrase]
+enabled = true
+base_url = "https://api.deepseek.com/beta"
+model = "deepseek-chat"
+api_key_env = "DEEPSEEK_API_KEY"
+fim = true
+max_tokens = 40
+temperature = 0.2
+timeout = 4.0
+debounce_ms = 350
+context_before = 8000
+context_after = 2000
+daily_budget_usd = 0.50
+price_input_per_m = 0.30      # dollars per million tokens, used for the budget
+price_cached_per_m = 0.006
+price_output_per_m = 1.20
+
+[hotkeys]
+pause = "ctrl+alt+p"
 
 [data]
 dir = "C:/somewhere"
