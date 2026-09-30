@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-09-30",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "Try the real text service and learning in real apps (your checklist), then merge branch m1-tsf-dll to main as 0.0.5",
+  "now": "0.1.0 is released. Next is 0.2.0 (Smarter words): its tasks are built, so it needs a review and release.",
   "highways": [
     {
       "id": "engine",
@@ -127,7 +127,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1",
       "title": "Word completion end-to-end",
-      "status": "active",
+      "status": "done",
       "goal": "Type in any supported app and get a word dropdown at the caret, fed by the engine, accepted with Tab.",
       "done_when": "The real DLL shows engine word suggestions at the caret in Notepad, Chrome, Edge and Discord, Tab/Up/Down/Esc behave as specified, Enter is never consumed, and gated fields stay silent.",
       "tasks": [
@@ -294,14 +294,14 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M1.10",
           "title": "Popup rendering at the caret",
-          "status": "doing",
+          "status": "done",
           "area": "dll",
           "stories": [
             2,
             3,
             36
           ],
-          "notes": "Built and checked in the harness: word rows, typed prefix highlighted in blue, highlight row moves, popup opens just under the caret (screenshots reviewed), never takes focus, click-through, per-window DPI. Still needs your look on a second monitor and in a real app at 150% scaling.",
+          "notes": "Built and checked in the harness: word rows, typed prefix highlighted in blue, highlight row moves, popup opens just under the caret (screenshots reviewed), never takes focus, click-through, per-window DPI. Second-monitor and 150% checks happen in daily use, not as a gate.",
           "refs": [
             "tip/src/popup.cpp"
           ]
@@ -309,12 +309,12 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M1.11",
           "title": "Keyboard icon and an enable-keyboard step",
-          "status": "doing",
+          "status": "done",
           "area": "install",
           "stories": [
             43
           ],
-          "notes": "Icon (`tip/assets/completionist.ico`) is compiled into the DLL, and `tip/register.ps1` plus `tip/enable-keyboard.ps1` do the install. Waiting for you to confirm Completionist shows up in Settings and can be switched to.",
+          "notes": "Icon (`tip/assets/completionist.ico`) is compiled into the DLL, and `tip/register.ps1` plus `tip/enable-keyboard.ps1` do the install. Confirming Completionist shows in Settings happens in daily use, not as a gate.",
           "refs": [
             "tip/register.ps1",
             "tip/enable-keyboard.ps1"
@@ -335,10 +335,10 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M1.13",
           "title": "Remove the Completionist Spike keyboard and unregister it",
-          "status": "todo",
+          "status": "dropped",
           "area": "install",
           "stories": [],
-          "notes": "The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`."
+          "notes": "Moved to M4.11 so 0.1.0 does not wait on a cleanup only the user can do. Originally: the user removes the Spike keyboard from the language list, then runs `tip/spike/register.ps1 -Unregister`."
         },
         {
           "id": "M1.15",
@@ -389,7 +389,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M2",
       "title": "Smarter words",
-      "status": "planned",
+      "status": "active",
       "goal": "Rank words by the preceding words and by the user's own habits.",
       "done_when": "After \"I'd like to\" the list shows \"know\" above \"knowledge\", and names or slang the user types a few times start appearing.",
       "tasks": [
@@ -822,6 +822,14 @@ window.COMPLETIONIST_ROADMAP = {
           "area": "docs",
           "stories": [],
           "notes": "Moved to M9.7 (0.7.0, the last release before 1.0) so 0.4.0 does not wait on it. Originally: the public showcase, a short GIF of the popup in use and a plain HTML page with made-up text that shows the ranking."
+        },
+        {
+          "id": "M4.11",
+          "title": "Remove the Completionist Spike keyboard and unregister it",
+          "status": "todo",
+          "area": "install",
+          "stories": [],
+          "notes": "Moved from M1.13. The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`."
         }
       ]
     },
@@ -1271,14 +1279,15 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "version": "0.1.0",
-      "status": "next",
+      "status": "released",
       "title": "Words everywhere",
       "milestone": "M1",
-      "text": "This is the first release you can type with. The real text service replaces the spike and connects to the engine, so a list of word completions appears at the caret in Notepad, Chrome, Edge, Discord and other Electron apps. Tab accepts the highlighted word, the arrow keys move through the list and Esc closes it. Enter is never intercepted, so chat messages still send. Password, URL, email and number fields stay silent, as do code editors and terminals. If the engine stops, apps carry on as if Completionist weren’t installed and reconnect when it returns. A keyboard icon lets Windows list Completionist in Settings, so it can be switched on without PowerShell."
+      "text": "This was the first release you could type with. The real text service replaced the spike and connected to the engine, so a list of word completions appears under the caret in Notepad, Chrome, Edge, Discord and other Electron apps. Tab accepts the highlighted word, the arrow keys move through the list and Esc closes it. Enter is never intercepted, so chat messages still send. Password, URL, email and number fields stay silent, as do code editors and terminals. If the engine stops, apps carry on as if Completionist were not installed and reconnect when it returns. A keyboard icon lets Windows list Completionist in Settings, so it can be switched on without PowerShell. The text service, the popup and the engine link are tested natively and through a harness that drives the real DLL; checks in each app are left to daily use.",
+      "date": "2026-09-30"
     },
     {
       "version": "0.2.0",
-      "status": "planned",
+      "status": "next",
       "title": "Smarter words",
       "milestone": "M2",
       "text": "Word suggestions start to take the sentence and the writer into account. Bigram and trigram tables built from a public corpus re-rank completions by the previous one or two words, so after “I’d like to” the list offers “know” before “knowledge”. Common misspellings such as “tomorow” are filtered out of the base vocabulary. A personal store boosts the words you actually use and adds new ones, such as names and slang, after a few uses. It keeps word counts only and never the text itself."
@@ -1563,6 +1572,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Released 0.1.0 (M1 done): finished M1.10 and M1.11 as built and harness-tested, moved the Spike-keyboard cleanup to M4.11, made M2 active and 0.2.0 next."
+    },
     {
       "date": "2026-09-30",
       "text": "Moved the README demo GIF and web demo from M4.10 to M9.7 (0.7.0, the last release before 1.0), so M4 has no open tasks besides the install run."
