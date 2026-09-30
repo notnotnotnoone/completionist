@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-09-30",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.1.0 is released. Next is 0.2.0 (Smarter words): its tasks are built, so it needs a review and release.",
+  "now": "0.2.0 is released. Next is 0.3.0 (Phrase suggestions): review its tasks and release it if they are built.",
   "highways": [
     {
       "id": "engine",
@@ -389,7 +389,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M2",
       "title": "Smarter words",
-      "status": "active",
+      "status": "done",
       "goal": "Rank words by the preceding words and by the user's own habits.",
       "done_when": "After \"I'd like to\" the list shows \"know\" above \"knowledge\", and names or slang the user types a few times start appearing.",
       "tasks": [
@@ -492,7 +492,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M3",
       "title": "Phrase suggestions",
-      "status": "planned",
+      "status": "active",
       "goal": "A greyed phrase continuation from a cheap cloud FIM model as the top popup row, accepted with Tab.",
       "done_when": "Allow-listed apps show a streaming phrase row after a pause, Ctrl+Space works everywhere, and heavy use stays under $0.50 a day.",
       "tasks": [
@@ -1287,14 +1287,15 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "version": "0.2.0",
-      "status": "next",
+      "status": "released",
       "title": "Smarter words",
       "milestone": "M2",
-      "text": "Word suggestions start to take the sentence and the writer into account. Bigram and trigram tables built from a public corpus re-rank completions by the previous one or two words, so after “I’d like to” the list offers “know” before “knowledge”. Common misspellings such as “tomorow” are filtered out of the base vocabulary. A personal store boosts the words you actually use and adds new ones, such as names and slang, after a few uses. It keeps word counts only and never the text itself."
+      "text": "Word suggestions now take the sentence and the writer into account. Bigram and trigram tables built from a public corpus re-rank completions by the previous one or two words, so after “I’d like to” the list offers “know” before “knowledge”. Common misspellings such as “tomorow” are filtered out of the base vocabulary. A personal store boosts the words you actually use and promotes new ones, such as names and slang, into the vocabulary after a few uses. It keeps word counts only and never the text itself. Accept events now name the accepted item, so the engine learns from what you took. The n-gram file is optional: without it the engine ranks by word frequency alone. Checks through the real text service are left to daily use.",
+      "date": "2026-09-30"
     },
     {
       "version": "0.3.0",
-      "status": "planned",
+      "status": "next",
       "title": "Phrase suggestions",
       "milestone": "M3",
       "text": "The popup gains a greyed phrase row at the top, a continuation of your sentence written by a cheap and fast cloud completion model. In allow-listed apps it appears after a short pause and streams in as it is generated. It is highlighted by default, so Tab takes the whole phrase, and Ctrl+Right takes it one word at a time. In any other app, Ctrl+Space asks for a phrase on demand. Phrases come through OpenRouter from a list of cheap models you name in the config, each tried in turn if the one before fails. An anchored context window keeps requests cache-friendly so heavy use stays cheap, and the spending limit is set on your OpenRouter key. When the provider is slow or unavailable, Completionist quietly falls back to words."
@@ -1572,6 +1573,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Release 0.2.0 (Smarter words): M2 done, reviewed against the real n-gram file (know ranks above knowledge after I'd like to, misspellings filtered); 0.3.0 is next."
+    },
     {
       "date": "2026-09-30",
       "text": "Deleted all merged branches, local and on origin; main is the only branch."
