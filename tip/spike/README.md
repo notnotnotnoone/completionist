@@ -15,7 +15,7 @@ Every inspection is logged to `%LOCALAPPDATA%\Typer\spike.log`, including caret 
 .\register.ps1             # UAC prompt
 ```
 
-Then add the keyboard: **Settings → Time & language → Language & region → English (United States) → ⋯ → Language options → Add a keyboard → Typer Spike**, and switch to it with **Win + Space**.
+Then add the keyboard: **Settings → Time & language → Language & region → your English language (e.g. English (Canada)) → ⋯ → Language options → Add a keyboard → Typer Spike**, and switch to it with **Win + Space**.
 
 Remove it: switch back to your normal keyboard, remove "Typer Spike" in the same Settings page, then run `.\register.ps1 -Unregister`.
 

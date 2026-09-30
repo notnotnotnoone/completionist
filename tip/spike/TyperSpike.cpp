@@ -26,7 +26,12 @@ constexpr CLSID CLSID_TyperSpike = {0xfa6a3da5, 0x2bea, 0x4b4b, {0x83, 0xf7, 0x9
 // {11A9FA0E-A1A6-4373-8C5F-28A8D14D4700}
 constexpr GUID GUID_TyperSpikeProfile = {0x11a9fa0e, 0xa1a6, 0x4373, {0x8c, 0x5f, 0x28, 0xa8, 0xd1, 0x4d, 0x47, 0x00}};
 constexpr wchar_t kClsidKey[] = L"CLSID\\{FA6A3DA5-2BEA-4B4B-83F7-977C5C594472}";
-constexpr LANGID kLangId = MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US);
+// Registered under each English variant, so it shows up whichever one the user has installed.
+constexpr LANGID kLangIds[] = {
+    MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+    MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_CAN),
+    MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_UK),
+};
 constexpr wchar_t kDescription[] = L"Typer Spike";
 constexpr wchar_t kPopupClass[] = L"TyperSpikePopup";
 constexpr LONG kContextChars = 10000;
@@ -673,7 +678,7 @@ STDAPI DllUnregisterServer() {
     ITfInputProcessorProfileMgr* profiles = nullptr;
     if (SUCCEEDED(CoCreateInstance(CLSID_TF_InputProcessorProfiles, nullptr, CLSCTX_INPROC_SERVER,
                                    IID_ITfInputProcessorProfileMgr, reinterpret_cast<void**>(&profiles)))) {
-        profiles->UnregisterProfile(CLSID_TyperSpike, kLangId, GUID_TyperSpikeProfile, 0);
+        for (LANGID langId : kLangIds) profiles->UnregisterProfile(CLSID_TyperSpike, langId, GUID_TyperSpikeProfile, 0);
         profiles->Release();
     }
     ITfCategoryMgr* categories = nullptr;
@@ -703,8 +708,11 @@ STDAPI DllRegisterServer() {
     HRESULT hr = CoCreateInstance(CLSID_TF_InputProcessorProfiles, nullptr, CLSCTX_INPROC_SERVER,
                                   IID_ITfInputProcessorProfileMgr, reinterpret_cast<void**>(&profiles));
     if (SUCCEEDED(hr)) {
-        hr = profiles->RegisterProfile(CLSID_TyperSpike, kLangId, GUID_TyperSpikeProfile, kDescription,
-                                       static_cast<ULONG>(wcslen(kDescription)), path, length, 0, nullptr, 0, TRUE, 0);
+        for (LANGID langId : kLangIds) {
+            hr = profiles->RegisterProfile(CLSID_TyperSpike, langId, GUID_TyperSpikeProfile, kDescription,
+                                           static_cast<ULONG>(wcslen(kDescription)), path, length, 0, nullptr, 0, TRUE, 0);
+            if (FAILED(hr)) break;
+        }
         profiles->Release();
     }
     if (FAILED(hr)) {
