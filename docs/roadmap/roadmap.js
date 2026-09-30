@@ -581,45 +581,72 @@ window.TYPER_ROADMAP = {
         {
           "id": "M4.1",
           "title": "Tray icon with pause/resume and a global hotkey",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             41
+          ],
+          "notes": "Code and tests done; the tray and hotkey need a manual look on a real desktop.",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
           ]
         },
         {
           "id": "M4.2",
           "title": "Start the engine at logon",
-          "status": "todo",
+          "status": "doing",
           "area": "install",
           "stories": [
             42
+          ],
+          "notes": "scripts/install.ps1 creates the logon task (pythonw, no console). Written and syntax-checked; not yet run, because it needs the user (UAC, keyboard setting).",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
           ]
         },
         {
           "id": "M4.3",
           "title": "Hot-reload the config file",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             38
+          ],
+          "notes": "ConfigWatcher polls mtime; a bad edit keeps the old config and logs why.",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
           ]
         },
         {
           "id": "M4.4",
           "title": "Install and uninstall scripts",
-          "status": "todo",
+          "status": "doing",
           "area": "install",
           "stories": [
             43,
             44
           ],
-          "notes": "Register the TIP, enable the keyboard, create the logon task. Admin steps need the user's UAC approval."
+          "notes": "install.ps1 / uninstall.ps1 written and syntax-checked; the user runs them (UAC and language settings are not mine to change).",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
+          ]
         },
         {
           "id": "M4.5",
           "title": "Metrics store: shown, accepted, keystrokes saved, provider latency",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             52,
@@ -627,36 +654,75 @@ window.TYPER_ROADMAP = {
             54,
             56
           ],
-          "notes": "Counts and timings only, never typed text."
+          "notes": "SQLite counts and timings per day/app/provider; never text.",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
+          ]
         },
         {
           "id": "M4.6",
           "title": "Stats summary from the CLI or tray",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             55
+          ],
+          "notes": "typer-stats CLI and tray \"Show stats\".",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
           ]
         },
         {
           "id": "M4.7",
           "title": "Engine logging of request timings and provider errors",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             50
+          ],
+          "notes": "engine.log rotates; requests over 25 ms and provider errors are logged.",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
           ]
         },
         {
           "id": "M4.8",
           "title": "Resilience pass: engine crashes and restarts",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             34,
             35
           ],
-          "notes": "Kill the engine mid-typing: apps behave as if Typer weren't installed, then reconnect."
+          "notes": "Harness scenarios R1/R2 kill and restart the engine: typing does not hang, keys pass through, the popup returns after reconnect. The harness needs the desktop foreground, so it is run only when the user is away.",
+          "refs": [
+            "branch m3-phrases",
+            "engine/src/typer_engine",
+            "scripts/",
+            "tip/tests"
+          ]
+        },
+        {
+          "id": "M4.9",
+          "title": "Live check of install, tray, hotkey and logon start",
+          "status": "next",
+          "area": "install",
+          "stories": [
+            41,
+            42,
+            43,
+            44
+          ],
+          "notes": "User runs .\\scripts\\install.ps1, checks the tray icon and Ctrl+Alt+P, reboots once to see the engine start by itself."
         }
       ]
     },
@@ -915,6 +981,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "M4 built: metrics, tray, pause hotkey, hot-reloaded config, engine.log, typer-stats, phrase accept kinds, install/uninstall scripts, and an engine kill/restart harness scenario. Live install check (M4.9) is the user's."
+    },
     {
       "date": "2026-09-29",
       "text": "M3 DLL side done: phrase row, Ctrl+Space, Ctrl+Right, no-steal window, Esc quieting. The TSF harness now runs both phrase modes against a fake provider and all checks pass. Live check with a real provider key is M3.11."

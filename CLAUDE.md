@@ -61,7 +61,7 @@ Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases
 | `tip/spike/` | M0 throwaway TSF spike: `build.cmd`, `register.ps1`, findings in `README.md` |
 | `tip/` | The real TSF DLL (M1, adapted from Microsoft's SampleIME) |
 | `docs/roadmap/` | Roadmap data (`roadmap.js`), the task board (`index.html`) and the release timeline (`releases.html`) |
-| `scripts/` | Repo tooling (`check_roadmap.py`), and later the install scripts |
+| `scripts/` | `check_roadmap.py`; `install.ps1` / `uninstall.ps1` (user-run: UAC, keyboard, logon task) |
 
 - **C++ builds** use the VS 2022 Build Tools from the command line: `vcvars64.bat`, then `cl`, with the static CRT (`/MT`), x64 only. See `tip/spike/build.cmd` for the pattern.
 - **A loaded DLL is locked.** Rename it aside before rebuilding. Apps (Chrome especially: use `chrome://restart`) must restart to pick up a new build.
@@ -73,6 +73,8 @@ Typer uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases
 - **The user does hands-on app testing** to save cost:
   - Give a short checklist, then read the logs.
   - Don't drive the screen with computer use or screenshots unless asked.
+- **The TSF harness steals focus.** `tip/tests/tsf_e2e.ps1` pops a real window and needs the foreground for TSF focus. Run it only when the user says they are away, never while they work.
+- **Engine extras:** `typer-stats` (usage numbers), tray icon and Ctrl+Alt+P pause (`--no-tray` to skip), config hot reload, `engine.log` and `metrics.sqlite` in `%LOCALAPPDATA%\Typer`.
 - **Never ask for API keys in chat.**
   - Keys live in user environment variables that the user sets (e.g. `setx DEEPSEEK_API_KEY ...`).
   - Config only names the variable.
