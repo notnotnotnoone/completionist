@@ -50,6 +50,21 @@ class _Chains:
         self.totals.clear()
         self.dirty.clear()
 
+    def forget(self, words: set[str]) -> None:
+        """Drop every row that has one of `words` as its context or as the word that followed."""
+        for context in list(self.rows):
+            if words.intersection(context):
+                del self.rows[context]
+                del self.totals[context]
+                continue
+            row = self.rows[context]
+            for word in words.intersection(row):
+                self.totals[context] -= row.pop(word)
+            if not row:
+                del self.rows[context]
+                del self.totals[context]
+        self.dirty = {(c, w) for c, w in self.dirty if c in self.rows and w in self.rows[c]}
+
     def prune_singles(self) -> None:
         for context in list(self.rows):
             row = self.rows[context]
@@ -203,6 +218,37 @@ class PersonalStore:
             if self._db is not None:
                 with self._db:
                     self._db.execute(f"DELETE FROM {chains.table} WHERE n = 1")
+
+    def words(self, search: str = "", limit: int | None = None) -> list[tuple[str, int]]:
+        """The words learned and how often each was used, most used first; `search` keeps words containing it."""
+        search = search.lower()
+        found = [(w, n) for w, n in self._words.items() if search in w]
+        found.sort(key=lambda item: (-item[1], item[0]))
+        return found if limit is None else found[:limit]
+
+    def forget(self, word: str) -> bool:
+        """Forget a word, and every pair and triple it is part of, in memory and in the file.
+
+        False if the word wasn't known.
+        """
+        word = word.lower()
+        if word not in self._words:
+            return False
+        self._total -= self._words.pop(word)
+        self._sorted.remove(word)
+        self._dirty_words.discard(word)
+        for chains in self._chains.values():
+            chains.forget({word})
+        if self._db is not None:
+            try:
+                with self._db:
+                    self._db.execute("DELETE FROM words WHERE word = ?", (word,))
+                    for chains in self._chains.values():
+                        tests = " OR ".join(f"{c} = ?" for c in [*chains.columns, "word"])
+                        self._db.execute(f"DELETE FROM {chains.table} WHERE {tests}", (word,) * (chains.order + 1))
+            except sqlite3.Error as err:
+                logger.warning("could not remove %r from the personal store file: %s", word, err)
+        return True
 
     def clear(self) -> None:
         """Forget everything, including what's saved."""

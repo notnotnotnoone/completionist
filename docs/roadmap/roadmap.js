@@ -907,12 +907,16 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.3",
           "title": "`completionist-words` command: list and forget",
-          "status": "doing",
+          "status": "done",
           "area": "engine",
           "stories": [
             67
           ],
-          "notes": "`list` with search, `forget <word>` and `forget-recent 10m`. The smallest way to see and edit the log; the viewer (M8) shows the same data."
+          "notes": "`list` with search, `forget <word>` and `forget-recent 10m`. The smallest way to see and edit the log; the viewer (M8) shows the same data.",
+          "refs": [
+            "engine/src/completionist_engine/personal.py",
+            "branch m7-kinds"
+          ]
         },
         {
           "id": "M7.4",
@@ -1613,6 +1617,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M7.3 done: PersonalStore.words(search) lists learned words and forget(word) removes a word from the counts, pairs, triples and the saved file (built on request; no command line, the M8 viewer will call these)."
+    },
     {
       "date": "2026-09-30",
       "text": "M7.6 done: replies carry a kind per suggestion (word, chunk or next) and accept events may name chunk or next; engine and DLL both tested. Chunks are behind [words] chunks (off until M7.7)."
