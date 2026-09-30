@@ -1583,6 +1583,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-09-30",
+      "text": "Pushed main and tag v0.4.0 to origin."
+    },
+    {
+      "date": "2026-09-30",
       "text": "Release 0.4.0 (Daily driver): M4 done; M4.2 and M4.4 set done (scripts parse, tests pass); Spike keyboard removal moved to M9.8; M7 is active (0.5.0 next; M5 comes after 1.0)."
     },
     {
