@@ -1574,6 +1574,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-09-30",
+      "text": "Deleted all merged branches, local and on origin; main is the only branch."
+    },
+    {
+      "date": "2026-09-30",
       "text": "Pushed main and tag v0.1.0. All other branches are merged into main and ready to delete."
     },
     {
