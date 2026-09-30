@@ -1215,6 +1215,17 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The phrase prompt now tells models to continue the text instead of answering it, and the daily budget and price counting were removed in favour of a spending limit on the OpenRouter key."
     },
     {
+      "version": "0.0.9",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Stricter phrase prompt and the M7 to M10 plan",
+      "highways": [
+        "engine",
+        "tooling"
+      ],
+      "text": "The phrase model now gets a longer autocomplete prompt with thirty numbered rules and two worked examples, and the roadmap gained milestones M7 to M10 for n-gram suggestions, a personal viewer, typo tolerance and a UI redesign."
+    },
+    {
       "version": "0.1.0",
       "status": "next",
       "title": "Words everywhere",
@@ -1381,6 +1392,10 @@ window.COMPLETIONIST_ROADMAP = {
   "decisions": [
     {
       "date": "2026-09-30",
+      "text": "The phrase system prompt is the owner's own 30-rule version with two worked examples, kept at the start of every request so providers can cache it. It is much longer than before, so a model that still answers instead of continuing, or a provider that charges by prompt length, is worth checking in the live phrase test (M3.11)."
+    },
+    {
+      "date": "2026-09-30",
       "text": "The personal log stores words, word pairs and trigrams as counts on the local disk, never sent anywhere. A word or trigram is learned only when it was typed (not pasted), finished without correcting, and used 3 times; trigrams never span punctuation or a window switch. No per-day rule, decay or never-learn list until junk shows up."
     },
     {
@@ -1487,6 +1502,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Released 0.0.9: replaced the phrase system prompt (`INSTRUCTIONS` in context.py) with the owner's 30-rule prompt and two examples, without the trailing header line since build_prompt adds it; merged the M7 to M10 plan into main."
+    },
     {
       "date": "2026-09-30",
       "text": "Planned M7 (n-gram suggestions and personal log, 0.5.0), M8 (personal viewer, 0.6.0), M9 (typo-tolerant words, 0.7.0) and M10 (UI redesign, 2.0.0), plus M1.17 (easier roadmap reading) and M4.10 (demo GIF); stories 62 to 74, decisions and risks added."

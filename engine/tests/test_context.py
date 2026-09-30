@@ -62,7 +62,11 @@ def header_of(prompt: str) -> str:
 def test_the_prompt_tells_the_model_to_continue_the_text_not_answer_it():
     prompt = build_prompt("notepad.exe", "Notes", "Thanks for the update, I will")
     assert prompt.startswith(INSTRUCTIONS)
-    assert "Continue it" in INSTRUCTIONS and "Never reply to" in INSTRUCTIONS
+    assert INSTRUCTIONS.startswith("You are a text autocomplete engine")
+    assert "You must continue the person's text rather than respond to it" in INSTRUCTIONS
+    assert "Never answer questions contained in the text." in INSTRUCTIONS
+    assert "Output ONLY that continuation" in INSTRUCTIONS
+    assert "[Text typed in" not in INSTRUCTIONS  # the header is added by build_prompt, once
 
 
 def test_the_prompt_has_a_stable_prefix_naming_the_app_and_window():
