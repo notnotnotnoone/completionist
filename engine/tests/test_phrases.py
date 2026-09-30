@@ -281,3 +281,73 @@ def test_sessions_are_independent():
 
     a, b = asyncio.run(scenario())
     assert a and not b
+
+
+def test_reloading_the_config_switches_provider_and_budget_without_a_restart(monkeypatch):
+    from dataclasses import replace
+
+    async def scenario():
+        async with fake_provider(Script(chunks=["one"])) as (url_a, received_a), fake_provider(Script(chunks=["two"])) as (url_b, received_b):
+            service = make_service(url_a)
+            pushes: list[PhraseUpdate] = []
+            session = service.open_session(pushes.append)
+            session.on_hotkey(req(1, "Hello wor", event="hotkey"), "hotkey")
+            await settle(pushes)
+            new_config = replace(service.config, provider=replace(service.config.provider, base_url=url_b), daily_budget_usd=0.25)
+            service.reconfigure(new_config)
+            session.on_hotkey(req(2, "Another sentence th", event="hotkey"), "hotkey")
+            await settle(pushes, until=lambda p: bool(p) and p[-1].id == 2 and p[-1].done)
+            session.close()
+            await service.aclose()
+            return len(received_a), len(received_b), pushes[-1].text
+
+    a, b, text = asyncio.run(scenario())
+    assert (a, b, text) == (1, 1, "two")
+
+
+def test_reloading_can_switch_phrases_off_and_on():
+    from dataclasses import replace
+
+    async def scenario():
+        async with fake_provider() as (url, received):
+            service = make_service(url)
+            session = service.open_session(lambda _u: None)
+            service.reconfigure(replace(service.config, enabled=False))
+            assert not service.available
+            session.on_hotkey(req(1, "Hello wor", event="hotkey"), "hotkey")
+            await asyncio.sleep(0.1)
+            assert received == []
+            service.reconfigure(replace(service.config, enabled=True))
+            assert service.available
+            session.on_hotkey(req(2, "Hello wor", event="hotkey"), "hotkey")
+            await asyncio.sleep(0.3)
+            session.close()
+            return len(received)
+
+    assert asyncio.run(scenario()) == 1
+
+
+def test_a_lower_budget_in_a_reloaded_config_takes_effect_at_once():
+    from dataclasses import replace
+
+    async def scenario():
+        async with fake_provider() as (url, received):
+            service = make_service(url)
+            service.budget.record(__import__("typer_engine.budget", fromlist=["Usage"]).Usage(uncached=1_000_000))
+            assert service.usable()
+            service.reconfigure(replace(service.config, daily_budget_usd=0.01))
+            return service.usable()
+
+    assert asyncio.run(scenario()) is False
+
+
+def test_naming_another_key_variable_picks_up_that_variable(monkeypatch):
+    from dataclasses import replace
+
+    monkeypatch.setenv("KEY_TWO", "second")
+    config = PhraseConfig(provider=ProviderSettings(api_key_env="KEY_ONE"))
+    monkeypatch.delenv("KEY_ONE", raising=False)
+    service = PhraseService(config, None, DailyBudget(0.5, Prices()), key_from_env=True)
+    assert not service.available
+    service.reconfigure(replace(config, provider=replace(config.provider, api_key_env="KEY_TWO")))
+    assert service.available

@@ -49,7 +49,7 @@ _NOTHING = Update((), "", True)
 
 class PhraseScheduler:
     def __init__(self, debounce: float = 0.35) -> None:
-        self._debounce = debounce
+        self.debounce = debounce
         self._latest: Request | None = None
         self._mode: Mode = "off"
         self._base: str | None = None  # text before the caret when the running/finished request began
@@ -76,7 +76,7 @@ class PhraseScheduler:
         self._due = None
         if mode == "auto" and budget_ok and request.before.strip():
             self._pending = request
-            self._due = now + self._debounce
+            self._due = now + self.debounce
         return Update(tuple(actions), "", True, request.id)
 
     def hotkey(self, request: Request, mode: Mode, now: float, budget_ok: bool) -> Update:
@@ -113,7 +113,7 @@ class PhraseScheduler:
             actions = self._clear()
             if self._mode == "auto" and self._latest.before.strip():
                 self._pending = self._latest
-                self._due = now + self._debounce
+                self._due = now + self.debounce
             return Update(tuple(actions), "", True, self._latest.id)
         return Update((), self._shown(), False, self._latest.id)
 

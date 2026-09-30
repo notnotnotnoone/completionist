@@ -158,3 +158,15 @@ def test_the_api_key_itself_cannot_be_put_in_the_config(tmp_path):
 def test_invalid_phrase_settings_are_rejected(tmp_path, line):
     with pytest.raises(ConfigError):
         load_config(write(tmp_path, f"[phrase]\n{line}\n"))
+
+
+def test_the_pause_hotkey_defaults_to_ctrl_alt_p_and_can_change_or_be_turned_off(tmp_path):
+    assert Config().pause_hotkey == "ctrl+alt+p"
+    assert load_config(write(tmp_path, '[hotkeys]\npause = "ctrl+shift+f9"\n')).pause_hotkey == "ctrl+shift+f9"
+    assert load_config(write(tmp_path, '[hotkeys]\npause = ""\n')).pause_hotkey == ""
+
+
+@pytest.mark.parametrize("line", ["pause = 5", 'pause = "p"', 'pause = "ctrl+banana"', 'other = "x"'])
+def test_a_bad_pause_hotkey_is_rejected(tmp_path, line):
+    with pytest.raises(ConfigError):
+        load_config(write(tmp_path, f"[hotkeys]\n{line}\n"))

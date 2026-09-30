@@ -2,11 +2,13 @@
 
 import asyncio
 import logging
+import os
 import time
 from collections.abc import Callable
 
 from typer_engine.budget import DailyBudget, Usage
 from typer_engine.config import PhraseConfig
+from typer_engine.metrics import Metrics
 from typer_engine.context import anchored_window, build_prompt, trim_suffix
 from typer_engine.phrase_provider import PhraseProvider, PhraseRequest, ProviderError
 from typer_engine.phrase_scheduler import Action, Cancel, Mode, PhraseScheduler, Start, Update
@@ -29,11 +31,18 @@ class PhraseService:
         *,
         provider: PhraseProvider | None = None,
         clock: Callable[[], float] = time.monotonic,
+        metrics: Metrics | None = None,
+        key_from_env: bool = False,
     ) -> None:
+        """`key_from_env`: the key came from the environment variable the config names, so a reloaded
+        config that names another variable picks up that one."""
         self.config = config
+        self.metrics = metrics
         self.budget = budget
         self.clock = clock
         self._provider = provider
+        self._api_key = api_key
+        self._key_from_env = key_from_env
         if provider is None and api_key and config.enabled:
             self._provider = PhraseProvider(config.provider, api_key)
         self._failures = 0
@@ -47,6 +56,23 @@ class PhraseService:
         """Whether a new request may start right now."""
         return self.available and not self.budget.exhausted and self.clock() >= self._paused_until
 
+    def reconfigure(self, config: PhraseConfig) -> None:
+        """Apply reloaded settings: a new provider or model, budget, prices, debounce, or switching off."""
+        old = self.config
+        self.config = config
+        self.budget.reconfigure(config.daily_budget_usd, config.prices)
+        if self._key_from_env and config.provider.api_key_env != old.provider.api_key_env:
+            self._api_key = os.environ.get(config.provider.api_key_env)
+        if config.provider != old.provider or config.enabled != old.enabled:
+            stale = self._provider
+            self._provider = PhraseProvider(config.provider, self._api_key) if self._api_key and config.enabled else None
+            if stale is not None:
+                try:
+                    asyncio.get_running_loop().create_task(stale.aclose())
+                except RuntimeError:
+                    pass  # no loop running (a test): the old client is simply dropped
+        logger.info("phrase settings reloaded (%s)", "on" if self.available else "off")
+
     def note_success(self) -> None:
         self._failures = 0
 
@@ -56,6 +82,10 @@ class PhraseService:
             self._paused_until = self.clock() + _PAUSE_SECONDS
             self._failures = 0
             logger.warning("phrase provider failed %d times in a row; pausing phrases for %ds", _FAILURES_BEFORE_PAUSE, _PAUSE_SECONDS)
+
+    def record_provider(self, ttft: float | None, total: float | None, ok: bool, cost: float) -> None:
+        if self.metrics is not None:
+            self.metrics.record_provider(self.config.provider.model, ttft, total, ok, cost)
 
     def open_session(self, push: Callable[[PhraseUpdate], None]) -> "PhraseSession":
         return PhraseSession(self, push)
@@ -82,6 +112,7 @@ class PhraseSession:
     # -- called for each event from the text service ---------------------------------------------
 
     def on_request(self, request: Request, mode: Mode) -> Update:
+        self._scheduler.debounce = self._service.config.debounce
         if not self._service.available:
             mode = "off"
         update = self._scheduler.request(request, mode, self._now(), self._service.usable())
@@ -163,17 +194,25 @@ class PhraseSession:
         prompt = build_prompt(request.app, request.title, anchored_window(request.before, config.context_before))
         phrase_request = PhraseRequest(prompt=prompt, suffix=trim_suffix(request.after, config.context_after))
         task = asyncio.current_task()
+        service = self._service
+        started = service.clock()
+        first: float | None = None
+        cost = 0.0
         try:
-            async for event in self._service._stream(phrase_request):
+            async for event in service._stream(phrase_request):
                 if isinstance(event, Usage):
-                    self._service.budget.record(event)
+                    cost = service.budget.record(event)
                 else:
+                    if first is None:
+                        first = service.clock() - started
                     self._emit(self._scheduler.chunk(event, self._now()))
-            self._service.note_success()
+            service.note_success()
+            service.record_provider(first, service.clock() - started, True, cost)
             self._emit(self._scheduler.finished())
         except ProviderError as err:
-            logger.info("phrase request failed: %s", err)
-            self._service.note_failure()
+            logger.warning("phrase request failed: %s", err)
+            service.note_failure()
+            service.record_provider(first, None, False, cost)
             self._emit(self._scheduler.failed())
         finally:
             if self._tasks.get(request.id) is task:

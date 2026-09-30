@@ -50,6 +50,11 @@ class DailyBudget:
         if path is not None:
             self._load(path)
 
+    def reconfigure(self, limit_usd: float, prices: Prices) -> None:
+        """Change the cap or the prices (from a reloaded config); what's spent today stays."""
+        self._limit = limit_usd
+        self._prices = prices
+
     def _reset(self) -> None:
         self._spent = 0.0
         self._requests = 0

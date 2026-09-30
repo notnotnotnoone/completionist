@@ -137,7 +137,7 @@ def engine_process(tmp_path):
     config = tmp_path / "config.toml"
     data_dir = (tmp_path / "data").as_posix()
     config.write_text(f"[data]\ndir = '{data_dir}'\n", encoding="utf-8")
-    process = subprocess.Popen([sys.executable, "-m", "typer_engine", "--pipe", name, "--config", str(config)])
+    process = subprocess.Popen([sys.executable, "-m", "typer_engine", "--pipe", name, "--config", str(config), "--no-tray"])
     try:
         yield name
     finally:

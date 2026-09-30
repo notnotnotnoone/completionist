@@ -30,6 +30,9 @@
     price_input_per_m = 0.30    # dollars per million tokens, used to count spend
     price_cached_per_m = 0.006
     price_output_per_m = 1.20
+
+    [hotkeys]
+    pause = "ctrl+alt+p"        # pause / resume Typer from anywhere ("" turns the hotkey off)
 """
 
 import os
@@ -39,6 +42,7 @@ from pathlib import Path
 from typing import Any
 
 from typer_engine.budget import Prices
+from typer_engine.hotkeys import parse_hotkey
 from typer_engine.phrase_provider import ProviderSettings
 
 DEFAULT_BLOCK = frozenset(
@@ -75,6 +79,7 @@ _SCHEMA = {
     "learning": {"enabled", "promote_after"},
     "data": {"dir"},
     "phrase": _PHRASE_KEYS,
+    "hotkeys": {"pause"},
 }
 
 
@@ -108,6 +113,7 @@ class Config:
     promote_after: int = 3
     data_dir: Path = field(default_factory=default_data_dir)
     phrase: PhraseConfig = field(default_factory=PhraseConfig)
+    pause_hotkey: str = "ctrl+alt+p"
 
 
 def default_config_path() -> Path:
@@ -142,6 +148,7 @@ def load_config(path: Path) -> Config:
         ),
         data_dir=_directory(data_section["dir"], "data.dir") if "dir" in data_section else config.data_dir,
         phrase=_phrase(data.get("phrase", {})),
+        pause_hotkey=_hotkey(data.get("hotkeys", {}), config.pause_hotkey),
     )
 
 
@@ -236,3 +243,17 @@ def _directory(value: Any, name: str) -> Path:
     if not isinstance(value, str) or not value:
         raise ConfigError(f"{name} must be a folder path")
     return Path(value)
+
+
+def _hotkey(section: dict[str, Any], default: str) -> str:
+    if "pause" not in section:
+        return default
+    value = section["pause"]
+    if not isinstance(value, str):
+        raise ConfigError("hotkeys.pause must be text like \"ctrl+alt+p\", or \"\" for none")
+    if value.strip():
+        try:
+            parse_hotkey(value)
+        except ValueError as err:
+            raise ConfigError(f"hotkeys.pause: {err}") from err
+    return value.strip()
