@@ -1014,7 +1014,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M8",
       "title": "Personal viewer",
-      "status": "active",
+      "status": "done",
       "goal": "Let you see your personal dictionary and stats, remove words and change settings, from a page opened from the tray.",
       "done_when": "The tray's Open viewer opens a page served by the engine on this machine. It lists learned words, trigrams and stats; removing a word there forgets it; changes in the settings panel reach config.toml and take effect without a restart; the API key can be typed in but is never shown back; it holds no typed-text history; and another website can't drive it.",
       "tasks": [
@@ -1129,7 +1129,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M9",
       "title": "Typo-tolerant words",
-      "status": "planned",
+      "status": "active",
       "goal": "Still suggest the right word when the typed part has a typo, and show which letters were guessed.",
       "done_when": "Typing \"moutian\" offers \"mountain\" with the guessed letters in a different colour, exact prefix matches still rank first, and lookup p95 stays under 10 ms.",
       "tasks": [
@@ -1434,14 +1434,15 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "version": "0.6.0",
-      "status": "next",
+      "status": "released",
       "title": "Personal viewer",
       "milestone": "M8",
-      "text": "You can now see what Completionist has learned and change it. An Open viewer item in the tray opens a page in your browser, served to your own machine only by the running engine. The dictionary lists the words and trigrams you use, searchable and sortable by how often and how recently you typed them, and any entry can be removed from there. A settings panel shows the config file’s options as a form and writes changes back, so you don’t have to open the file; you can type the phrase API key there too, but the page can only write it and never shows it back. The stats show how often suggestions were shown and accepted, how many keystrokes they saved and how fast they were, by day and by app. The page holds counts only, never your typed text, and only the page the engine itself opened can change anything."
+      "text": "You can now see what Completionist has learned and change it. An Open viewer item in the tray opens a page in your browser, served to your own machine only by the running engine. The dictionary lists the words you use, searchable and sortable by how often you typed them, and any word can be removed from there, which forgets it along with the pairs and triples it belonged to. A settings panel shows the main options as a form and writes changes back into your settings file line by line, so your comments stay; you can type the phrase key there too, but the page can only save it and never shows it back. The stats show how often suggestions were shown and accepted and how many keystrokes they saved, by day and by app, with phrase provider speed. The page holds counts only, never your typed text, and needs a secret address the tray opens, so another website can't drive it. It has no trigram list yet.",
+      "date": "2026-09-30"
     },
     {
       "version": "0.7.0",
-      "status": "planned",
+      "status": "next",
       "title": "Typo-tolerant words",
       "milestone": "M9",
       "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing spell-correction library, SymSpell, built over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile. Words you fix yourself are never learned as new vocabulary."
@@ -1646,6 +1647,10 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "date": "2026-09-30",
       "text": "The viewer is no longer a read-only file opened from disk. It is served by the engine on 127.0.0.1, can remove words and edit settings, and the `completionist-words` command is dropped; this replaces the earlier 'no server, forgetting stays a command' decision. The phrase API key can be typed into the settings page but is write-only: never sent back to the page, never logged."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "The viewer is started only with the tray (not with --no-tray), on a random port, with its token in memory only; trigram listing is left for later because the store has no per-trigram list or remove."
     }
   ],
   "risks": [
@@ -1696,16 +1701,20 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "text": "A local server that can delete words and edit config could be driven by any web page the user visits.",
-      "status": "open",
+      "status": "mitigated",
       "mitigation": "Bind 127.0.0.1 only, require a secret token, check Host and Origin, and tests for each (M8.4)."
     },
     {
       "text": "The API key passes through the viewer's local server when typed on the settings page.",
-      "status": "open",
+      "status": "mitigated",
       "mitigation": "Write-only: saved straight to config.toml, never returned, logged or printed, and the page is covered by the token and Origin checks (M8.4)."
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Release 0.6.0 (M8 done): the personal viewer. M9 is now active and 0.7.0 is next."
+    },
     {
       "date": "2026-09-30",
       "text": "M8 built on branch m8-viewer: engine-served viewer (viewer.py and viewer.html), settings writer (settings.py), Metrics.daily, tray Open viewer, 38 new tests; M8.5 dropped."
