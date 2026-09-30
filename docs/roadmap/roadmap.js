@@ -807,6 +807,13 @@ window.TYPER_ROADMAP = {
       "date": "2026-09-29"
     },
     {
+      "version": "0.0.6",
+      "status": "released",
+      "date": "2026-09-29",
+      "title": "OpenRouter phrases",
+      "text": "Phrases now come only through OpenRouter from a list of model names in the config, DeepSeek and the benchmark tool were removed, and phrases are held back when text follows the caret on the same line."
+    },
+    {
       "version": "0.1.0",
       "status": "next",
       "title": "Words everywhere",
@@ -990,6 +997,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "Released 0.0.6: OpenRouter-only phrases merged into main."
+    },
     {
       "date": "2026-09-29",
       "text": "Removed DeepSeek and the typer-bench tool; phrase models are now a list of OpenRouter model names. M3.1/M3.2 dropped."
