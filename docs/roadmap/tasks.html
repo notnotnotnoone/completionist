@@ -81,12 +81,12 @@
 @media (max-width: 600px) { .ms-head { grid-template-columns: minmax(0, 1fr) auto; } .ms-id { grid-column: 1 / -1; } }
 .tasks { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
 .tasks > li + li { border-top: 1px solid var(--line); }
-.task summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 5.4rem 3.4rem minmax(0, 1fr) auto 1rem; grid-template-areas: "pill id title area chev"; gap: .8rem; align-items: baseline; padding: .7rem .9rem; }
+.task summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 5.4rem minmax(0, 1fr) 3.4rem auto 1rem; grid-template-areas: "pill title id area chev"; gap: .8rem; align-items: baseline; padding: .7rem .9rem; }
 .task summary::-webkit-details-marker { display: none; }
 .task summary:hover { background: var(--paper); }
 .task summary:focus-visible { outline-offset: -3px; }
 .task .pill { grid-area: pill; }
-.t-id { grid-area: id; font-family: var(--mono); font-size: var(--fs-xs); color: var(--muted); }
+.t-id { grid-area: id; font-family: var(--mono); font-size: var(--fs-xs); color: var(--muted); opacity: .7; }
 .t-title { grid-area: title; min-width: 0; }
 .t-area { grid-area: area; font-family: var(--mono); font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; }
 .chev { grid-area: chev; color: var(--muted); font-family: var(--display); transition: transform .15s ease; justify-self: end; }
@@ -208,8 +208,8 @@
 <script>
 (() => {
   const STATUS = {
-    doing: { label: "Doing", rank: 0 }, next: { label: "Next", rank: 1 }, blocked: { label: "Blocked", rank: 2 },
-    todo: { label: "To do", rank: 3 }, done: { label: "Done", rank: 4 }, dropped: { label: "Dropped", rank: 5 },
+    doing: { label: "Doing", rank: 0 }, next: { label: "Next", rank: 1 }, blocked: { label: "Blocked", rank: 3 },
+    todo: { label: "To do", rank: 2 }, done: { label: "Done", rank: 4 }, dropped: { label: "Dropped", rank: 5 },
   };
   const MS_STATUS = { active: "Active", done: "Done", planned: "Planned" };
   const RISK = { open: "Open", mitigated: "Mitigated", retired: "Retired" };
@@ -249,6 +249,9 @@
     const live = list.filter((t) => t.status !== "dropped");
     return { done: live.filter((t) => t.status === "done").length, total: live.length };
   };
+  // A milestone is shown as its release and name ("0.2.0 · Smarter words"); the M-id stays a small key.
+  const msVer = (m) => { const r = releaseFor[m.id]; return r ? r.version : m.id; };
+  const msName = (m) => `${msVer(m)} · ${m.title}`;
   const byRank = (a, b) => STATUS[a.status].rank - STATUS[b.status].rank;
 
   function index() {
@@ -301,7 +304,7 @@
     if (active) {
       const ap = progress(active.tasks);
       const rel = releaseFor[active.id];
-      $("#pop-ms").textContent = `${active.id}${rel ? " → v" + rel.version : ""} · ${ap.done}/${ap.total} done`;
+      $("#pop-ms").textContent = `${msName(active)} · ${ap.done}/${ap.total} done`;
     }
   }
 
@@ -318,7 +321,7 @@
         <span class="trk-meta num">${p.done}/${p.total} tasks</span>
       </button>`;
     $("#track").innerHTML = card("all", "All", "planned", "", `All ${data.milestones.length} milestones`, all)
-      + data.milestones.map((m) => card(m.id, m.id, m.status, MS_STATUS[m.status] || m.status, m.title, progress(m.tasks), m)).join("");
+      + data.milestones.map((m) => card(m.id, msVer(m), m.status, MS_STATUS[m.status] || m.status, m.title, progress(m.tasks), m)).join("");
   }
 
   function renderFilters() {
@@ -358,13 +361,13 @@
 
   function renderTasks() {
     const html = data.milestones.map((m) => {
-      const list = m.tasks.filter((t) => matches(t));
+      const list = m.tasks.filter((t) => matches(t)).sort(byRank);
       if (!list.length) return "";
       const p = progress(m.tasks);
       const rel = releaseFor[m.id];
       return `<section class="ms" aria-labelledby="h-${esc(m.id)}">
         <header class="ms-head">
-          <span class="ms-id">${esc(m.id)}</span>
+          <span class="ms-id">${esc(msVer(m))}</span>
           <div><h2 id="h-${esc(m.id)}">${esc(m.title)}</h2><p class="goal">${rich(m.goal)}</p></div>
           <div class="ms-side"><span class="pill m-${esc(m.status)}">${esc(MS_STATUS[m.status] || m.status)}</span><span class="count">${p.done}/${p.total} done</span>${rel ? `<a class="ver-link" href="index.html#v${esc(rel.version)}">${rel.status === "released" ? "Shipped in" : "Ships as"} v${esc(rel.version)}</a>` : ""}</div>
         </header>

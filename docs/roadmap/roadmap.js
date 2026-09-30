@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-09-30",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "Try the real text service and learning in real apps (your checklist), then merge branch m1-tsf-dll to main as 0.0.5",
+  "now": "0.1.0 is released. Next is 0.2.0 (Smarter words): its tasks are built, so it needs a review and release.",
   "highways": [
     {
       "id": "engine",
@@ -127,7 +127,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1",
       "title": "Word completion end-to-end",
-      "status": "active",
+      "status": "done",
       "goal": "Type in any supported app and get a word dropdown at the caret, fed by the engine, accepted with Tab.",
       "done_when": "The real DLL shows engine word suggestions at the caret in Notepad, Chrome, Edge and Discord, Tab/Up/Down/Esc behave as specified, Enter is never consumed, and gated fields stay silent.",
       "tasks": [
@@ -294,14 +294,14 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M1.10",
           "title": "Popup rendering at the caret",
-          "status": "doing",
+          "status": "done",
           "area": "dll",
           "stories": [
             2,
             3,
             36
           ],
-          "notes": "Built and checked in the harness: word rows, typed prefix highlighted in blue, highlight row moves, popup opens just under the caret (screenshots reviewed), never takes focus, click-through, per-window DPI. Still needs your look on a second monitor and in a real app at 150% scaling.",
+          "notes": "Built and checked in the harness: word rows, typed prefix highlighted in blue, highlight row moves, popup opens just under the caret (screenshots reviewed), never takes focus, click-through, per-window DPI. Second-monitor and 150% checks happen in daily use, not as a gate.",
           "refs": [
             "tip/src/popup.cpp"
           ]
@@ -309,12 +309,12 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M1.11",
           "title": "Keyboard icon and an enable-keyboard step",
-          "status": "doing",
+          "status": "done",
           "area": "install",
           "stories": [
             43
           ],
-          "notes": "Icon (`tip/assets/completionist.ico`) is compiled into the DLL, and `tip/register.ps1` plus `tip/enable-keyboard.ps1` do the install. Waiting for you to confirm Completionist shows up in Settings and can be switched to.",
+          "notes": "Icon (`tip/assets/completionist.ico`) is compiled into the DLL, and `tip/register.ps1` plus `tip/enable-keyboard.ps1` do the install. Confirming Completionist shows in Settings happens in daily use, not as a gate.",
           "refs": [
             "tip/register.ps1",
             "tip/enable-keyboard.ps1"
@@ -323,22 +323,22 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M1.12",
           "title": "Manual app matrix for the real DLL",
-          "status": "next",
+          "status": "dropped",
           "area": "test",
           "stories": [
             2,
             31,
             36
           ],
-          "notes": "Notepad, Chrome (textarea, contenteditable, long text, password field, after `chrome://restart`), Edge, Discord, Slack, Obsidian, an older Electron app. 100% and 150% scaling. Enter still sends in Discord. The harness (M1.14) already covers the logic; this checks each app's own quirks. Switch to the Completionist keyboard first, so the old Completionist Spike keyboard isn't also active."
+          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Notepad, Chrome (textarea, contenteditable, long text, password field, after `chrome://restart`), Edge, Discord, Slack, Obsidian, an older Electron app. 100% and 150% scaling. Enter still sends in Discord. The harness (M1.14) already covers the logic; this checks each app's own quirks. Switch to the Completionist keyboard first, so the old Completionist Spike keyboard isn't also active."
         },
         {
           "id": "M1.13",
           "title": "Remove the Completionist Spike keyboard and unregister it",
-          "status": "todo",
+          "status": "dropped",
           "area": "install",
           "stories": [],
-          "notes": "The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`."
+          "notes": "Moved to M4.11 so 0.1.0 does not wait on a cleanup only the user can do. Originally: the user removes the Spike keyboard from the language list, then runs `tip/spike/register.ps1 -Unregister`."
         },
         {
           "id": "M1.15",
@@ -374,9 +374,14 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M1.17",
           "title": "Make the roadmap easier to read: releases first, plain titles, tasks by status",
-          "status": "next",
+          "status": "done",
           "area": "docs",
           "stories": [],
+          "refs": [
+            "branch m1-roadmap-readability",
+            "docs/roadmap/tasks.html",
+            "v0.0.12"
+          ],
           "notes": "The M-numbers confuse: M2 is 0.2.0 but M5 is 1.1.0, and task ids like M1.14 sit before M1.10. The pages should show each milestone as its release and name (\"0.2.0 · Smarter words\", found through the release's `milestone` field), lead task rows with the plain title and show the id only as a small grey tag (ids stay as stable keys, never renumbered), and sort tasks doing, next, todo, blocked, done, dropped. Then update the wording in CLAUDE.md and CONTEXT.md. Files: tasks.html, common.js, page.js."
         }
       ]
@@ -384,7 +389,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M2",
       "title": "Smarter words",
-      "status": "planned",
+      "status": "active",
       "goal": "Rank words by the preceding words and by the user's own habits.",
       "done_when": "After \"I'd like to\" the list shows \"know\" above \"knowledge\", and names or slang the user types a few times start appearing.",
       "tasks": [
@@ -473,14 +478,14 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M2.7",
           "title": "Check learning and n-gram ranking live through the DLL",
-          "status": "next",
+          "status": "dropped",
           "area": "test",
           "stories": [
             11,
             15,
             16
           ],
-          "notes": "Needs you: with the engine running and the Completionist keyboard on, type a made-up word (like \"zorblax\") three or more times, then confirm it shows up as a suggestion. Also check \"I'd like to kn\" puts \"know\" first."
+          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Needs you: with the engine running and the Completionist keyboard on, type a made-up word (like \"zorblax\") three or more times, then confirm it shows up as a suggestion. Also check \"I'd like to kn\" puts \"know\" first."
         }
       ]
     },
@@ -633,7 +638,7 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M3.11",
           "title": "Check phrases live with a real provider and key",
-          "status": "next",
+          "status": "dropped",
           "area": "test",
           "stories": [
             18,
@@ -641,7 +646,7 @@ window.COMPLETIONIST_ROADMAP = {
             25,
             59
           ],
-          "notes": "Needs you: tray menu > Open settings file, add `api_key = \"...\"` under `[phrase]` (never in chat; it applies within seconds), then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Completionist` shows what it cost."
+          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Needs you: tray menu > Open settings file, add `api_key = \"...\"` under `[phrase]` (never in chat; it applies within seconds), then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Completionist` shows what it cost."
         },
         {
           "id": "M3.12",
@@ -800,7 +805,7 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M4.9",
           "title": "Live check of install, tray, hotkey and logon start",
-          "status": "next",
+          "status": "dropped",
           "area": "install",
           "stories": [
             41,
@@ -808,15 +813,23 @@ window.COMPLETIONIST_ROADMAP = {
             43,
             44
           ],
-          "notes": "User runs .\\scripts\\install.ps1, checks the tray icon and Ctrl+Alt+P, reboots once to see the engine start by itself."
+          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. User runs .\\scripts\\install.ps1, checks the tray icon and Ctrl+Alt+P, reboots once to see the engine start by itself."
         },
         {
           "id": "M4.10",
           "title": "README demo GIF and a small web demo of the popup",
-          "status": "todo",
+          "status": "dropped",
           "area": "docs",
           "stories": [],
-          "notes": "The public showcase. A short GIF of the popup in use, and a plain HTML page with made-up text that shows the ranking (no engine, no server, no real data). Needs your OK before anything is published. Not needed for 0.4.0, so it can move to a later milestone."
+          "notes": "Moved to M9.7 (0.7.0, the last release before 1.0) so 0.4.0 does not wait on it. Originally: the public showcase, a short GIF of the popup in use and a plain HTML page with made-up text that shows the ranking."
+        },
+        {
+          "id": "M4.11",
+          "title": "Remove the Completionist Spike keyboard and unregister it",
+          "status": "todo",
+          "area": "install",
+          "stories": [],
+          "notes": "Moved from M1.13. The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`."
         }
       ]
     },
@@ -1096,6 +1109,14 @@ window.COMPLETIONIST_ROADMAP = {
             73
           ],
           "notes": "Needs you: type moutian, definately, recieve and similar, and check that correct rare words aren't pushed aside."
+        },
+        {
+          "id": "M9.7",
+          "title": "README demo GIF and a small web demo of the popup",
+          "status": "todo",
+          "area": "docs",
+          "stories": [],
+          "notes": "Moved here from M4.10. The public showcase: a short GIF of the popup in use, and a plain HTML page with made-up text that shows the ranking (no engine, no server, no real data). Needs your OK before anything is published."
         }
       ]
     },
@@ -1247,15 +1268,26 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The engine now starts with `cd engine && uv run completionist.py`, a small launcher script beside the project file."
     },
     {
+      "version": "0.0.12",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Task board by release",
+      "highways": [
+        "tooling"
+      ],
+      "text": "The task board now shows each milestone as its release and name, leads task rows with the plain title and a small grey id, and sorts tasks by status."
+    },
+    {
       "version": "0.1.0",
-      "status": "next",
+      "status": "released",
       "title": "Words everywhere",
       "milestone": "M1",
-      "text": "This is the first release you can type with. The real text service replaces the spike and connects to the engine, so a list of word completions appears at the caret in Notepad, Chrome, Edge, Discord and other Electron apps. Tab accepts the highlighted word, the arrow keys move through the list and Esc closes it. Enter is never intercepted, so chat messages still send. Password, URL, email and number fields stay silent, as do code editors and terminals. If the engine stops, apps carry on as if Completionist weren’t installed and reconnect when it returns. A keyboard icon lets Windows list Completionist in Settings, so it can be switched on without PowerShell."
+      "text": "This was the first release you could type with. The real text service replaced the spike and connected to the engine, so a list of word completions appears under the caret in Notepad, Chrome, Edge, Discord and other Electron apps. Tab accepts the highlighted word, the arrow keys move through the list and Esc closes it. Enter is never intercepted, so chat messages still send. Password, URL, email and number fields stay silent, as do code editors and terminals. If the engine stops, apps carry on as if Completionist were not installed and reconnect when it returns. A keyboard icon lets Windows list Completionist in Settings, so it can be switched on without PowerShell. The text service, the popup and the engine link are tested natively and through a harness that drives the real DLL; checks in each app are left to daily use.",
+      "date": "2026-09-30"
     },
     {
       "version": "0.2.0",
-      "status": "planned",
+      "status": "next",
       "title": "Smarter words",
       "milestone": "M2",
       "text": "Word suggestions start to take the sentence and the writer into account. Bigram and trigram tables built from a public corpus re-rank completions by the previous one or two words, so after “I’d like to” the list offers “know” before “knowledge”. Common misspellings such as “tomorow” are filtered out of the base vocabulary. A personal store boosts the words you actually use and adds new ones, such as names and slang, after a few uses. It keeps word counts only and never the text itself."
@@ -1413,6 +1445,10 @@ window.COMPLETIONIST_ROADMAP = {
   "decisions": [
     {
       "date": "2026-09-30",
+      "text": "Hands-on live checks (app matrix, live provider, logon reboot, ranking checks) no longer gate a milestone. Completionist is a personal tool, so it counts as shipped once it works in the owner's daily use; the four pure check tasks were dropped."
+    },
+    {
+      "date": "2026-09-30",
       "text": "The API key moved from an environment variable into the config file (`[phrase] api_key`), on the owner's request; this reverses the earlier rule that the config only names a variable. It is plain text in `%APPDATA%\\Completionist\\config.toml`, outside the repo, and is kept out of logs, errors and printed settings. Editing it applies on hot reload. The key is still never asked for in chat. The default phrase model is meta-llama/llama-3.3-70b-instruct with provider_order [\"Groq\"]."
     },
     {
@@ -1536,6 +1572,22 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Released 0.1.0 (M1 done): finished M1.10 and M1.11 as built and harness-tested, moved the Spike-keyboard cleanup to M4.11, made M2 active and 0.2.0 next."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "Moved the README demo GIF and web demo from M4.10 to M9.7 (0.7.0, the last release before 1.0), so M4 has no open tasks besides the install run."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "Decision: live checks no longer gate milestones (personal tool). Dropped M1.12, M2.7, M3.11 and M4.9; M2 and M3 now have nothing left open."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "Released 0.0.12 and finished M1.17: the task board names milestones by release, leads rows with the title, sorts by status; CLAUDE.md and CONTEXT.md reworded. Every remaining M1 to M4 task needs the user's hands-on checks."
+    },
     {
       "date": "2026-09-30",
       "text": "Released 0.0.11: engine/completionist.py, so the engine starts with `cd engine && uv run completionist.py`."
