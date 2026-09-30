@@ -1574,6 +1574,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-09-30",
+      "text": "Pushed main and tag v0.1.0. All other branches are merged into main and ready to delete."
+    },
+    {
+      "date": "2026-09-30",
       "text": "Released 0.1.0 (M1 done): finished M1.10 and M1.11 as built and harness-tested, moved the Spike-keyboard cleanup to M4.11, made M2 active and 0.2.0 next."
     },
     {
