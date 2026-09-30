@@ -818,10 +818,10 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M4.10",
           "title": "README demo GIF and a small web demo of the popup",
-          "status": "todo",
+          "status": "dropped",
           "area": "docs",
           "stories": [],
-          "notes": "The public showcase. A short GIF of the popup in use, and a plain HTML page with made-up text that shows the ranking (no engine, no server, no real data). Needs your OK before anything is published. Not needed for 0.4.0, so it can move to a later milestone."
+          "notes": "Moved to M9.7 (0.7.0, the last release before 1.0) so 0.4.0 does not wait on it. Originally: the public showcase, a short GIF of the popup in use and a plain HTML page with made-up text that shows the ranking."
         }
       ]
     },
@@ -1101,6 +1101,14 @@ window.COMPLETIONIST_ROADMAP = {
             73
           ],
           "notes": "Needs you: type moutian, definately, recieve and similar, and check that correct rare words aren't pushed aside."
+        },
+        {
+          "id": "M9.7",
+          "title": "README demo GIF and a small web demo of the popup",
+          "status": "todo",
+          "area": "docs",
+          "stories": [],
+          "notes": "Moved here from M4.10. The public showcase: a short GIF of the popup in use, and a plain HTML page with made-up text that shows the ranking (no engine, no server, no real data). Needs your OK before anything is published."
         }
       ]
     },
@@ -1555,6 +1563,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Moved the README demo GIF and web demo from M4.10 to M9.7 (0.7.0, the last release before 1.0), so M4 has no open tasks besides the install run."
+    },
     {
       "date": "2026-09-30",
       "text": "Decision: live checks no longer gate milestones (personal tool). Dropped M1.12, M2.7, M3.11 and M4.9; M2 and M3 now have nothing left open."
