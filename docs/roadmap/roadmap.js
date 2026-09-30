@@ -1058,6 +1058,10 @@ window.TYPER_ROADMAP = {
   "log": [
     {
       "date": "2026-09-29",
+      "text": "CONTEXT.md: product, architecture, glossary, release and map rules, and the official Evergreen color scheme and typography."
+    },
+    {
+      "date": "2026-09-29",
       "text": "Retired releases.html (its writing now lives in the map's travel guide and itinerary); README and CLAUDE.md point at the map and the task board."
     },
     {
