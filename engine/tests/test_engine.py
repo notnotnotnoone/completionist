@@ -138,3 +138,47 @@ def test_an_engine_without_a_personal_store_still_works():
     engine = Engine(WordCompleter(VOCAB), CONFIG)
     session = engine.open_session()
     assert session.handle(keystroke("hello wor")).words == ("work", "world")
+
+
+# --- next words -------------------------------------------------------------------------------------
+
+from completionist_engine.counts import Counts  # noqa: E402
+
+
+class _After:
+    """After "to", "know" follows 70% of the time."""
+
+    def counts(self, context, prefix):
+        if context == ("to",):
+            return Counts({w: n for w, n in {"know": 70, "see": 30}.items() if w.startswith(prefix)}, 100)
+        return Counts({}, 0)
+
+
+NEXT_VOCAB = VOCAB + [("know", 6.0), ("see", 6.0)]
+
+
+def next_engine(**config) -> Engine:
+    base = Config(block=frozenset(), allow=frozenset(), word_limit=5, **config)
+    return Engine(WordCompleter(NEXT_VOCAB, ngrams=_After()), base)
+
+
+def test_a_space_brings_the_likely_next_words_when_switched_on():
+    engine = next_engine(next_words=True, next_threshold=0.1)
+    assert engine.handle(keystroke("I'd like to ")) == WordReply(id=9, replace=0, words=("know", "see"))
+
+
+def test_next_words_stay_off_unless_switched_on():
+    assert next_engine().handle(keystroke("I'd like to ")) == WordReply(id=9, replace=0, words=())
+
+
+def test_next_words_respect_the_threshold_and_the_quiet_rules():
+    assert next_engine(next_words=True, next_threshold=0.8).handle(keystroke("I'd like to ")).words == ()
+    engine = next_engine(next_words=True, next_threshold=0.1)
+    assert engine.handle(keystroke("I'd like to ", scope=("IS_PASSWORD",))).words == ()
+    engine.paused = True
+    assert engine.handle(keystroke("I'd like to ")).words == ()
+
+
+def test_typing_a_letter_goes_back_to_normal_completion():
+    engine = next_engine(next_words=True, next_threshold=0.1)
+    assert engine.handle(keystroke("I'd like to k")).words == ("know",)

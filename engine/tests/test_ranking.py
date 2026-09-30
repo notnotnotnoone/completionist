@@ -150,3 +150,91 @@ def test_ngrams_and_personal_habits_work_together():
     personal = FakeCounts({(): {"knew": 25}}, totals={(): 300})
     words = WordCompleter(VOCAB, ngrams=ngrams, personal=personal).complete("I want to kn").words
     assert set(words[:2]) == {"know", "knew"}
+
+
+# --- next words: suggestions after a space, before any letter is typed ------------------------------
+
+NEXT_VOCAB = VOCAB + [("see", 7.0), ("be", 9.0), ("write", 6.0), ("i", 9.5), ("go", 8.0)]
+TO = {("to",): {"know": 30, "see": 20, "be": 10, "go": 5}}  # after "to": know 46%, see 31%, be 15%, go 8%
+
+
+def test_after_a_space_the_words_that_usually_follow_are_offered():
+    completer = WordCompleter(NEXT_VOCAB, ngrams=FakeCounts(TO))
+    result = completer.next_words("I'd like to ", limit=5, threshold=0.10)
+    assert result.words == ("know", "see", "be")  # "go" is under the threshold
+    assert result.replace == 0
+
+
+def test_the_limit_caps_the_list():
+    completer = WordCompleter(NEXT_VOCAB, ngrams=FakeCounts(TO))
+    assert completer.next_words("I'd like to ", limit=2, threshold=0.0).words == ("know", "see")
+
+
+def test_nothing_is_offered_when_no_word_is_likely_enough():
+    flat = {("to",): {w: 10 for w in ("know", "see", "be", "go", "write", "the", "they", "then", "knew", "known")}}
+    completer = WordCompleter(NEXT_VOCAB, ngrams=FakeCounts(flat))
+    assert completer.next_words("I'd like to ", limit=5, threshold=0.25).words == ()
+
+
+def test_a_zero_threshold_switches_the_filter_off():
+    flat = {("to",): {w: 10 for w in ("know", "see", "be", "go", "write", "the", "they", "then", "knew", "known")}}
+    completer = WordCompleter(NEXT_VOCAB, ngrams=FakeCounts(flat))
+    assert len(completer.next_words("I'd like to ", limit=5, threshold=0.0).words) == 5
+
+
+def test_a_trigram_beats_the_bigram_for_the_next_word():
+    ngrams = FakeCounts({**TO, ("like", "to"): {"go": 90, "know": 5}})
+    completer = WordCompleter(NEXT_VOCAB, ngrams=ngrams)
+    assert completer.next_words("I'd like to ", limit=5, threshold=0.10).words[0] == "go"
+
+
+def test_too_thin_a_context_is_not_trusted():
+    completer = WordCompleter(NEXT_VOCAB, ngrams=FakeCounts({("to",): {"know": 2}}))
+    assert completer.next_words("I'd like to ", limit=5, threshold=0.0).words == ()
+
+
+@pytest.mark.parametrize(
+    "before",
+    [
+        "I'd like to",  # still typing the word
+        "I'd like to ss",
+        "Hello. ",  # new sentence: no context
+        "",
+        "to\n",
+        "to, ",
+        "to. ",
+        "to 5 ",  # a number breaks the chain
+    ],
+)
+def test_next_words_only_follow_a_word_and_a_space(before):
+    completer = WordCompleter(NEXT_VOCAB, ngrams=FakeCounts({**TO, ("hello",): {"to": 50}}))
+    assert completer.next_words(before, threshold=0.0).words == ()
+
+
+def test_a_comma_earlier_in_the_sentence_does_not_stop_next_words():
+    completer = WordCompleter(NEXT_VOCAB, ngrams=FakeCounts(TO))
+    assert completer.next_words("Hello, I'd like to ", threshold=0.0).words
+
+
+def test_your_own_pairs_raise_a_word_that_follows_the_last_word():
+    personal = FakeCounts({("to",): {"write": 6}, (): {"write": 6}})
+    completer = WordCompleter(NEXT_VOCAB, ngrams=FakeCounts(TO), personal=personal)
+    assert completer.next_words("I'd like to ", limit=5, threshold=0.10).words[0] == "write"
+
+
+def test_words_outside_the_vocabulary_need_promotion_first():
+    personal = FakeCounts({("to",): {"linqi": 2}, (): {"linqi": 2}})
+    completer = WordCompleter(NEXT_VOCAB, personal=personal, promote_after=3)
+    assert completer.next_words("talk to ", threshold=0.0).words == ()
+    personal = FakeCounts({("to",): {"linqi": 4}, (): {"linqi": 4}})
+    completer = WordCompleter(NEXT_VOCAB, personal=personal, promote_after=3)
+    assert completer.next_words("talk to ", threshold=0.0).words == ("linqi",)
+
+
+def test_the_pronoun_i_is_capitalised():
+    completer = WordCompleter(NEXT_VOCAB, ngrams=FakeCounts({("and",): {"i": 40, "see": 10}}))
+    assert completer.next_words("and ", threshold=0.10).words[0] == "I"
+
+
+def test_no_sources_means_no_next_words():
+    assert WordCompleter(NEXT_VOCAB).next_words("I'd like to ", threshold=0.0).words == ()

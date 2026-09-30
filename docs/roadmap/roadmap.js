@@ -907,7 +907,7 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.3",
           "title": "`completionist-words` command: list and forget",
-          "status": "next",
+          "status": "doing",
           "area": "engine",
           "stories": [
             67
@@ -917,18 +917,23 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.4",
           "title": "Next-word candidates after a space, with a confidence threshold",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             62,
             65
           ],
-          "notes": "An empty prefix is allowed: rank continuations from the bigram and trigram tables and the personal pairs. Return nothing when no continuation is likely enough, and put the threshold in the config so it can be switched off."
+          "notes": "An empty prefix is allowed: rank continuations from the bigram and trigram tables and the personal pairs. Return nothing when no continuation is likely enough, and put the threshold in the config so it can be switched off. Built as WordCompleter.next_words, used by the engine after a space. Config: [words] next (default false until M7.8 lets the popup open after a space safely) and next_threshold (default 0.05; 0 offers the best few whatever the odds).",
+          "refs": [
+            "engine/src/completionist_engine/words.py",
+            "engine/src/completionist_engine/config.py",
+            "branch m7-next-words"
+          ]
         },
         {
           "id": "M7.5",
           "title": "Multi-word chunks from the n-gram tables",
-          "status": "todo",
+          "status": "next",
           "area": "engine",
           "stories": [
             63
@@ -1589,6 +1594,14 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M7.4 done: next-word candidates after a space with a confidence threshold, behind [words] next (off until M7.8). M7.3 is left to the user, who is doing it hands-on."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "M7.3 started as a guided learning task on branch m7-words-command: the user writes the `completionist-words` command with tutoring."
+    },
     {
       "date": "2026-09-30",
       "text": "M7.2 done: the personal store counts trigrams (two words of context, same sentence only) next to words and pairs; counts only, saved locally."
