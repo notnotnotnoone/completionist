@@ -1641,6 +1641,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-09-30",
+      "text": "Pushed main and tag v0.4.2 to origin; engine (442) and native (70) tests pass on main."
+    },
+    {
+      "date": "2026-09-30",
       "text": "Release 0.4.2: merged m7-kinds into main (M7.3, M7.6 to M7.8); M7.9 live check still to do."
     },
     {
