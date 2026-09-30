@@ -1576,6 +1576,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-09-30",
+      "text": "Pushed main and tag v0.3.0 to origin."
+    },
+    {
+      "date": "2026-09-30",
       "text": "Release 0.3.0 (Phrase suggestions): M3 done, tests pass; live provider checks left to daily use; M4 is active."
     },
     {
