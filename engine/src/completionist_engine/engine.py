@@ -114,7 +114,12 @@ class Session:
             if finished is not None:
                 word, context = finished
                 engine._personal.record_typed(word, context)
-        completion = engine._completer.complete(request.before, limit=engine._config.word_limit)
+        config = engine._config
+        completion = engine._completer.complete(request.before, limit=config.word_limit)
+        if config.next_words and not completion.words:
+            completion = engine._completer.next_words(
+                request.before, limit=config.word_limit, threshold=config.next_threshold
+            )
         if engine._metrics is not None and completion.words and not request.quiet and not self._words_open:
             engine._metrics.record_shown(self._app, "word")
         self._words_open = bool(completion.words) and not request.quiet

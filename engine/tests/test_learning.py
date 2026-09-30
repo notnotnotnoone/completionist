@@ -49,12 +49,35 @@ def test_backspacing_does_not_learn():
     assert learner.observe("hello wor") is None
 
 
-def test_retyping_after_backspace_learns_the_word_again_once_finished():
+def test_a_word_backspaced_over_is_not_learned_even_when_retyped():
     learner = TypingLearner()
     learner.observe("hello world")
     learner.observe("hello worl")
     learner.observe("hello world")
-    assert learner.observe("hello world ") == ("world", ("hello",))
+    assert learner.observe("hello world ") is None
+
+
+def test_a_typo_fixed_by_backspacing_is_not_learned():
+    assert type_text(TypingLearner(), "the teh") == [("the", ())]
+    learner = TypingLearner()
+    for text in ["the teh", "the te", "the t", "the th", "the the"]:
+        learner.observe(text)
+    assert learner.observe("the the ") is None
+
+
+def test_the_next_word_is_learned_again_after_a_corrected_one():
+    learner = TypingLearner()
+    for text in ["hello worl", "hello wor", "hello worl", "hello world", "hello world ", "hello world a"]:
+        learner.observe(text)
+    assert learner.observe("hello world an") is None
+    assert learner.observe("hello world an ") == ("an", ("hello", "world"))
+
+
+def test_backspacing_into_the_previous_word_corrects_it_too():
+    learner = TypingLearner()
+    learner.observe("hello ")
+    learner.observe("hello")
+    assert learner.observe("hello ") is None
 
 
 def test_a_delimiter_after_a_delimiter_learns_nothing():

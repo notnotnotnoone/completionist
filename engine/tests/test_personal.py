@@ -125,7 +125,7 @@ def test_the_file_holds_only_counts_of_single_words_never_text(tmp_path):
         tables = {row[0] for row in db.execute("select name from sqlite_master where type='table'")}
         words = {tuple(row) for row in db.execute("select word, n from words")}
         bigrams = {tuple(row) for row in db.execute("select prev, word, n from bigrams")}
-    assert tables == {"words", "bigrams"}
+    assert tables == {"words", "bigrams", "trigrams"}
     assert words == {("hello", 1), ("world", 1)}
     assert bigrams == {("hi", "hello", 1), ("hi", "world", 1)}
 
@@ -161,3 +161,67 @@ def test_rare_bigrams_are_pruned_when_the_table_grows_too_large(tmp_path):
     store.flush()
     assert dict(store.counts(("prevz",), "keep").words) == {"keeper": 3}  # repeated pairs survive
     assert store.counts(("preva",), "word").total == 0  # one-off pairs went
+
+
+def test_three_words_typed_in_a_row_are_counted_as_a_trigram(store):
+    for _ in range(2):
+        store.record_typed("linqi", ("hey", "there"))
+    store.record_typed("lin", ("hey", "there"))
+    store.record_typed("linqi", ("oh", "there"))
+    counts = store.counts(("hey", "there"), "lin")
+    assert dict(counts.words) == {"linqi": 2, "lin": 1}
+    assert counts.total == 3  # everything that followed "hey there"
+    assert dict(store.counts(("oh", "there"), "lin").words) == {"linqi": 1}
+
+
+def test_a_trigram_needs_both_words_of_context(store):
+    store.record_typed("world", ("hello",))
+    assert store.counts(("hello", "big"), "wor").total == 0
+    assert store.counts(("hello",), "wor").words["world"] == 1
+
+
+def test_trigrams_come_from_the_last_two_context_words_only(store):
+    store.record_typed("world", ("so", "hello", "big"))
+    assert store.counts(("hello", "big"), "wor").words["world"] == 1
+    assert store.counts(("so", "hello"), "wor").total == 0
+
+
+def test_a_trigram_with_an_unusable_word_is_not_recorded(store):
+    store.record_typed("world", ("hello", "b1g"))
+    assert store.counts(("hello", "b1g"), "wor").total == 0
+
+
+def test_trigram_counts_survive_a_reopen(tmp_path):
+    path = tmp_path / "personal.sqlite"
+    first = PersonalStore(path)
+    first.record_typed("world", ("hello", "big"))
+    first.record_typed("world", ("hello", "big"))
+    first.close()
+    second = PersonalStore(path)
+    assert second.counts(("hello", "big"), "wor").words["world"] == 2
+    with sqlite3.connect(path) as db:
+        rows = {tuple(r) for r in db.execute("select prev2, prev1, word, n from trigrams")}
+    assert rows == {("hello", "big", "world", 2)}
+    second.close()
+
+
+def test_clear_forgets_trigrams_too(tmp_path):
+    path = tmp_path / "personal.sqlite"
+    store = PersonalStore(path)
+    store.record_typed("world", ("hello", "big"))
+    store.flush()
+    store.clear()
+    assert store.counts(("hello", "big"), "wor").total == 0
+    store.close()
+    assert PersonalStore(path).counts(("hello", "big"), "wor").total == 0
+
+
+def test_pruning_drops_single_use_trigrams_when_there_are_too_many(tmp_path):
+    store = PersonalStore(tmp_path / "p.sqlite", max_bigrams=3)
+    for i in range(6):
+        store.record_typed(f"w{chr(97 + i)}", ("hello", "big"))
+    store.record_typed("keep", ("hello", "big"))
+    store.record_typed("keep", ("hello", "big"))
+    store.flush()
+    assert dict(store.counts(("hello", "big"), "").words) == {"keep": 2}
+    store.close()

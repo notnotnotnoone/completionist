@@ -6,6 +6,8 @@
 
     [words]
     limit = 5                   # words shown in the popup
+    next = false                # offer likely next words after a space
+    next_threshold = 0.05       # how likely a next word must be (0 to 1); 0 offers the best few whatever the odds
 
     [learning]
     enabled = true              # learn your words and habits (counts only, never text)
@@ -74,7 +76,7 @@ _PHRASE_KEYS = {
 }  # fmt: skip
 _SCHEMA = {
     "apps": {"block", "allow"},
-    "words": {"limit"},
+    "words": {"limit", "next", "next_threshold"},
     "learning": {"enabled", "promote_after"},
     "data": {"dir"},
     "phrase": _PHRASE_KEYS,
@@ -106,6 +108,8 @@ class Config:
     block: frozenset[str] = DEFAULT_BLOCK
     allow: frozenset[str] = DEFAULT_ALLOW
     word_limit: int = 5
+    next_words: bool = False
+    next_threshold: float = 0.05
     learning: bool = True
     promote_after: int = 3
     data_dir: Path = field(default_factory=default_data_dir)
@@ -156,6 +160,10 @@ def load_config(path: Path) -> Config:
         block=_app_names(apps["block"], "apps.block") if "block" in apps else config.block,
         allow=_app_names(apps["allow"], "apps.allow") if "allow" in apps else config.allow,
         word_limit=_positive_int(words["limit"], "words.limit") if "limit" in words else config.word_limit,
+        next_words=_boolean(words["next"], "words.next") if "next" in words else config.next_words,
+        next_threshold=(
+            _probability(words["next_threshold"], "words.next_threshold") if "next_threshold" in words else config.next_threshold
+        ),
         learning=_boolean(learning["enabled"], "learning.enabled") if "enabled" in learning else config.learning,
         promote_after=(
             _positive_int(learning["promote_after"], "learning.promote_after")
@@ -228,6 +236,12 @@ def _non_negative_int(value: Any, name: str) -> int:
 def _non_negative_number(value: Any, name: str) -> float:
     if not isinstance(value, int | float) or isinstance(value, bool) or value < 0:
         raise ConfigError(f"{name} must be a number, 0 or more")
+    return float(value)
+
+
+def _probability(value: Any, name: str) -> float:
+    if not isinstance(value, int | float) or isinstance(value, bool) or not 0 <= value <= 1:
+        raise ConfigError(f"{name} must be a number from 0 to 1")
     return float(value)
 
 

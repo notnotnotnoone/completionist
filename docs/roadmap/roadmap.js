@@ -878,28 +878,36 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.1",
           "title": "Personal log admission: learn only words you typed, finished without correcting and used 3 times",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             66
           ],
-          "notes": "Builds on the existing PersonalStore and `promote_after`. Adds: a word counts only when you finish it with a space or punctuation and didn't backspace over it (so typos are never learned, which also keeps the typo feature from learning its own mistakes). Silent fields, block-listed apps, pasted text and caret jumps already teach nothing. Keep it simple: no per-day rule, decay or never-learn list until junk actually shows up."
+          "notes": "Builds on the existing PersonalStore and `promote_after`. Adds: a word counts only when you finish it with a space or punctuation and didn't backspace over it (so typos are never learned, which also keeps the typo feature from learning its own mistakes). Silent fields, block-listed apps, pasted text and caret jumps already teach nothing. Keep it simple: no per-day rule, decay or never-learn list until junk actually shows up.",
+          "refs": [
+            "engine/src/completionist_engine/learning.py",
+            "branch m7-next-words"
+          ]
         },
         {
           "id": "M7.2",
           "title": "Personal trigram counts next to the word and pair counts",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             66,
             17
           ],
-          "notes": "A trigram is three words typed in a row within one sentence, never across punctuation, a newline or a window switch. Counts only, stored on disk locally. Admission follows M7.1."
+          "notes": "A trigram is three words typed in a row within one sentence, never across punctuation, a newline or a window switch. Counts only, stored on disk locally. Admission follows M7.1.",
+          "refs": [
+            "engine/src/completionist_engine/personal.py",
+            "branch m7-next-words"
+          ]
         },
         {
           "id": "M7.3",
           "title": "`completionist-words` command: list and forget",
-          "status": "todo",
+          "status": "doing",
           "area": "engine",
           "stories": [
             67
@@ -909,28 +917,37 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.4",
           "title": "Next-word candidates after a space, with a confidence threshold",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             62,
             65
           ],
-          "notes": "An empty prefix is allowed: rank continuations from the bigram and trigram tables and the personal pairs. Return nothing when no continuation is likely enough, and put the threshold in the config so it can be switched off."
+          "notes": "An empty prefix is allowed: rank continuations from the bigram and trigram tables and the personal pairs. Return nothing when no continuation is likely enough, and put the threshold in the config so it can be switched off. Built as WordCompleter.next_words, used by the engine after a space. Config: [words] next (default false until M7.8 lets the popup open after a space safely) and next_threshold (default 0.05; 0 offers the best few whatever the odds).",
+          "refs": [
+            "engine/src/completionist_engine/words.py",
+            "engine/src/completionist_engine/config.py",
+            "branch m7-next-words"
+          ]
         },
         {
           "id": "M7.5",
           "title": "Multi-word chunks from the n-gram tables",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             63
           ],
-          "notes": "Extend the top continuation one word at a time while its probability stays above a cutoff, up to 3 words. Offer a chunk only when it reads coherently."
+          "notes": "Extend the top continuation one word at a time while its probability stays above a cutoff, up to 3 words. Offer a chunk only when it reads coherently. Built as WordCompleter.chunks (cutoff 0.3, at most 3 words, never ends on the/a/of/to/and). Not yet in replies: M7.6 carries the kind and wires it in. Quality is limited by the WikiText corpus; judge it in M7.9.",
+          "refs": [
+            "engine/src/completionist_engine/words.py",
+            "branch m7-next-words"
+          ]
         },
         {
           "id": "M7.6",
           "title": "Protocol: each suggestion carries its kind (word, chunk or next)",
-          "status": "todo",
+          "status": "next",
           "area": "engine",
           "stories": [
             64
@@ -1581,6 +1598,26 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M7.5 done: WordCompleter.chunks extends the top words into two- or three-word chunks while the next word is likely; wiring into replies is M7.6."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "M7.4 done: next-word candidates after a space with a confidence threshold, behind [words] next (off until M7.8). M7.3 is left to the user, who is doing it hands-on."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "M7.3 started as a guided learning task on branch m7-words-command: the user writes the `completionist-words` command with tutoring."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "M7.2 done: the personal store counts trigrams (two words of context, same sentence only) next to words and pairs; counts only, saved locally."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "M7.1 done: a word backspaced over while typing is never learned (the 3-use admission already existed as promote_after)."
+    },
     {
       "date": "2026-09-30",
       "text": "Pushed main and tag v0.4.0 to origin."
