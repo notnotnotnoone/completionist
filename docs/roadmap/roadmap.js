@@ -796,13 +796,14 @@ window.TYPER_ROADMAP = {
     },
     {
       "version": "0.0.5",
-      "status": "next",
-      "title": "Real text service and smarter engine",
-      "text": "The real Typer text service replaces the spike, and the engine ranks words by the preceding words and learns your own vocabulary, all covered by automated tests and waiting for a check in real apps before it lands on main."
+      "status": "released",
+      "title": "Text service, phrases and daily-driver polish",
+      "text": "The real Typer text service, context-aware and learning word ranking, streamed cloud phrases with a daily budget, a tray icon, pause hotkey, stats and install scripts are all built and covered by automated tests, with checks in real apps still to do.",
+      "date": "2026-09-29"
     },
     {
       "version": "0.1.0",
-      "status": "planned",
+      "status": "next",
       "title": "Words everywhere",
       "milestone": "M1",
       "text": "This is the first release you can type with. The real text service replaces the spike and connects to the engine, so a list of word completions appears at the caret in Notepad, Chrome, Edge, Discord and other Electron apps. Tab accepts the highlighted word, the arrow keys move through the list and Esc closes it. Enter is never intercepted, so chat messages still send. Password, URL, email and number fields stay silent, as do code editors and terminals. If the engine stops, apps carry on as if Typer weren’t installed and reconnect when it returns. A keyboard icon lets Windows list Typer in Settings, so it can be switched on without PowerShell."
@@ -980,6 +981,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "Released 0.0.5: merged m3-phrases (M1-M4 code) into main. Live checks in real apps remain open."
+    },
     {
       "date": "2026-09-29",
       "text": "READMEs rewritten (install, keys, phrases, tray, config) and the 1.0.0 essay redrafted as a retrospective, with the open live checks stated plainly."
