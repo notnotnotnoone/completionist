@@ -7,7 +7,7 @@ System-wide, VS Code-style English autocomplete for Windows. A C++ TSF text serv
 `docs/roadmap/roadmap.js` is the single source of truth for what's done, in progress and next, and for every release. Two plain HTML pages read it. The user opens them straight from disk in a browser; nothing is published.
 
 - `docs/roadmap/index.html`: the highway map. Every release on highways, one for each part of the app, with the release writing, the road work and the itinerary.
-- `docs/roadmap/tasks.html`: the task board by milestone, with filters, story coverage, decisions, risks and the log.
+- `docs/roadmap/tasks.html`: the task board by release, with filters, story coverage, decisions, risks and the log.
 
 `roadmap.js` is `window.COMPLETIONIST_ROADMAP = { ... };` where everything after the `=` must be strict JSON: double quotes, no comments, no trailing commas.
 
@@ -32,14 +32,21 @@ The design for the map pages, and the plan to build them, are in `docs/superpowe
    - Split tasks that grew too large.
    - Mark abandoned work `dropped`. Never delete a task silently.
    - Keep each task's `stories` pointing at the PRD user stories it delivers.
-   - Keep the planned release writing in step with what each milestone now contains.
-5. **When a milestone is complete**, set it to `done` and make the next one `active`. Exactly one milestone is active at a time.
+   - Keep the planned release writing in step with what each release's tasks now contain.
+5. **When a release's last task is done**, set its group to `done` and make the next one `active`. Exactly one milestone is active at a time.
 6. **Record decisions and findings.** Add them to `decisions`, and add or re-status entries in `risks` (`open`, `mitigated`, `retired`).
 7. **With every change**, set `updated` to today's date and add a one-line entry at the **top** of `log`: what changed and why.
 8. **Validate** with `python scripts/check_roadmap.py`. It must print `roadmap ok`. It also enforces the writing lengths below.
 9. **Commit** `roadmap.js` in the same commit as the work it describes. Every commit has a `roadmap.js` change (see the rule above).
 
-Task statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. Milestone statuses: `planned`, `active`, `done`. Task ids are `<milestone>.<n>` (e.g. `M1.8`); never reuse or renumber them. The pages show a milestone as its release and name ("0.2.0 · Smarter words") and a task id only as a small grey tag; the ids are stable keys, not labels.
+Task statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. Milestone statuses: `planned`, `active`, `done`. Task ids are `<group>.<n>` (e.g. `M9.9`); never reuse or renumber them. The `milestones` list in `roadmap.js` is just the container that groups the tasks leading to one release. **People read versions, not M-ids.** The pages show a group as its release and name ("0.7.0 · Typo-tolerant words") and every task by its `version`. The ids and group names are internal keys, and old log lines keep them.
+
+**Task versions (required on every task).** A task's `version` is the version it ships in:
+- **Every change is a task**, including small fixes and docs, and **finishing a task releases it as a patch**. A fix to older work is a new task in the group that is active now.
+- **Unshipped work** gets its own patch number, counting up from the last release before it, so the tasks leading to `0.7.0` are `0.6.2`, `0.6.3`, ... `0.6.10`, and `0.7.0` is the finish line. Add the new task with the next number, and renumber the planned ones if it ships first.
+- **Already-shipped work** names the release it actually went out in, so several old tasks can share one version.
+- The checker enforces this: every task has a `version`, a finish-line release (`X.Y.0`) can't be a task's version until it is released, and two unshipped tasks can't share a number.
+- Keep `milestones` in version order (by their release), so the pages read left to right.
 
 ### Releases and versions
 
@@ -55,7 +62,7 @@ Completionist uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `
   - Add the next patch version after the latest released one (e.g. 0.0.5, or 0.1.1 once 0.1.0 is out).
   - Set it to `released` with today's date and one sentence.
   - Keep `releases` in ascending version order, with all released versions before unreleased ones.
-- **Completing a milestone releases its minor version.**
+- **Finishing the last task of a group releases its minor version.**
   - Set it to `released` with a date.
   - Rewrite its paragraph in the past tense to describe what actually shipped.
   - Mark the following release `next`.
