@@ -5,7 +5,7 @@ window.COMPLETIONIST_ROADMAP = {
   "schema": 3,
   "project": "Completionist",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
-  "updated": "2026-09-29",
+  "updated": "2026-09-30",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
   "now": "Try the real text service and learning in real apps (your checklist), then merge branch m1-tsf-dll to main as 0.0.5",
@@ -17,7 +17,8 @@ window.COMPLETIONIST_ROADMAP = {
       "areas": [
         "engine",
         "data",
-        "bench"
+        "bench",
+        "viewer"
       ]
     },
     {
@@ -369,6 +370,14 @@ window.COMPLETIONIST_ROADMAP = {
             "scripts/install.ps1",
             "CONTEXT.md"
           ]
+        },
+        {
+          "id": "M1.17",
+          "title": "Make the roadmap easier to read: releases first, plain titles, tasks by status",
+          "status": "next",
+          "area": "docs",
+          "stories": [],
+          "notes": "The M-numbers confuse: M2 is 0.2.0 but M5 is 1.1.0, and task ids like M1.14 sit before M1.10. The pages should show each milestone as its release and name (\"0.2.0 · Smarter words\", found through the release's `milestone` field), lead task rows with the plain title and show the id only as a small grey tag (ids stay as stable keys, never renumbered), and sort tasks doing, next, todo, blocked, done, dropped. Then update the wording in CLAUDE.md and CONTEXT.md. Files: tasks.html, common.js, page.js."
         }
       ]
     },
@@ -800,6 +809,14 @@ window.COMPLETIONIST_ROADMAP = {
             44
           ],
           "notes": "User runs .\\scripts\\install.ps1, checks the tray icon and Ctrl+Alt+P, reboots once to see the engine start by itself."
+        },
+        {
+          "id": "M4.10",
+          "title": "README demo GIF and a small web demo of the popup",
+          "status": "todo",
+          "area": "docs",
+          "stories": [],
+          "notes": "The public showcase. A short GIF of the popup in use, and a plain HTML page with made-up text that shows the ranking (no engine, no server, no real data). Needs your OK before anything is published. Not needed for 0.4.0, so it can move to a later milestone."
         }
       ]
     },
@@ -837,6 +854,275 @@ window.COMPLETIONIST_ROADMAP = {
           "area": "extension",
           "stories": [],
           "notes": "Inline ghost text and page context in web fields."
+        }
+      ]
+    },
+    {
+      "id": "M7",
+      "title": "N-gram suggestions and the personal log",
+      "status": "planned",
+      "goal": "Suggest the next word after a space and two- or three-word chunks while typing, all in one popup box, and keep a clean personal log of the words and trigrams you type.",
+      "done_when": "After a space the popup offers likely next words, chunks appear while typing, words, chunks and the phrase share one box, the popup stays quiet when nothing is likely, and the log holds only words and trigrams you typed, finished and used at least three times.",
+      "tasks": [
+        {
+          "id": "M7.1",
+          "title": "Personal log admission: learn only words you typed, finished without correcting and used 3 times",
+          "status": "todo",
+          "area": "engine",
+          "stories": [
+            66
+          ],
+          "notes": "Builds on the existing PersonalStore and `promote_after`. Adds: a word counts only when you finish it with a space or punctuation and didn't backspace over it (so typos are never learned, which also keeps the typo feature from learning its own mistakes). Silent fields, block-listed apps, pasted text and caret jumps already teach nothing. Keep it simple: no per-day rule, decay or never-learn list until junk actually shows up."
+        },
+        {
+          "id": "M7.2",
+          "title": "Personal trigram counts next to the word and pair counts",
+          "status": "todo",
+          "area": "engine",
+          "stories": [
+            66,
+            17
+          ],
+          "notes": "A trigram is three words typed in a row within one sentence, never across punctuation, a newline or a window switch. Counts only, stored on disk locally. Admission follows M7.1."
+        },
+        {
+          "id": "M7.3",
+          "title": "`completionist-words` command: list and forget",
+          "status": "todo",
+          "area": "engine",
+          "stories": [
+            67
+          ],
+          "notes": "`list` with search, `forget <word>` and `forget-recent 10m`. The smallest way to see and edit the log; the viewer (M8) shows the same data."
+        },
+        {
+          "id": "M7.4",
+          "title": "Next-word candidates after a space, with a confidence threshold",
+          "status": "todo",
+          "area": "engine",
+          "stories": [
+            62,
+            65
+          ],
+          "notes": "An empty prefix is allowed: rank continuations from the bigram and trigram tables and the personal pairs. Return nothing when no continuation is likely enough, and put the threshold in the config so it can be switched off."
+        },
+        {
+          "id": "M7.5",
+          "title": "Multi-word chunks from the n-gram tables",
+          "status": "todo",
+          "area": "engine",
+          "stories": [
+            63
+          ],
+          "notes": "Extend the top continuation one word at a time while its probability stays above a cutoff, up to 3 words. Offer a chunk only when it reads coherently."
+        },
+        {
+          "id": "M7.6",
+          "title": "Protocol: each suggestion carries its kind (word, chunk or next)",
+          "status": "todo",
+          "area": "engine",
+          "stories": [
+            64
+          ],
+          "notes": "The field is covered by tests on both the engine and DLL sides, like the `accept` event was."
+        },
+        {
+          "id": "M7.7",
+          "title": "Popup shows words, chunks and the phrase in one box",
+          "status": "todo",
+          "area": "dll",
+          "stories": [
+            64
+          ],
+          "notes": "The phrase stays on top. First guess at the order: phrase, then chunks, then words. The row order gets polished in the UI redesign (M10). Checked in the TSF harness with a screenshot."
+        },
+        {
+          "id": "M7.8",
+          "title": "Open the popup after a space without stealing Tab or Enter",
+          "status": "todo",
+          "area": "dll",
+          "stories": [
+            62,
+            7,
+            8
+          ],
+          "notes": "Today the popup closes on space (story 9), so this changes the key router and needs native tests for every key. A next-word row is not highlighted by default until you press Down, so Tab still indents or moves on, like the 150 ms no-steal idea for phrases."
+        },
+        {
+          "id": "M7.9",
+          "title": "Check next words and chunks live in real apps",
+          "status": "todo",
+          "area": "test",
+          "stories": [
+            62,
+            63,
+            64,
+            65
+          ],
+          "notes": "Needs you: type in Notepad, Discord and Chrome and judge whether it helps or is noisy. If the base tables (0.8M bigrams, 1.6M trigrams from WikiText-103) feel thin, rebuild them with a looser prune and a chat-style corpus such as subtitles. Don't do that before this check says it's needed."
+        }
+      ]
+    },
+    {
+      "id": "M8",
+      "title": "Personal viewer",
+      "status": "planned",
+      "goal": "Let you see your personal dictionary and your stats, opened from the tray.",
+      "done_when": "The tray's Open viewer writes a local HTML page with your learned words, trigrams and stats and opens it in the browser, without a server, and it holds no typed-text history.",
+      "tasks": [
+        {
+          "id": "M8.1",
+          "title": "Snapshot writer: personal dictionary and stats into one local HTML file",
+          "status": "todo",
+          "area": "viewer",
+          "stories": [
+            68,
+            69
+          ],
+          "notes": "Written into `%LOCALAPPDATA%\\Completionist` each time, from `personal.sqlite` and `metrics.sqlite`. No server and no open port: like the roadmap pages, it is a plain file opened from disk."
+        },
+        {
+          "id": "M8.2",
+          "title": "Viewer page: searchable, sortable dictionary and the stats, in the Evergreen theme",
+          "status": "todo",
+          "area": "viewer",
+          "stories": [
+            68,
+            69
+          ],
+          "notes": "Dictionary entries (words and trigrams) sortable by count and last seen, marked as learned or base words you use often. Stats per day and per app: shown, accepted, keystrokes saved, latency. Read-only, with the `completionist-words forget` command shown beside each entry."
+        },
+        {
+          "id": "M8.3",
+          "title": "Tray item: Open viewer",
+          "status": "todo",
+          "area": "engine",
+          "stories": [
+            70
+          ],
+          "notes": "Next to the existing \"Show stats\" item."
+        },
+        {
+          "id": "M8.4",
+          "title": "Tests: the snapshot holds counts and dictionary entries only",
+          "status": "todo",
+          "area": "test",
+          "stories": [
+            17,
+            56
+          ],
+          "notes": "No typed-text history, no text from silent fields or blocked apps."
+        },
+        {
+          "id": "M8.5",
+          "title": "Check the viewer live",
+          "status": "todo",
+          "area": "test",
+          "stories": [
+            68,
+            69,
+            70
+          ],
+          "notes": "Needs you: open it from the tray after some typing and check that the dictionary and stats look right."
+        }
+      ]
+    },
+    {
+      "id": "M9",
+      "title": "Typo-tolerant words",
+      "status": "planned",
+      "goal": "Still suggest the right word when the typed part has a typo, and show which letters were guessed.",
+      "done_when": "Typing \"moutian\" offers \"mountain\" with the guessed letters in a different colour, exact prefix matches still rank first, and lookup p95 stays under 10 ms.",
+      "tasks": [
+        {
+          "id": "M9.1",
+          "title": "Fuzzy index with SymSpell over the vocabulary and personal words",
+          "status": "todo",
+          "area": "engine",
+          "stories": [
+            71
+          ],
+          "notes": "Use the existing `symspellpy` library, not a hand-made matcher. Try it first; only if it can't handle half-typed words (it corrects whole words, but we complete prefixes), compare `rapidfuzz` or a trie with a Levenshtein automaton, and record the result in `decisions`."
+        },
+        {
+          "id": "M9.2",
+          "title": "Fuzzy candidates fill the rows after exact prefix matches",
+          "status": "todo",
+          "area": "engine",
+          "stories": [
+            71,
+            73
+          ],
+          "notes": "Exact matches always come first. Corrections fill the remaining rows, or all of them when nothing matches. Edit distance 1 for short fragments and 2 for longer ones, and no correcting 1 to 2 letter fragments, names or learned words. Tests: moutian, definately, recieve."
+        },
+        {
+          "id": "M9.3",
+          "title": "Protocol marks the guessed letters of each suggestion",
+          "status": "todo",
+          "area": "engine",
+          "stories": [
+            72
+          ],
+          "notes": "Each item carries the positions it corrected. Tests on both sides. Builds on the suggestion kind from M7.6."
+        },
+        {
+          "id": "M9.4",
+          "title": "Popup draws guessed letters in a third colour",
+          "status": "todo",
+          "area": "dll",
+          "stories": [
+            72
+          ],
+          "notes": "New colour token, validated as CONTEXT.md describes. Checked in the TSF harness with a screenshot."
+        },
+        {
+          "id": "M9.5",
+          "title": "Latency check with the fuzzy index on",
+          "status": "todo",
+          "area": "test",
+          "stories": [
+            71
+          ],
+          "notes": "Lookup p95 stays under 10 ms over the real pipe."
+        },
+        {
+          "id": "M9.6",
+          "title": "Check typo completion live in real apps",
+          "status": "todo",
+          "area": "test",
+          "stories": [
+            71,
+            72,
+            73
+          ],
+          "notes": "Needs you: type moutian, definately, recieve and similar, and check that correct rare words aren't pushed aside."
+        }
+      ]
+    },
+    {
+      "id": "M10",
+      "title": "Major UI redesign",
+      "status": "planned",
+      "goal": "Give the suggestion popup, and whatever else the audit says belongs with it, one deliberate look.",
+      "done_when": "The popup, with all its row types, reads well at 100% and 200% scaling and on a second monitor, in the Evergreen colours, and the rewritten drawing code passes the harness.",
+      "tasks": [
+        {
+          "id": "M10.1",
+          "title": "Scope the redesign: audit the popup in real apps and decide what else is included",
+          "status": "todo",
+          "area": "dll",
+          "stories": [],
+          "notes": "Assumed to mean the popup. Decide whether the tray menu and the viewer's look come too. Mockups and Evergreen design tokens follow; split into tasks when scoped."
+        },
+        {
+          "id": "M10.2",
+          "title": "Redesign and rewrite the popup drawing",
+          "status": "todo",
+          "area": "dll",
+          "stories": [
+            74
+          ],
+          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once M10.1 is done. A bad popup must fall back to the current look, never crash the host app."
         }
       ]
     }
@@ -957,13 +1243,34 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "This release covers what it takes to leave Completionist running all day. The engine starts at logon, a tray icon pauses and resumes it, and edits to the config file apply without a restart. One script installs Completionist and another removes it. A local metrics store records how often suggestions are shown and accepted, how many keystrokes they save and how each phrase provider performs. It keeps counts and timings only. A stats summary shows whether Completionist is paying off."
     },
     {
+      "version": "0.5.0",
+      "status": "planned",
+      "title": "N-gram suggestions",
+      "milestone": "M7",
+      "text": "Suggestions start to look ahead. After you type a space, Completionist predicts the next word from the last one or two words before you have typed a letter, and while you type it can offer two- or three-word chunks from the same bigram and trigram tables. Single words, chunks and the cloud phrase share one popup box, and the popup stays quiet when nothing is likely. Your personal log grows to include trigrams, but it only learns words and trigrams you typed yourself, finished without correcting and used at least three times. A small command lists what Completionist has learned and forgets anything you don’t want it to keep."
+    },
+    {
+      "version": "0.6.0",
+      "status": "planned",
+      "title": "Personal viewer",
+      "milestone": "M8",
+      "text": "You can now see what Completionist has learned. An Open viewer item in the tray writes a snapshot of your personal dictionary and your usage stats to a local HTML page and opens it in the browser. The dictionary lists the words and trigrams you use, searchable and sortable by how often and how recently you typed them. The stats show how often suggestions were shown and accepted, how many keystrokes they saved and how fast they were, by day and by app. The page is read-only, opens straight from disk with no server, and is never published. Forgetting a word stays a command-line job."
+    },
+    {
+      "version": "0.7.0",
+      "status": "planned",
+      "title": "Typo-tolerant words",
+      "milestone": "M9",
+      "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing spell-correction library, SymSpell, built over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile. Words you fix yourself are never learned as new vocabulary."
+    },
+    {
       "version": "1.0.0",
       "status": "planned",
       "title": "Autocomplete for everything you type",
       "essay": [
         "Completionist 1.0 puts the suggestions of a code editor into every place you write English on Windows. Type a few letters in Discord, a browser text box or an email and a short list of completions appears just under the caret, ranked by the words before it and by the words you actually use. Tab takes the top one. In apps you choose, and on Ctrl+Space everywhere else, a greyed phrase appears above the list, a continuation of your sentence that you take whole with Tab or one word at a time with Ctrl+Right. Enter is never touched, and nothing in a password field is read or sent.",
         "The unusual decision is that Completionist is a Text Services Framework text service, the mechanism Windows uses for input methods, and not a keyboard hook with a screen-scraping overlay. That choice cost a milestone of throwaway spiking and a C++ DLL that lives inside every app, but it is why the caret position, the surrounding text, the key handling and the insertion of accepted text all come from Windows itself and work the same in Notepad, Chrome, Edge, Discord and Teams. The DLL stays deliberately thin: it draws the popup, decides which keys it consumes, and talks over a named pipe to a Python engine, reconnecting quietly if the engine is gone. The key router is pure logic with native tests, and the whole DLL is exercised through real TSF against a simulated text field, including the engine being killed and restarted mid-typing.",
-        "Word ranking is local and instant. A 146,000-word frequency list gives the base order, bigram and trigram counts built from WikiText-103 re-rank by context, and a personal store of word and word-pair counts, never text, boosts what you use and adds names and slang after a few uses. Lookups take about a millisecond at the 95th percentile. Phrases are the only thing that leaves the machine, and they are built to be cheap: a plain completion request through OpenRouter to a low-cost model you choose from a list in the config, seeing only the text before the caret and held back when other text follows it on the same line, with the context cut at paragraph boundaries so the provider's prefix cache does the work, a debounce so it asks once per pause, and no spend counting of its own: you cap the key in OpenRouter, and when the cap is hit phrases quietly fall back to words. The key lives in an environment variable and never in a config file.",
+        "Word ranking is local and instant. A 146,000-word frequency list gives the base order, bigram and trigram counts built from WikiText-103 re-rank by context, and a personal store of word and word-pair counts, never text, boosts what you use and adds names and slang after a few uses. The same tables predict the next word after a space and offer two- and three-word chunks, all in the one popup box, and a typo still finds its word, with the guessed letters drawn in a different colour. A viewer opened from the tray shows the personal dictionary and the stats. Lookups take about a millisecond at the 95th percentile. Phrases are the only thing that leaves the machine, and they are built to be cheap: a plain completion request through OpenRouter to a low-cost model you choose from a list in the config, seeing only the text before the caret and held back when other text follows it on the same line, with the context cut at paragraph boundaries so the provider's prefix cache does the work, a debounce so it asks once per pause, and no spend counting of its own: you cap the key in OpenRouter, and when the cap is hit phrases quietly fall back to words. The key lives in an environment variable and never in a config file.",
         "It is not finished in every way, and this release is honest about that. The automated tests pass, but the checks that need a person at a real desktop are still open: registering the DLL and using it in real apps, a live phrase request with a real key, the tray icon and pause hotkey, and starting at logon after a reboot. Which OpenRouter models accept plain completions, and cleanly, is untested, so the default model is a starting guess to be swapped after real use. The n-gram corpus is encyclopedic, which suits formal writing more than chat. The harness that tests the real DLL needs the foreground window, so it only runs when nobody is using the machine.",
         "What 1.0 leaves out is as deliberate as what it includes. It does not read the conversation you are replying to, so a Discord phrase knows your sentence but not the message above it; that is the next release. It has no browser extension, no macOS or Linux, no languages other than English, and no cloud account, sync or telemetry: the only network traffic is the phrase request you configured, and the only record of your typing is a set of counts on your own disk. Those limits keep the promise small enough to keep, which is that Completionist starts with Windows, stays out of the way, and shows you the numbers on whether it is paying for itself."
       ]
@@ -981,6 +1288,18 @@ window.COMPLETIONIST_ROADMAP = {
       "title": "Web fields",
       "milestone": "M6",
       "text": "A Chrome extension connects web pages to the same engine through Native Messaging. Inside the browser it can show true inline ghost text instead of a popup row, and it can read context a text service never sees, such as the post you are commenting on. Desktop apps keep using the text service, so the extension adds to what already works and replaces nothing."
+    },
+    {
+      "version": "2.0.0",
+      "status": "planned",
+      "title": "A popup with a deliberate look",
+      "milestone": "M10",
+      "essay": [
+        "Completionist 2.0 is a redesign of the thing you actually look at. The popup that appears under the caret began as a way to prove that the plumbing worked, and by now it carries single words, next-word predictions, multi-word chunks, letters it guessed after a typo, and a greyed cloud phrase, all in one box. This release gives that box one deliberate look: a single set of Evergreen colours, one type scale, clear rules for which kind of row sits where and how it is marked, and a version that reads well at 100% and 200% scaling and on a second monitor. The goal is that you can tell at a glance, without reading, which row is a word, which is a chunk, which is the cloud phrase and which letters were a guess, and that the popup still feels like a quiet part of whatever app you are in, not a foreign window sitting on top of it.",
+        "The reason to do it late is that a design made before the features exist is a guess. By 2.0 the row types and the colour for guessed letters are real, so the redesign can begin from an audit of what actually feels wrong in Notepad, Chrome and Discord, instead of from a blank page. The popup stays what it has always been: a thin C++ window that draws what the engine sends, never takes focus and never consumes a key it shouldn’t. The redesign changes how it looks and reads, not what it is allowed to do. Mockups come first, then design tokens checked against the colour rules in CONTEXT.md, then a rewrite of the drawing code, then harness screenshots at several scales and on more than one monitor.",
+        "It costs a rewrite of the most delicate rendering code in the project. That code lives inside every application the user types in, so each change is proved in the harness before it is tried in a real app, and a popup that can’t draw the new design has to fall back to the current one and never crash the host. It also costs restraint. A redesign is an invitation to add themes, settings and animation, and for a typing tool each of those makes it slower to read and easier to distract. The audit will say how far the scope goes, and whether the tray menu and the personal viewer deserve the same treatment or are fine as they are.",
+        "What 2.0 leaves out is as deliberate as what it includes. It adds no new suggestion features, no themes or user-editable styles, no settings window, no dashboard and no animation beyond whatever helps the eye follow the highlighted row. It does not change how suggestions are ranked, what leaves the machine, or which keys are taken. Its whole scope is how the existing suggestions look and read, which keeps the release small enough to finish and to test properly. This essay is a plan for now, and it becomes a retrospective of what actually shipped when the release is done."
+      ]
     }
   ],
   "stories": {
@@ -1044,9 +1363,42 @@ window.COMPLETIONIST_ROADMAP = {
     "58": "Context read in the background",
     "59": "Heavy use under $0.50 a day",
     "60": "Daily spending cap",
-    "61": "Token and cost tracking"
+    "61": "Token and cost tracking",
+    "62": "Next word after a space",
+    "63": "Multi-word chunks",
+    "64": "Everything in one popup box",
+    "65": "Stay quiet when unsure",
+    "66": "Learn only what I typed and finished",
+    "67": "Forget a word",
+    "68": "See my personal dictionary",
+    "69": "See my stats in a viewer",
+    "70": "Open the viewer from the tray",
+    "71": "Suggest through typos",
+    "72": "Mark the guessed letters",
+    "73": "A guess never outranks a real prefix match",
+    "74": "One deliberate popup design"
   },
   "decisions": [
+    {
+      "date": "2026-09-30",
+      "text": "The personal log stores words, word pairs and trigrams as counts on the local disk, never sent anywhere. A word or trigram is learned only when it was typed (not pasted), finished without correcting, and used 3 times; trigrams never span punctuation or a window switch. No per-day rule, decay or never-learn list until junk shows up."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "Typo tolerance uses an existing library (SymSpell, `symspellpy`), not a hand-made matcher. Try it first and swap to `rapidfuzz` or a trie only if it can't handle half-typed words."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "No TUI and no dashboard: a writing tool should stay out of the way. Instead a read-only viewer for the personal dictionary and stats, opened from the tray as a local HTML snapshot with no server. Forgetting words stays in the `completionist-words` command. Any public demo uses made-up data and needs the owner's OK before publishing; real data is never published."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "Milestone numbers don't match release order (M5 is 1.1.0; the new M7 to M10 are 0.5.0, 0.6.0, 0.7.0 and 2.0.0). The pages will read releases first (M1.17), with the M-number as a small tag."
+    },
+    {
+      "date": "2026-09-30",
+      "text": "The base n-gram tables (0.8M bigrams, 1.6M trigrams from WikiText-103) are small for next-word prediction. Rebuild them with a looser prune and a chat-style corpus only if the live check (M7.9) says they feel thin."
+    },
     {
       "date": "2026-09-29",
       "text": "The app is named Completionist (it was Typer, a working name). The rename covers code identifiers as well as display text, so existing installs need `scripts/install.ps1` run again, and the engine moves the old `Typer` data and config folders on first start."
@@ -1094,6 +1446,21 @@ window.COMPLETIONIST_ROADMAP = {
   ],
   "risks": [
     {
+      "text": "A popup after every space could be noisy, and Tab could be stolen right after a space.",
+      "status": "open",
+      "mitigation": "A confidence threshold that can be switched off, and next-word rows not highlighted by default (M7.4, M7.8)."
+    },
+    {
+      "text": "Typo matches could push out correct rare words or slow lookups.",
+      "status": "open",
+      "mitigation": "Exact prefix matches always rank first, no fuzzing of short fragments, names or learned words, and a p95 under 10 ms check (M9.2, M9.5)."
+    },
+    {
+      "text": "The personal log holds trigrams, which read more like your writing than single words do.",
+      "status": "open",
+      "mitigation": "Local disk only, silent fields and blocked apps teach nothing, a forget command, and no real data in any public demo."
+    },
+    {
       "text": "A crash in the DLL takes down the app the user is typing in.",
       "status": "open",
       "mitigation": "Keep the DLL minimal, catch everything at COM boundaries, debug in a throwaway app first."
@@ -1120,6 +1487,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Planned M7 (n-gram suggestions and personal log, 0.5.0), M8 (personal viewer, 0.6.0), M9 (typo-tolerant words, 0.7.0) and M10 (UI redesign, 2.0.0), plus M1.17 (easier roadmap reading) and M4.10 (demo GIF); stories 62 to 74, decisions and risks added."
+    },
     {
       "date": "2026-09-29",
       "text": "Released 0.0.8: continue-only phrase prompt and no price counting, merged into main after the Completionist rename."
