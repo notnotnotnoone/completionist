@@ -1363,6 +1363,17 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The engine no longer learns words you backspaced over, keeps personal trigram counts, and can rank next words and two- or three-word chunks, all switched off until the popup can show them."
     },
     {
+      "version": "0.4.2",
+      "status": "released",
+      "title": "Next words and chunks in the popup",
+      "highways": [
+        "engine",
+        "tsf"
+      ],
+      "date": "2026-09-30",
+      "text": "After a space the popup can offer likely next words with nothing highlighted, chunks of two or three words appear while typing, and the personal store can list and forget words."
+    },
+    {
       "version": "0.5.0",
       "status": "next",
       "title": "N-gram suggestions",
@@ -1628,6 +1639,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Release 0.4.2: merged m7-kinds into main (M7.3, M7.6 to M7.8); M7.9 live check still to do."
+    },
     {
       "date": "2026-09-30",
       "text": "M7.9 prepared: the live-check checklist is in the task. It needs you to run it; nothing else in M7 is left."
