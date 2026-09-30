@@ -165,32 +165,36 @@ window.TYPER_ROADMAP = {
         {
           "id": "M1.6",
           "title": "TSF service shell from SampleIME: activation, key sink, edit sessions, registration",
-          "status": "next",
+          "status": "done",
           "area": "dll",
           "stories": [
             43
           ],
-          "notes": "Register for en-US, en-CA and en-GB. Never let exceptions cross COM boundaries.",
+          "notes": "TSF shell written from the spike's proven code: activation, edit sessions, key sink, COM registration for en-US/CA/GB. Lifecycle smoke test (`tip/tests/load_test.ps1`) activates and tears it down 40 times on a real thread manager and the DLL stays unloadable.",
           "refs": [
-            "tip/"
+            "tip/src/tsf_service.cpp",
+            "m1-tsf-dll"
           ]
         },
         {
           "id": "M1.7",
           "title": "Context reader: text around the caret, caret rect, input scope, app and title",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             14,
             31,
             32
           ],
-          "notes": "Treat `E_FAIL` from `RequestEditSession` as transient (Chromium returns it during focus changes). Read input scope via `GetAppProperty`."
+          "notes": "Reads up to 2,000 characters before and 500 after the caret, the caret rect, input scope and app/title. Keyboard-disabled and password contexts send nothing. `E_FAIL` from `RequestEditSession` is retried shortly instead of treated as an error.",
+          "refs": [
+            "tip/src/tsf_service.cpp"
+          ]
         },
         {
           "id": "M1.8",
           "title": "Pure popup state + key router with native tests",
-          "status": "next",
+          "status": "done",
           "area": "dll",
           "stories": [
             4,
@@ -201,45 +205,61 @@ window.TYPER_ROADMAP = {
             9,
             51
           ],
-          "notes": "No TSF dependency. Tab accepts, Up/Down move, Esc dismisses, Enter is never consumed, keys pass through when the popup is closed. Tested with a standalone doctest executable."
+          "notes": "`PopupModel` has no TSF dependency and 14 native tests cover every key in every state (closed, open, stale, modifiers held). Enter is never consumed. The tests also cover the frame codec and JSON reader (15 more).",
+          "refs": [
+            "tip/src/popup_model.h",
+            "tip/tests/test_popup_model.cpp",
+            "tip/test.cmd"
+          ]
         },
         {
           "id": "M1.9",
           "title": "Engine client on a worker thread",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             34,
             35
           ],
-          "notes": "Request ids, drop stale replies, tight timeouts, reconnect with backoff. Never block the app's UI thread."
+          "notes": "Worker thread with overlapped I/O, request ids, stale replies dropped, reconnect with backoff (250 ms to 2 s), and a check that the engine runs as the same Windows user. `tip/tests/e2e.ps1` runs it against the real engine: no engine, late start, kill and restart all recover.",
+          "refs": [
+            "tip/src/engine_client.cpp",
+            "tip/tests/e2e.ps1"
+          ]
         },
         {
           "id": "M1.10",
           "title": "Popup rendering at the caret",
-          "status": "todo",
+          "status": "doing",
           "area": "dll",
           "stories": [
             2,
             3,
             36
           ],
-          "notes": "Word rows, never takes focus (`WS_EX_NOACTIVATE`), DPI-aware, correct on a second monitor."
+          "notes": "Built: word rows, typed prefix highlighted, never takes focus, click-through, per-window DPI, flips above the caret or slides left to stay on the caret's monitor. Waiting for your look at 100% and 150% scaling and on a second monitor.",
+          "refs": [
+            "tip/src/popup.cpp"
+          ]
         },
         {
           "id": "M1.11",
           "title": "Keyboard icon and an enable-keyboard step",
-          "status": "todo",
+          "status": "doing",
           "area": "install",
           "stories": [
             43
           ],
-          "notes": "Without an icon Settings doesn't list the keyboard; the spike had to be enabled with `Set-WinUserLanguageList`. The user runs system-setting commands themselves."
+          "notes": "Icon (`tip/assets/typer.ico`) is compiled into the DLL, and `tip/register.ps1` plus `tip/enable-keyboard.ps1` do the install. Waiting for you to confirm Typer shows up in Settings and can be switched to.",
+          "refs": [
+            "tip/register.ps1",
+            "tip/enable-keyboard.ps1"
+          ]
         },
         {
           "id": "M1.12",
           "title": "Manual app matrix for the real DLL",
-          "status": "todo",
+          "status": "next",
           "area": "test",
           "stories": [
             2,
@@ -779,6 +799,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "M1 code complete on branch m1-tsf-dll: real DLL, key router, engine client, popup, icon and install scripts. Native tests, the engine end-to-end check and the lifecycle smoke test pass. Popup look and the manual app matrix (M1.10-M1.12) still need you."
+    },
     {
       "date": "2026-09-29",
       "text": "Released v0.0.4: merged the engine and spike branches into main (M1.5 done). Added the release timeline, switched the data to `roadmap.js` so both pages open from disk, and split the post-v1 work into M5 and M6."

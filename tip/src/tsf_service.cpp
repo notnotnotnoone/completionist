@@ -1,0 +1,835 @@
+// Typer's TSF text service: an English "keyboard" that never transforms keys itself. It watches the
+// text around the caret, asks the engine for word completions, draws them in a popup at the caret and
+// lets Tab/Up/Down/Esc drive it. Everything else about typing is left to the app.
+//
+// Threading: TSF calls arrive on the app's UI thread. The engine round trip runs on the engine
+// client's worker thread; replies come back as WM_TYPER_REPLY messages on the UI thread.
+// No exception may cross a COM boundary, so every entry point is wrapped in TYPER_GUARD.
+
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#include <msctf.h>
+#include <olectl.h>
+#include <strsafe.h>
+#include <initguid.h>
+#include <inputscope.h>
+
+#include <cwctype>
+#include <functional>
+#include <memory>
+#include <new>
+#include <string>
+#include <vector>
+
+#include "engine_client.h"
+#include "log.h"
+#include "popup.h"
+#include "popup_model.h"
+#include "protocol.h"
+#include "resource.h"
+
+namespace {
+
+using typer::EngineClient;
+using typer::LogDebug;
+using typer::LogError;
+
+// {71B17AFC-9D1A-4E42-A7C3-2F4151AC6ABF}
+constexpr CLSID CLSID_TyperService = {0x71b17afc, 0x9d1a, 0x4e42, {0xa7, 0xc3, 0x2f, 0x41, 0x51, 0xac, 0x6a, 0xbf}};
+// {61BEEED0-FFE4-4E6C-AEC1-9333F155674B}
+constexpr GUID GUID_TyperProfile = {0x61beeed0, 0xffe4, 0x4e6c, {0xae, 0xc1, 0x93, 0x33, 0xf1, 0x55, 0x67, 0x4b}};
+constexpr wchar_t kClsidKey[] = L"CLSID\\{71B17AFC-9D1A-4E42-A7C3-2F4151AC6ABF}";
+constexpr wchar_t kDescription[] = L"Typer";
+// Registered under each English variant, so it shows up whichever one the user has installed.
+constexpr LANGID kLangIds[] = {
+    MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+    MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_CAN),
+    MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_UK),
+};
+const GUID kCategories[] = {
+    GUID_TFCAT_TIP_KEYBOARD,
+    GUID_TFCAT_TIPCAP_COMLESS,
+    GUID_TFCAT_TIPCAP_SYSTRAYSUPPORT,
+    GUID_TFCAT_TIPCAP_IMMERSIVESUPPORT,  // without it, Settings won't list the keyboard
+};
+
+constexpr LONG kBeforeChars = 2000;  // how much text before the caret goes to the engine
+constexpr LONG kAfterChars = 500;
+constexpr UINT_PTR kRetryTimer = 1;
+constexpr UINT kRetryDelayMs = 40;
+constexpr int kMaxRetries = 3;
+
+HINSTANCE g_module = nullptr;
+LONG g_objects = 0;  // live COM objects plus server locks
+
+#define TYPER_GUARD_BEGIN try {
+#define TYPER_GUARD_END(fallback)                       \
+    }                                                   \
+    catch (...) {                                       \
+        LogError(L"exception caught in %S", __func__);  \
+        return fallback;                                \
+    }
+
+// ---------------------------------------------------------------------------------------------
+// Text helpers
+
+std::wstring TrailingWord(const std::wstring& before) {
+    size_t start = before.size();
+    while (start > 0 && (iswalpha(before[start - 1]) || before[start - 1] == L'\'')) --start;
+    while (start < before.size() && before[start] == L'\'') ++start;  // a word starts with a letter
+    return before.substr(start);
+}
+
+bool StartsWithLetter(const std::wstring& after) { return !after.empty() && iswalpha(after[0]); }
+
+bool EqualsIgnoreCase(const std::wstring& a, const std::wstring& b) {
+    return a.size() == b.size() && CompareStringOrdinal(a.c_str(), static_cast<int>(a.size()), b.c_str(),
+                                                        static_cast<int>(b.size()), TRUE) == CSTR_EQUAL;
+}
+
+bool StartsWithIgnoreCase(const std::wstring& text, const std::wstring& prefix) {
+    return text.size() >= prefix.size() && EqualsIgnoreCase(text.substr(0, prefix.size()), prefix);
+}
+
+std::wstring ExeName() {
+    wchar_t path[MAX_PATH] = {};
+    DWORD len = GetModuleFileNameW(nullptr, path, MAX_PATH);
+    if (len == 0 || len >= MAX_PATH) return L"";
+    const wchar_t* name = wcsrchr(path, L'\\');
+    std::wstring exe = name ? name + 1 : path;
+    CharLowerBuffW(exe.data(), static_cast<DWORD>(exe.size()));
+    return exe;
+}
+
+typer::Key ToKey(WPARAM vk) {
+    switch (vk) {
+        case VK_TAB: return typer::Key::Tab;
+        case VK_UP: return typer::Key::Up;
+        case VK_DOWN: return typer::Key::Down;
+        case VK_ESCAPE: return typer::Key::Escape;
+        case VK_RETURN: return typer::Key::Enter;
+        default: return typer::Key::Other;
+    }
+}
+
+typer::Modifiers CurrentModifiers() {
+    typer::Modifiers m;
+    m.ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    m.alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+    m.shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    return m;
+}
+
+// ---------------------------------------------------------------------------------------------
+// TSF helpers (all require a valid edit cookie)
+
+// Text next to `anchor`, up to `limit` characters.
+std::wstring ReadBeside(ITfRange* anchor, TfEditCookie ec, bool before, LONG limit) {
+    ITfRange* range = nullptr;
+    if (FAILED(anchor->Clone(&range))) return {};
+    range->Collapse(ec, before ? TF_ANCHOR_START : TF_ANCHOR_END);
+    LONG moved = 0;
+    HRESULT hr = before ? range->ShiftStart(ec, -limit, &moved, nullptr) : range->ShiftEnd(ec, limit, &moved, nullptr);
+    std::wstring text;
+    if (SUCCEEDED(hr) && moved != 0) {
+        text.resize(static_cast<size_t>(limit));
+        ULONG got = 0;
+        if (FAILED(range->GetText(ec, 0, text.data(), static_cast<ULONG>(limit), &got))) got = 0;
+        text.resize(got);
+    }
+    range->Release();
+    return text;
+}
+
+const char* ScopeName(InputScope scope) {
+    switch (scope) {
+        case IS_DEFAULT: return "IS_DEFAULT";
+        case IS_URL: return "IS_URL";
+        case IS_EMAIL_USERNAME: return "IS_EMAIL_USERNAME";
+        case IS_EMAIL_SMTPEMAILADDRESS: return "IS_EMAIL_SMTPEMAILADDRESS";
+        case IS_NUMBER_FULLWIDTH: return "IS_NUMBER_FULLWIDTH";
+        case IS_NUMBER: return "IS_NUMBER";
+        case IS_DIGITS: return "IS_DIGITS";
+        case IS_TELEPHONE_FULLTELEPHONENUMBER: return "IS_TELEPHONE_FULLTELEPHONENUMBER";
+        case IS_TELEPHONE_LOCALNUMBER: return "IS_TELEPHONE_LOCALNUMBER";
+        case IS_PASSWORD: return "IS_PASSWORD";
+        case IS_SEARCH: return "IS_SEARCH";
+        case IS_TEXT: return "IS_TEXT";
+        case IS_CHAT: return "IS_CHAT";
+        case IS_EMAILNAME_OR_ADDRESS: return "IS_EMAILNAME_OR_ADDRESS";
+        default: return nullptr;
+    }
+}
+
+// Input scope is an *app* property: the application supplies it, so it's read via GetAppProperty.
+std::vector<std::string> ReadInputScopes(ITfContext* context, TfEditCookie ec, ITfRange* range) {
+    std::vector<std::string> names;
+    ITfReadOnlyProperty* property = nullptr;
+    if (FAILED(context->GetAppProperty(GUID_PROP_INPUTSCOPE, &property)) || !property) return names;
+    VARIANT value;
+    VariantInit(&value);
+    if (SUCCEEDED(property->GetValue(ec, range, &value)) && value.vt == VT_UNKNOWN && value.punkVal) {
+        ITfInputScope* inputScope = nullptr;
+        if (SUCCEEDED(value.punkVal->QueryInterface(IID_ITfInputScope, reinterpret_cast<void**>(&inputScope)))) {
+            InputScope* scopes = nullptr;
+            UINT count = 0;
+            if (SUCCEEDED(inputScope->GetInputScopes(&scopes, &count)) && scopes) {
+                for (UINT i = 0; i < count; ++i) {
+                    const char* name = ScopeName(scopes[i]);
+                    names.push_back(name ? name : "IS_" + std::to_string(static_cast<int>(scopes[i])));
+                }
+                CoTaskMemFree(scopes);
+            }
+            inputScope->Release();
+        }
+    }
+    VariantClear(&value);
+    property->Release();
+    return names;
+}
+
+// Whether the app has switched keyboard input methods off for this context (e.g. a password field).
+bool KeyboardDisabled(ITfContext* context) {
+    bool disabled = false;
+    ITfCompartmentMgr* compartments = nullptr;
+    if (SUCCEEDED(context->QueryInterface(IID_ITfCompartmentMgr, reinterpret_cast<void**>(&compartments)))) {
+        ITfCompartment* compartment = nullptr;
+        if (SUCCEEDED(compartments->GetCompartment(GUID_COMPARTMENT_KEYBOARD_DISABLED, &compartment))) {
+            VARIANT value;
+            VariantInit(&value);
+            if (SUCCEEDED(compartment->GetValue(&value))) disabled = value.vt == VT_I4 && value.lVal != 0;
+            VariantClear(&value);
+            compartment->Release();
+        }
+        compartments->Release();
+    }
+    return disabled;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Edit sessions
+
+class EditSession final : public ITfEditSession {
+public:
+    explicit EditSession(std::function<void(TfEditCookie)> body) : body_(std::move(body)) { InterlockedIncrement(&g_objects); }
+    STDMETHODIMP QueryInterface(REFIID riid, void** ppv) override {
+        if (!ppv) return E_INVALIDARG;
+        *ppv = nullptr;
+        if (riid != IID_IUnknown && riid != IID_ITfEditSession) return E_NOINTERFACE;
+        *ppv = static_cast<ITfEditSession*>(this);
+        AddRef();
+        return S_OK;
+    }
+    STDMETHODIMP_(ULONG) AddRef() override { return InterlockedIncrement(&refs_); }
+    STDMETHODIMP_(ULONG) Release() override {
+        LONG refs = InterlockedDecrement(&refs_);
+        if (refs == 0) delete this;
+        return refs;
+    }
+    STDMETHODIMP DoEditSession(TfEditCookie ec) override {
+        TYPER_GUARD_BEGIN
+        body_(ec);
+        return S_OK;
+        TYPER_GUARD_END(E_FAIL)
+    }
+
+private:
+    ~EditSession() { InterlockedDecrement(&g_objects); }
+    LONG refs_ = 1;
+    std::function<void(TfEditCookie)> body_;
+};
+
+// ---------------------------------------------------------------------------------------------
+// The text service
+
+class TyperService final : public ITfTextInputProcessorEx,
+                           public ITfThreadMgrEventSink,
+                           public ITfTextEditSink,
+                           public ITfKeyEventSink,
+                           public ITfCompositionSink {
+public:
+    TyperService() { InterlockedIncrement(&g_objects); }
+
+    // IUnknown
+    STDMETHODIMP QueryInterface(REFIID riid, void** ppv) override {
+        if (!ppv) return E_INVALIDARG;
+        *ppv = nullptr;
+        if (riid == IID_IUnknown || riid == IID_ITfTextInputProcessor || riid == IID_ITfTextInputProcessorEx)
+            *ppv = static_cast<ITfTextInputProcessorEx*>(this);
+        else if (riid == IID_ITfThreadMgrEventSink)
+            *ppv = static_cast<ITfThreadMgrEventSink*>(this);
+        else if (riid == IID_ITfTextEditSink)
+            *ppv = static_cast<ITfTextEditSink*>(this);
+        else if (riid == IID_ITfKeyEventSink)
+            *ppv = static_cast<ITfKeyEventSink*>(this);
+        else if (riid == IID_ITfCompositionSink)
+            *ppv = static_cast<ITfCompositionSink*>(this);
+        else
+            return E_NOINTERFACE;
+        AddRef();
+        return S_OK;
+    }
+    STDMETHODIMP_(ULONG) AddRef() override { return InterlockedIncrement(&refs_); }
+    STDMETHODIMP_(ULONG) Release() override {
+        LONG refs = InterlockedDecrement(&refs_);
+        if (refs == 0) delete this;
+        return refs;
+    }
+
+    // ITfTextInputProcessor(Ex)
+    STDMETHODIMP Activate(ITfThreadMgr* threadMgr, TfClientId clientId) override { return ActivateEx(threadMgr, clientId, 0); }
+
+    STDMETHODIMP ActivateEx(ITfThreadMgr* threadMgr, TfClientId clientId, DWORD flags) override {
+        TYPER_GUARD_BEGIN
+        typer::RefreshLogLevel();
+        threadMgr_ = threadMgr;
+        threadMgr_->AddRef();
+        clientId_ = clientId;
+        app_ = ExeName();
+
+        ITfSource* source = nullptr;
+        if (SUCCEEDED(threadMgr_->QueryInterface(IID_ITfSource, reinterpret_cast<void**>(&source)))) {
+            source->AdviseSink(IID_ITfThreadMgrEventSink, static_cast<ITfThreadMgrEventSink*>(this), &threadMgrCookie_);
+            source->Release();
+        }
+        HRESULT keyHr = E_FAIL;
+        ITfKeystrokeMgr* keystrokes = nullptr;
+        if (SUCCEEDED(threadMgr_->QueryInterface(IID_ITfKeystrokeMgr, reinterpret_cast<void**>(&keystrokes)))) {
+            keyHr = keystrokes->AdviseKeyEventSink(clientId_, static_cast<ITfKeyEventSink*>(this), TRUE);
+            keystrokes->Release();
+        }
+        if (!popup_.Create(g_module, &TyperService::PopupHook, this)) LogError(L"could not create the popup window");
+        EngineClient::Instance().Acquire();
+        acquired_ = true;
+        LogDebug(L"activate flags=0x%lx keysink=0x%08lx app=%s", flags, keyHr, app_.c_str());
+
+        ITfDocumentMgr* focus = nullptr;
+        if (SUCCEEDED(threadMgr_->GetFocus(&focus)) && focus) {
+            OnSetFocus(focus, nullptr);
+            focus->Release();
+        }
+        return S_OK;
+        TYPER_GUARD_END(E_FAIL)
+    }
+
+    STDMETHODIMP Deactivate() override {
+        TYPER_GUARD_BEGIN
+        WatchContext(nullptr);
+        if (threadMgr_) {
+            ITfKeystrokeMgr* keystrokes = nullptr;
+            if (SUCCEEDED(threadMgr_->QueryInterface(IID_ITfKeystrokeMgr, reinterpret_cast<void**>(&keystrokes)))) {
+                keystrokes->UnadviseKeyEventSink(clientId_);
+                keystrokes->Release();
+            }
+            ITfSource* source = nullptr;
+            if (threadMgrCookie_ != TF_INVALID_COOKIE &&
+                SUCCEEDED(threadMgr_->QueryInterface(IID_ITfSource, reinterpret_cast<void**>(&source)))) {
+                source->UnadviseSink(threadMgrCookie_);
+                source->Release();
+            }
+            threadMgrCookie_ = TF_INVALID_COOKIE;
+            threadMgr_->Release();
+            threadMgr_ = nullptr;
+        }
+        HideAll();
+        popup_.Destroy();
+        if (acquired_) {
+            EngineClient::Instance().Release();
+            acquired_ = false;
+        }
+        clientId_ = TF_CLIENTID_NULL;
+        LogDebug(L"deactivate");
+        return S_OK;
+        TYPER_GUARD_END(S_OK)
+    }
+
+    // ITfThreadMgrEventSink
+    STDMETHODIMP OnInitDocumentMgr(ITfDocumentMgr*) override { return S_OK; }
+    STDMETHODIMP OnUninitDocumentMgr(ITfDocumentMgr*) override { return S_OK; }
+    STDMETHODIMP OnPushContext(ITfContext*) override { return S_OK; }
+    STDMETHODIMP OnPopContext(ITfContext*) override { return S_OK; }
+    STDMETHODIMP OnSetFocus(ITfDocumentMgr* focus, ITfDocumentMgr*) override {
+        TYPER_GUARD_BEGIN
+        ITfContext* context = nullptr;
+        if (focus) focus->GetTop(&context);
+        WatchContext(context);
+        HideAll();
+        if (context) {
+            QueueInspect(context);
+            context->Release();
+        }
+        return S_OK;
+        TYPER_GUARD_END(S_OK)
+    }
+
+    // ITfTextEditSink
+    STDMETHODIMP OnEndEdit(ITfContext* context, TfEditCookie, ITfEditRecord*) override {
+        TYPER_GUARD_BEGIN
+        model_.MarkStale();  // the words on screen belong to text that just changed
+        retries_ = 0;
+        QueueInspect(context);
+        return S_OK;
+        TYPER_GUARD_END(S_OK)
+    }
+
+    // ITfKeyEventSink
+    STDMETHODIMP OnSetFocus(BOOL foreground) override {
+        TYPER_GUARD_BEGIN
+        if (!foreground) HideAll();
+        return S_OK;
+        TYPER_GUARD_END(S_OK)
+    }
+
+    STDMETHODIMP OnTestKeyDown(ITfContext*, WPARAM key, LPARAM, BOOL* eaten) override {
+        TYPER_GUARD_BEGIN
+        *eaten = model_.Peek(ToKey(key), CurrentModifiers()).consume;
+        return S_OK;
+        TYPER_GUARD_END(S_OK)
+    }
+
+    STDMETHODIMP OnKeyDown(ITfContext* context, WPARAM key, LPARAM, BOOL* eaten) override {
+        TYPER_GUARD_BEGIN
+        typer::KeyDecision decision = model_.OnKey(ToKey(key), CurrentModifiers());
+        *eaten = decision.consume;
+        if (!decision.consume) return S_OK;
+        eatenKey_ = key;
+        switch (decision.action) {
+            case typer::Action::Accept: Accept(context, decision.index); break;
+            case typer::Action::Dismiss:
+                dismissedPrefix_ = promptWord_;
+                popup_.Hide();
+                break;
+            case typer::Action::MoveHighlight: popup_.SetHighlight(model_.highlight()); break;
+            case typer::Action::None: break;
+        }
+        return S_OK;
+        TYPER_GUARD_END(S_OK)
+    }
+
+    // The key-up of a key we consumed is consumed too, so the app never sees half a keystroke.
+    STDMETHODIMP OnTestKeyUp(ITfContext*, WPARAM key, LPARAM, BOOL* eaten) override {
+        *eaten = eatenKey_ != 0 && key == eatenKey_;
+        return S_OK;
+    }
+    STDMETHODIMP OnKeyUp(ITfContext*, WPARAM key, LPARAM, BOOL* eaten) override {
+        *eaten = eatenKey_ != 0 && key == eatenKey_;
+        if (*eaten) eatenKey_ = 0;
+        return S_OK;
+    }
+    STDMETHODIMP OnPreservedKey(ITfContext*, REFGUID, BOOL* eaten) override {
+        *eaten = FALSE;
+        return S_OK;
+    }
+
+    // ITfCompositionSink
+    STDMETHODIMP OnCompositionTerminated(TfEditCookie, ITfComposition*) override { return S_OK; }
+
+private:
+    ~TyperService() { InterlockedDecrement(&g_objects); }
+
+    // Hide the popup and forget any words still being computed.
+    void HideAll() {
+        popup_.Hide();
+        model_.Close();
+        latestId_ = 0;
+    }
+
+    // Reads the context in an async read session; coalesces bursts of edits into one read.
+    void QueueInspect(ITfContext* context) {
+        if (inspectQueued_ || !context) return;
+        inspectQueued_ = true;
+        auto* session = new (std::nothrow) EditSession([this, context = ComPtrHold(context)](TfEditCookie ec) mutable {
+            inspectQueued_ = false;
+            Inspect(context.get(), ec);
+        });
+        if (!session) {
+            inspectQueued_ = false;
+            return;
+        }
+        HRESULT sessionHr = S_OK;
+        HRESULT hr = context->RequestEditSession(clientId_, session, TF_ES_ASYNCDONTCARE | TF_ES_READ, &sessionHr);
+        session->Release();
+        if (FAILED(hr)) {
+            // Chromium apps fail this transiently around focus changes; try again shortly.
+            inspectQueued_ = false;
+            LogDebug(L"RequestEditSession failed hr=0x%08lx", hr);
+            ScheduleRetry();
+        }
+    }
+
+    void ScheduleRetry() {
+        if (retries_ < kMaxRetries && popup_.hwnd() && watched_) {
+            ++retries_;
+            SetTimer(popup_.hwnd(), kRetryTimer, kRetryDelayMs, nullptr);
+        }
+    }
+
+    // Holds a reference to an ITfContext for as long as an edit session needs it.
+    struct ComPtrHold {
+        explicit ComPtrHold(ITfContext* p) : ptr_(p) { ptr_->AddRef(); }
+        ComPtrHold(const ComPtrHold& o) : ptr_(o.ptr_) { ptr_->AddRef(); }
+        ~ComPtrHold() { ptr_->Release(); }
+        ITfContext* get() const { return ptr_; }
+        ITfContext* ptr_;
+    };
+
+    void Inspect(ITfContext* context, TfEditCookie ec) {
+        TF_SELECTION selection = {};
+        ULONG fetched = 0;
+        if (FAILED(context->GetSelection(ec, TF_DEFAULT_SELECTION, 1, &selection, &fetched)) || fetched == 0) {
+            HideAll();
+            return;
+        }
+        BOOL selectionEmpty = TRUE;
+        selection.range->IsEmpty(ec, &selectionEmpty);
+        if (!selectionEmpty) {  // text is selected: nothing to complete
+            selection.range->Release();
+            HideAll();
+            return;
+        }
+
+        std::vector<std::string> scopes = ReadInputScopes(context, ec, selection.range);
+        bool secret = KeyboardDisabled(context);
+        for (const std::string& scope : scopes) secret = secret || scope == "IS_PASSWORD";
+        if (secret) {  // never send anything typed into a password field, not even to the local engine
+            selection.range->Release();
+            HideAll();
+            return;
+        }
+
+        std::wstring before = ReadBeside(selection.range, ec, true, kBeforeChars);
+        std::wstring after = ReadBeside(selection.range, ec, false, kAfterChars);
+        std::wstring word = TrailingWord(before);
+
+        RECT caret = {};
+        BOOL clipped = FALSE;
+        HRESULT extentHr = E_FAIL;
+        wchar_t title[256] = L"";
+        ITfContextView* view = nullptr;
+        if (SUCCEEDED(context->GetActiveView(&view))) {
+            ITfRange* point = nullptr;
+            if (SUCCEEDED(selection.range->Clone(&point))) {
+                point->Collapse(ec, TF_ANCHOR_END);
+                extentHr = view->GetTextExt(ec, point, &caret, &clipped);
+                if (SUCCEEDED(extentHr) && caret.bottom == caret.top) {
+                    // Some apps return an empty rect for an empty range; measure the previous character.
+                    LONG moved = 0;
+                    if (SUCCEEDED(point->ShiftStart(ec, -1, &moved, nullptr)) && moved != 0) {
+                        RECT previous = {};
+                        if (SUCCEEDED(view->GetTextExt(ec, point, &previous, &clipped)))
+                            caret = {previous.right, previous.top, previous.right, previous.bottom};
+                    }
+                }
+                point->Release();
+            }
+            HWND hwnd = nullptr;
+            if (SUCCEEDED(view->GetWnd(&hwnd)) && hwnd) GetWindowTextW(GetAncestor(hwnd, GA_ROOT), title, 256);
+            view->Release();
+        }
+        selection.range->Release();
+
+        if (extentHr == TF_E_NOLAYOUT) {  // the app hasn't laid the text out yet
+            HideAll();
+            ScheduleRetry();
+            return;
+        }
+
+        // Whether this text may show a popup. The request is sent regardless, so the engine can learn
+        // from what is typed even where suggestions are held back.
+        if (!dismissedPrefix_.empty() && (word.empty() || !StartsWithIgnoreCase(word, dismissedPrefix_))) dismissedPrefix_.clear();
+        if (!acceptedWord_.empty() && word != acceptedWord_) acceptedWord_.clear();
+        showAllowed_ = SUCCEEDED(extentHr) && !word.empty() && !StartsWithLetter(after) && dismissedPrefix_.empty() &&
+                       acceptedWord_.empty();
+        if (!showAllowed_) {
+            popup_.Hide();
+            model_.Close();
+        }
+
+        typer::protocol::Request request;
+        request.id = EngineClient::Instance().NextId();
+        request.event = "keystroke";
+        request.app = app_;
+        request.title = title;
+        request.input_scope = std::move(scopes);
+        request.before = before;
+        request.after = after;
+
+        latestId_ = request.id;
+        promptWord_ = word;
+        promptBefore_ = before;
+        caret_ = caret;
+        EngineClient::Instance().Send(std::move(request), popup_.hwnd());
+        LogDebug(L"inspect word=\"%s\" show=%d", word.c_str(), showAllowed_);
+    }
+
+    void OnReply(const typer::protocol::WordReply& reply) {
+        if (reply.id != latestId_) return;  // for text that has since changed
+        if (!showAllowed_ || reply.words.empty() || reply.replace != static_cast<int>(promptWord_.size())) {
+            popup_.Hide();
+            model_.Close();
+            return;
+        }
+        words_ = reply.words;
+        model_.Open(words_.size());
+        popup_.Show(words_, 0, reply.replace, caret_);
+    }
+
+    // Replaces the typed part of the current word with words_[index].
+    void Accept(ITfContext* context, std::size_t index) {
+        popup_.Hide();
+        if (index >= words_.size()) return;
+        std::wstring chosen = words_[index];
+        std::wstring typed = promptWord_;
+        if (typed.empty()) return;
+
+        auto body = [this, context = ComPtrHold(context), chosen, typed](TfEditCookie ec) mutable {
+            ReplaceWord(context.get(), ec, typed, chosen);
+        };
+        // Synchronous first, so a key typed straight after Tab can't slip in before the text is replaced.
+        auto* session = new (std::nothrow) EditSession(body);
+        if (!session) return;
+        HRESULT sessionHr = S_OK;
+        HRESULT hr = context->RequestEditSession(clientId_, session, TF_ES_SYNC | TF_ES_READWRITE, &sessionHr);
+        session->Release();
+        if (FAILED(hr)) {
+            LogDebug(L"sync accept refused hr=0x%08lx; retrying async", hr);
+            session = new (std::nothrow) EditSession(body);
+            if (!session) return;
+            hr = context->RequestEditSession(clientId_, session, TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &sessionHr);
+            session->Release();
+            if (FAILED(hr)) LogError(L"could not request an edit session to accept a word hr=0x%08lx", hr);
+        }
+    }
+
+    void ReplaceWord(ITfContext* context, TfEditCookie ec, const std::wstring& typed, const std::wstring& chosen) {
+        TF_SELECTION selection = {};
+        ULONG fetched = 0;
+        if (FAILED(context->GetSelection(ec, TF_DEFAULT_SELECTION, 1, &selection, &fetched)) || fetched == 0) return;
+        // The words on screen were for `typed`; make sure that's still what precedes the caret.
+        std::wstring current = TrailingWord(ReadBeside(selection.range, ec, true, 200));
+        if (!EqualsIgnoreCase(current, typed)) {
+            LogDebug(L"accept skipped: the text changed from \"%s\" to \"%s\"", typed.c_str(), current.c_str());
+            selection.range->Release();
+            return;
+        }
+        ITfRange* range = nullptr;
+        if (FAILED(selection.range->Clone(&range))) {
+            selection.range->Release();
+            return;
+        }
+        selection.range->Release();
+
+        range->Collapse(ec, TF_ANCHOR_START);
+        LONG moved = 0;
+        range->ShiftStart(ec, -static_cast<LONG>(typed.size()), &moved, nullptr);
+        HRESULT setHr = range->SetText(ec, 0, chosen.c_str(), static_cast<LONG>(chosen.size()));
+        if (SUCCEEDED(setHr)) {
+            range->Collapse(ec, TF_ANCHOR_END);
+            TF_SELECTION caret = {};
+            caret.range = range;
+            caret.style.ase = TF_AE_NONE;
+            caret.style.fInterimChar = FALSE;
+            context->SetSelection(ec, 1, &caret);
+
+            acceptedWord_ = chosen;  // don't pop straight back up for the word just inserted
+            typer::protocol::Request accept;
+            accept.id = EngineClient::Instance().NextId();
+            accept.event = "accept";
+            accept.app = app_;
+            accept.before = promptBefore_;
+            accept.accepted = chosen;
+            EngineClient::Instance().Send(std::move(accept), nullptr);
+        } else {
+            LogError(L"SetText failed hr=0x%08lx", setHr);
+        }
+        range->Release();
+    }
+
+    // Watch the focused context for edits (and stop watching the previous one).
+    void WatchContext(ITfContext* context) {
+        if (watched_) {
+            ITfSource* source = nullptr;
+            if (watchCookie_ != TF_INVALID_COOKIE &&
+                SUCCEEDED(watched_->QueryInterface(IID_ITfSource, reinterpret_cast<void**>(&source)))) {
+                source->UnadviseSink(watchCookie_);
+                source->Release();
+            }
+            watchCookie_ = TF_INVALID_COOKIE;
+            watched_->Release();
+            watched_ = nullptr;
+        }
+        inspectQueued_ = false;
+        if (!context) return;
+        ITfSource* source = nullptr;
+        if (SUCCEEDED(context->QueryInterface(IID_ITfSource, reinterpret_cast<void**>(&source)))) {
+            if (SUCCEEDED(source->AdviseSink(IID_ITfTextEditSink, static_cast<ITfTextEditSink*>(this), &watchCookie_))) {
+                watched_ = context;
+                watched_->AddRef();
+            }
+            source->Release();
+        }
+    }
+
+    static bool PopupHook(void* self, UINT message, WPARAM wParam, LPARAM lParam) {
+        auto* service = static_cast<TyperService*>(self);
+        try {
+            if (message == typer::WM_TYPER_REPLY) {
+                std::unique_ptr<typer::protocol::WordReply> reply(reinterpret_cast<typer::protocol::WordReply*>(lParam));
+                if (reply) service->OnReply(*reply);
+                return true;
+            }
+            if (message == WM_TIMER && wParam == kRetryTimer) {
+                KillTimer(service->popup_.hwnd(), kRetryTimer);
+                if (service->watched_) service->QueueInspect(service->watched_);
+                return true;
+            }
+        } catch (...) {
+            LogError(L"exception caught in PopupHook");
+            return true;
+        }
+        return false;
+    }
+
+    LONG refs_ = 1;
+    ITfThreadMgr* threadMgr_ = nullptr;
+    TfClientId clientId_ = TF_CLIENTID_NULL;
+    DWORD threadMgrCookie_ = TF_INVALID_COOKIE;
+    ITfContext* watched_ = nullptr;
+    DWORD watchCookie_ = TF_INVALID_COOKIE;
+    bool acquired_ = false;
+    std::wstring app_;
+
+    typer::Popup popup_;
+    typer::PopupModel model_;
+    std::vector<std::wstring> words_;
+    WPARAM eatenKey_ = 0;
+
+    bool inspectQueued_ = false;
+    int retries_ = 0;
+
+    // State of the request the popup is waiting on or showing.
+    std::uint32_t latestId_ = 0;
+    std::wstring promptWord_;    // the typed part of the word the words complete
+    std::wstring promptBefore_;  // text before the caret when it was asked
+    RECT caret_ = {};
+    bool showAllowed_ = false;
+    std::wstring dismissedPrefix_;  // after Esc: stay quiet while the word still starts with this
+    std::wstring acceptedWord_;     // after Tab: stay quiet while the text is exactly this word
+};
+
+// ---------------------------------------------------------------------------------------------
+// COM plumbing
+
+class ClassFactory final : public IClassFactory {
+public:
+    STDMETHODIMP QueryInterface(REFIID riid, void** ppv) override {
+        if (!ppv) return E_INVALIDARG;
+        *ppv = nullptr;
+        if (riid != IID_IUnknown && riid != IID_IClassFactory) return E_NOINTERFACE;
+        *ppv = static_cast<IClassFactory*>(this);
+        return S_OK;
+    }
+    STDMETHODIMP_(ULONG) AddRef() override { return 2; }  // static object
+    STDMETHODIMP_(ULONG) Release() override { return 1; }
+    STDMETHODIMP CreateInstance(IUnknown* outer, REFIID riid, void** ppv) override {
+        TYPER_GUARD_BEGIN
+        if (!ppv) return E_INVALIDARG;
+        *ppv = nullptr;
+        if (outer) return CLASS_E_NOAGGREGATION;
+        auto* service = new (std::nothrow) TyperService();
+        if (!service) return E_OUTOFMEMORY;
+        HRESULT hr = service->QueryInterface(riid, ppv);
+        service->Release();
+        return hr;
+        TYPER_GUARD_END(E_FAIL)
+    }
+    STDMETHODIMP LockServer(BOOL lock) override {
+        if (lock) InterlockedIncrement(&g_objects);
+        else InterlockedDecrement(&g_objects);
+        return S_OK;
+    }
+};
+
+ClassFactory g_factory;
+
+}  // namespace
+
+BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID) {
+    if (reason == DLL_PROCESS_ATTACH) {
+        g_module = instance;
+        DisableThreadLibraryCalls(instance);
+    }
+    return TRUE;
+}
+
+STDAPI DllGetClassObject(REFCLSID clsid, REFIID riid, void** ppv) {
+    if (!ppv) return E_INVALIDARG;
+    *ppv = nullptr;
+    if (clsid != CLSID_TyperService) return CLASS_E_CLASSNOTAVAILABLE;
+    return g_factory.QueryInterface(riid, ppv);
+}
+
+STDAPI DllCanUnloadNow() { return g_objects == 0 ? S_OK : S_FALSE; }
+
+STDAPI DllUnregisterServer() {
+    ITfInputProcessorProfileMgr* profiles = nullptr;
+    if (SUCCEEDED(CoCreateInstance(CLSID_TF_InputProcessorProfiles, nullptr, CLSCTX_INPROC_SERVER,
+                                   IID_ITfInputProcessorProfileMgr, reinterpret_cast<void**>(&profiles)))) {
+        for (LANGID langId : kLangIds) profiles->UnregisterProfile(CLSID_TyperService, langId, GUID_TyperProfile, 0);
+        profiles->Release();
+    }
+    ITfCategoryMgr* categories = nullptr;
+    if (SUCCEEDED(CoCreateInstance(CLSID_TF_CategoryMgr, nullptr, CLSCTX_INPROC_SERVER, IID_ITfCategoryMgr,
+                                   reinterpret_cast<void**>(&categories)))) {
+        for (const GUID& category : kCategories) categories->UnregisterCategory(CLSID_TyperService, category, CLSID_TyperService);
+        categories->Release();
+    }
+    RegDeleteTreeW(HKEY_CLASSES_ROOT, kClsidKey);
+    return S_OK;
+}
+
+STDAPI DllRegisterServer() {
+    wchar_t path[MAX_PATH];
+    DWORD length = GetModuleFileNameW(g_module, path, MAX_PATH);
+    if (length == 0 || length >= MAX_PATH) return E_FAIL;
+
+    std::wstring server = std::wstring(kClsidKey) + L"\\InprocServer32";
+    const wchar_t apartment[] = L"Apartment";
+    if (RegSetKeyValueW(HKEY_CLASSES_ROOT, kClsidKey, nullptr, REG_SZ, kDescription, sizeof(kDescription)) != ERROR_SUCCESS ||
+        RegSetKeyValueW(HKEY_CLASSES_ROOT, server.c_str(), nullptr, REG_SZ, path, (length + 1) * sizeof(wchar_t)) != ERROR_SUCCESS ||
+        RegSetKeyValueW(HKEY_CLASSES_ROOT, server.c_str(), L"ThreadingModel", REG_SZ, apartment, sizeof(apartment)) != ERROR_SUCCESS) {
+        return SELFREG_E_CLASS;
+    }
+
+    ITfInputProcessorProfileMgr* profiles = nullptr;
+    HRESULT hr = CoCreateInstance(CLSID_TF_InputProcessorProfiles, nullptr, CLSCTX_INPROC_SERVER,
+                                  IID_ITfInputProcessorProfileMgr, reinterpret_cast<void**>(&profiles));
+    if (SUCCEEDED(hr)) {
+        for (LANGID langId : kLangIds) {
+            // A negative icon index means "the icon resource with this id" (as the Windows IME samples do).
+            hr = profiles->RegisterProfile(CLSID_TyperService, langId, GUID_TyperProfile, kDescription,
+                                           static_cast<ULONG>(wcslen(kDescription)), path, length,
+                                           static_cast<ULONG>(-IDI_TYPER), nullptr, 0, TRUE, 0);
+            if (FAILED(hr)) break;
+        }
+        profiles->Release();
+    }
+    if (FAILED(hr)) {
+        DllUnregisterServer();
+        return hr;
+    }
+
+    ITfCategoryMgr* categories = nullptr;
+    hr = CoCreateInstance(CLSID_TF_CategoryMgr, nullptr, CLSCTX_INPROC_SERVER, IID_ITfCategoryMgr,
+                          reinterpret_cast<void**>(&categories));
+    if (SUCCEEDED(hr)) {
+        for (const GUID& category : kCategories) {
+            hr = categories->RegisterCategory(CLSID_TyperService, category, CLSID_TyperService);
+            if (FAILED(hr)) break;
+        }
+        categories->Release();
+    }
+    if (FAILED(hr)) DllUnregisterServer();
+    return hr;
+}
