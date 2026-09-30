@@ -16,10 +16,10 @@ class ProviderError(Exception):
 
 @dataclass(frozen=True)
 class ProviderSettings:
-    base_url: str = "https://api.deepseek.com/beta"
-    model: str = "deepseek-chat"
-    api_key_env: str = "DEEPSEEK_API_KEY"
-    fim: bool = True  # send the text after the caret as `suffix` (fill-in-the-middle)
+    base_url: str = "https://openrouter.ai/api/v1"
+    models: tuple[str, ...] = ("mistralai/codestral-2508",)  # tried in order: the next only if the one before fails
+    api_key_env: str = "OPENROUTER_API_KEY"
+    fim: bool = False  # send the text after the caret as `suffix` (fill-in-the-middle); OpenRouter documents none
     max_tokens: int = 40
     temperature: float = 0.2
     timeout: float = 4.0  # seconds to wait for the connection, and between chunks
@@ -42,10 +42,28 @@ class PhraseProvider:
         await self._client.aclose()
 
     async def stream(self, request: PhraseRequest) -> AsyncIterator[str | Usage]:
-        """Yields text chunks as they arrive, then a `Usage` if the provider reports one."""
+        """Yields text chunks as they arrive, then a `Usage` if the provider reports one.
+
+        Tries each configured model in turn; a model that fails before producing any text hands over to
+        the next one. The error of the last model is raised if all fail."""
+        last_error: ProviderError | None = None
+        for model in self._settings.models:
+            produced = False
+            try:
+                async for event in self._stream_one(model, request):
+                    produced = True
+                    yield event
+                return
+            except ProviderError as err:
+                if produced:
+                    raise
+                last_error = err
+        raise last_error or ProviderError("no phrase model configured")
+
+    async def _stream_one(self, model: str, request: PhraseRequest) -> AsyncIterator[str | Usage]:
         s = self._settings
         payload: dict = {
-            "model": s.model,
+            "model": model,
             "prompt": request.prompt,
             "max_tokens": s.max_tokens,
             "temperature": s.temperature,

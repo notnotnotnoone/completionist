@@ -25,8 +25,8 @@ class Prices:
     """US dollars per million tokens."""
 
     input_per_m: float = 0.30
-    cached_per_m: float = 0.006
-    output_per_m: float = 1.20
+    cached_per_m: float = 0.30  # no cache discount assumed: the budget errs on the high side
+    output_per_m: float = 0.90
 
 
 def cost(usage: Usage, prices: Prices) -> float:

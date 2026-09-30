@@ -65,7 +65,7 @@ Write-Host @"
 Typer is installed.
   - The tray icon (bottom right, maybe under ^) pauses/resumes it, shows stats and opens the settings file.
   - Switch to the Typer keyboard with Win+Space, then type in any app. Restart apps that were open.
-  - Phrases need an API key:  setx DEEPSEEK_API_KEY "your key"   (then restart the engine from the tray: Quit, run install again)
+  - Phrases need an API key:  setx OPENROUTER_API_KEY "your key"   (then restart the engine from the tray: Quit, run install again)
   - Word ranking gets better with the n-gram file:  cd engine; uv run typer-build-ngrams --help
   - Logs and data live in $env:LOCALAPPDATA\Typer
 "@
