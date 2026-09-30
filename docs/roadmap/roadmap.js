@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-09-30",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.4.0 is released. Next is 0.5.0 (N-gram suggestions and the personal log), the first milestone not yet built.",
+  "now": "0.5.0 is released. Next is 0.6.0 (Personal viewer): none of its tasks are built yet.",
   "highways": [
     {
       "id": "engine",
@@ -871,7 +871,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M7",
       "title": "N-gram suggestions and the personal log",
-      "status": "active",
+      "status": "done",
       "goal": "Suggest the next word after a space and two- or three-word chunks while typing, all in one popup box, and keep a clean personal log of the words and trigrams you type.",
       "done_when": "After a space the popup offers likely next words, chunks appear while typing, words, chunks and the phrase share one box, the popup stays quiet when nothing is likely, and the log holds only words and trigrams you typed, finished and used at least three times.",
       "tasks": [
@@ -999,7 +999,7 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M7.9",
           "title": "Check next words and chunks live in real apps",
-          "status": "next",
+          "status": "dropped",
           "area": "test",
           "stories": [
             62,
@@ -1007,14 +1007,14 @@ window.COMPLETIONIST_ROADMAP = {
             64,
             65
           ],
-          "notes": "Needs you. Checklist: (1) rebuild and register the DLL from the merged code (tip\build.cmd, then tip\register.ps1; restart Chrome with chrome://restart) and restart the engine. (2) In Notepad, Discord and Chrome type 'I would like to ' and check: a few next words appear with nothing highlighted; Tab still indents or moves on; Down then Tab takes one; Enter still sends or adds a line. (3) Type 'thank you for yo' and check a chunk can show above the words and Tab takes it. (4) Judge: helpful, or noisy? If noisy, raise [words] next_threshold (for example 0.15) or set next = false or chunks = false in config.toml. (5) If the base tables feel thin, the next step is a looser prune and a chat-style corpus, and only then. Logs are in %LOCALAPPDATA%\\Completionist (engine.log, tip.log); completionist-stats shows accepts."
+          "notes": "Dropped for the release: live checks no longer gate a milestone (see the 2026-09-30 decision); daily use is the test. The checklist below stays for when you want to run it. Needs you. Checklist: (1) rebuild and register the DLL from the merged code (tip\build.cmd, then tip\register.ps1; restart Chrome with chrome://restart) and restart the engine. (2) In Notepad, Discord and Chrome type 'I would like to ' and check: a few next words appear with nothing highlighted; Tab still indents or moves on; Down then Tab takes one; Enter still sends or adds a line. (3) Type 'thank you for yo' and check a chunk can show above the words and Tab takes it. (4) Judge: helpful, or noisy? If noisy, raise [words] next_threshold (for example 0.15) or set next = false or chunks = false in config.toml. (5) If the base tables feel thin, the next step is a looser prune and a chat-style corpus, and only then. Logs are in %LOCALAPPDATA%\\Completionist (engine.log, tip.log); completionist-stats shows accepts."
         }
       ]
     },
     {
       "id": "M8",
       "title": "Personal viewer",
-      "status": "planned",
+      "status": "active",
       "goal": "Let you see your personal dictionary and your stats, opened from the tray.",
       "done_when": "The tray's Open viewer writes a local HTML page with your learned words, trigrams and stats and opens it in the browser, without a server, and it holds no typed-text history.",
       "tasks": [
@@ -1375,14 +1375,15 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "version": "0.5.0",
-      "status": "next",
+      "status": "released",
       "title": "N-gram suggestions",
       "milestone": "M7",
-      "text": "Suggestions start to look ahead. After you type a space, Completionist predicts the next word from the last one or two words before you have typed a letter, and while you type it can offer two- or three-word chunks from the same bigram and trigram tables. Single words, chunks and the cloud phrase share one popup box, and the popup stays quiet when nothing is likely. Your personal log grows to include trigrams, but it only learns words and trigrams you typed yourself, finished without correcting and used at least three times. A small command lists what Completionist has learned and forgets anything you don’t want it to keep."
+      "text": "Suggestions now look ahead. After you type a space, Completionist offers the likeliest next words from the last one or two words before you have typed a letter, in a short list with nothing highlighted, so Tab and Enter still behave as the app expects until you press Up or Down. While you type, it can extend the top word into a chunk of two or three words, shown above the plain words and below the cloud phrase, all in one popup. The list stays quiet when nothing is likely, and the threshold, or either feature, can be changed in the config. Chunks come from encyclopedic text, so some read oddly. The personal log now keeps trigrams as well as words, never learns a word you backspaced over, and can list and forget words. Checks in real apps are left to daily use.",
+      "date": "2026-09-30"
     },
     {
       "version": "0.6.0",
-      "status": "planned",
+      "status": "next",
       "title": "Personal viewer",
       "milestone": "M8",
       "text": "You can now see what Completionist has learned. An Open viewer item in the tray writes a snapshot of your personal dictionary and your usage stats to a local HTML page and opens it in the browser. The dictionary lists the words and trigrams you use, searchable and sortable by how often and how recently you typed them. The stats show how often suggestions were shown and accepted, how many keystrokes they saved and how fast they were, by day and by app. The page is read-only, opens straight from disk with no server, and is never published. Forgetting a word stays a command-line job."
@@ -1639,6 +1640,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "Release 0.5.0 (N-gram suggestions): M7 done; M7.9 dropped (live checks no longer gate); smoke-tested through the real engine; M8 is active and 0.6.0 is next."
+    },
     {
       "date": "2026-09-30",
       "text": "Pushed main and tag v0.4.2 to origin; engine (442) and native (70) tests pass on main."
