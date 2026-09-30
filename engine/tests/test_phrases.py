@@ -16,7 +16,7 @@ def req(request_id: int, before: str, after: str = "", event: str = "keystroke",
 
 def make_service(url: str, *, key: str | None = "k", budget: float = 0.50, **overrides) -> PhraseService:
     config = PhraseConfig(
-        provider=ProviderSettings(base_url=url, model="m", timeout=1.0),
+        provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, fim=True),
         debounce=overrides.pop("debounce", 0.05),
         context_before=overrides.pop("context_before", 8000),
         daily_budget_usd=budget,
@@ -351,3 +351,58 @@ def test_naming_another_key_variable_picks_up_that_variable(monkeypatch):
     assert not service.available
     service.reconfigure(replace(config, provider=replace(config.provider, api_key_env="KEY_TWO")))
     assert service.available
+
+
+def make_prefix_only_service(url: str) -> PhraseService:
+    config = PhraseConfig(provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, fim=False), debounce=0.05)
+    return PhraseService(config, "k", DailyBudget(0.50, Prices()))
+
+
+def test_without_fim_text_after_the_caret_on_the_same_line_holds_the_phrase_back():
+    async def scenario():
+        async with fake_provider(Script(chunks=["ld"])) as (url, received):
+            service = make_prefix_only_service(url)
+            pushes: list[PhraseUpdate] = []
+            session = service.open_session(pushes.append)
+            update = session.on_hotkey(req(1, "Hello wor", after=" and more text", event="hotkey"), "hotkey")
+            await asyncio.sleep(0.2)
+            session.close()
+            await service.aclose()
+            return update, pushes, received
+
+    update, pushes, received = asyncio.run(scenario())
+    assert update.phrase == ""
+    assert pushes == []
+    assert received == []
+
+
+def test_without_fim_text_on_a_later_line_does_not_hold_the_phrase_back():
+    async def scenario():
+        async with fake_provider(Script(chunks=["ld"])) as (url, _):
+            service = make_prefix_only_service(url)
+            pushes: list[PhraseUpdate] = []
+            session = service.open_session(pushes.append)
+            session.on_hotkey(req(1, "Hello wor", after="\nNext line here", event="hotkey"), "hotkey")
+            await settle(pushes)
+            session.close()
+            await service.aclose()
+            return pushes
+
+    assert asyncio.run(scenario())[-1].text == "ld"
+
+
+def test_with_fim_text_after_the_caret_is_sent_and_does_not_hold_the_phrase_back():
+    async def scenario():
+        async with fake_provider(Script(chunks=["ld"])) as (url, received):
+            service = make_service(url)
+            pushes: list[PhraseUpdate] = []
+            session = service.open_session(pushes.append)
+            session.on_hotkey(req(1, "Hello wor", after=" and more text", event="hotkey"), "hotkey")
+            await settle(pushes)
+            session.close()
+            await service.aclose()
+            return pushes, received
+
+    pushes, received = asyncio.run(scenario())
+    assert pushes[-1].text == "ld"
+    assert received[0].body["suffix"] == " and more text"

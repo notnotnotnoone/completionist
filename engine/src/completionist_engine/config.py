@@ -16,10 +16,10 @@
 
     [phrase]                    # phrase continuations from a cloud completion model
     enabled = true
-    base_url = "https://api.deepseek.com/beta"   # any OpenAI-compatible /completions endpoint
-    model = "deepseek-chat"
-    api_key_env = "DEEPSEEK_API_KEY"             # name of the environment variable holding the key
-    fim = true                  # send the text after the caret too (fill-in-the-middle)
+    base_url = "https://openrouter.ai/api/v1"    # OpenRouter, or any OpenAI-compatible /completions endpoint
+    models = ["mistralai/codestral-2508"]        # tried in order; the next only if the one before fails
+    api_key_env = "OPENROUTER_API_KEY"           # name of the environment variable holding the key
+    fim = false                 # send the text after the caret too (fill-in-the-middle); OpenRouter has none
     max_tokens = 40
     temperature = 0.2
     timeout = 4.0               # seconds
@@ -27,9 +27,9 @@
     context_before = 8000       # characters of text before the caret sent to the model
     context_after = 2000
     daily_budget_usd = 0.50     # phrases stop for the day once this is spent
-    price_input_per_m = 0.30    # dollars per million tokens, used to count spend
-    price_cached_per_m = 0.006
-    price_output_per_m = 1.20
+    price_input_per_m = 0.30    # dollars per million tokens, used to count spend (one price for all models)
+    price_cached_per_m = 0.30
+    price_output_per_m = 0.90
 
     [hotkeys]
     pause = "ctrl+alt+p"        # pause / resume Completionist from anywhere ("" turns the hotkey off)
@@ -73,7 +73,7 @@ DEFAULT_BLOCK = frozenset(
 DEFAULT_ALLOW = frozenset({"obsidian.exe", "notepad.exe", "winword.exe", "outlook.exe", "olk.exe"})
 
 _PHRASE_KEYS = {
-    "enabled", "base_url", "model", "api_key_env", "fim", "max_tokens", "temperature", "timeout", "debounce_ms",
+    "enabled", "base_url", "models", "api_key_env", "fim", "max_tokens", "temperature", "timeout", "debounce_ms",
     "context_before", "context_after", "daily_budget_usd", "price_input_per_m", "price_cached_per_m", "price_output_per_m",
 }  # fmt: skip
 _SCHEMA = {
@@ -183,7 +183,7 @@ def _phrase(section: dict[str, Any]) -> PhraseConfig:
 
     provider = ProviderSettings(
         base_url=get("base_url", p.base_url, _text),
-        model=get("model", p.model, _text),
+        models=get("models", p.models, _model_list),
         api_key_env=get("api_key_env", p.api_key_env, _text),
         fim=get("fim", p.fim, _boolean),
         max_tokens=get("max_tokens", p.max_tokens, _positive_int),
@@ -253,6 +253,12 @@ def _text(value: Any, name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ConfigError(f"{name} must be non-empty text")
     return value.strip()
+
+
+def _model_list(value: Any, name: str) -> tuple[str, ...]:
+    if not isinstance(value, list) or not value or not all(isinstance(m, str) and m.strip() for m in value):
+        raise ConfigError(f"{name} must be a non-empty list of model names")
+    return tuple(m.strip() for m in value)
 
 
 def _boolean(value: Any, name: str) -> bool:

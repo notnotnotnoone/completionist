@@ -18,7 +18,6 @@ dependencies = [
 completionist-engine = "completionist_engine.app:main"
 completionist-probe = "completionist_engine.probe:main"
 completionist-build-ngrams = "completionist_engine.build_ngrams:main"
-completionist-bench = "completionist_engine.bench:main"
 completionist-stats = "completionist_engine.stats_cli:main"
 
 [build-system]

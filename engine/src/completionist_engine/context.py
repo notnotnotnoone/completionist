@@ -2,7 +2,7 @@
 
 The start of the window is *anchored*: it moves only when a paragraph (or sentence) boundary scrolls
 out of range, not on every keystroke. Consecutive requests then begin with identical text, which
-providers with prefix caching (DeepSeek) serve at a fraction of the price.
+providers with prefix caching serve at a fraction of the price.
 """
 
 _BREAKS = ("\n\n", "\n", ". ", "? ", "! ")

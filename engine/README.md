@@ -10,7 +10,6 @@ uv run completionist-engine --no-tray               # serve without them (tests,
 uv run completionist-probe "I'd like to recomm"     # ask a running engine, without the DLL
 uv run completionist-stats --days 7                 # what Completionist has saved you, and how the phrase provider is doing
 uv run completionist-build-ngrams corpus.txt        # build the n-gram file (see below)
-uv run completionist-bench --help                   # compare phrase providers (see ../bench)
 ```
 
 Normally `..\scripts\install.ps1` starts it at logon, so you don't run it by hand.
@@ -25,8 +24,9 @@ Normally `..\scripts\install.ps1` starts it at logon, so you don't run it by han
 
 A phrase is a continuation of your sentence from a cheap cloud completion model, streamed into the popup's top row.
 
-- **Provider:** any OpenAI-compatible `/completions` endpoint. The default is DeepSeek (`https://api.deepseek.com/beta`, `deepseek-chat`, key in `DEEPSEEK_API_KEY`). The text after the caret is sent as `suffix` (fill-in-the-middle) so the phrase fits what follows.
-- **Context sent:** up to 8,000 characters before the caret and 2,000 after, cut at paragraph/sentence boundaries so the provider's prefix cache hits.
+- **Provider:** OpenRouter (`https://openrouter.ai/api/v1`), key in `OPENROUTER_API_KEY`. Name the models in `[phrase] models = ["a/model", "b/model"]`; the first is used, and the next only if it fails. Any model that accepts plain completions works; look up its price on the model card and set `price_*_per_m` so the daily budget counts right.
+- **Context sent:** up to 8,000 characters before the caret (and 2,000 after, only if `fim = true`), cut at paragraph/sentence boundaries so the provider's prefix cache hits.
+- **Text after the caret:** OpenRouter has no fill-in-the-middle, so the model sees only the text before the caret, and phrases are held back while other text follows the caret on the same line. A provider that does take a `suffix` can be used by setting `fim = true`.
 - **When:** in apps listed under `[apps] allow`, a phrase is requested 350 ms after you pause. Everywhere else, only when you press Ctrl+Space.
 - **Cost:** spend is counted per day (`spend.json`); phrases stop for the day at `daily_budget_usd` (default $0.50). Three provider failures in a row pause phrases for 30 s.
 - **Privacy:** nothing is sent from password fields or block-listed apps. Text goes only to the provider you configured.
@@ -78,10 +78,10 @@ promote_after = 3
 
 [phrase]
 enabled = true
-base_url = "https://api.deepseek.com/beta"
-model = "deepseek-chat"
-api_key_env = "DEEPSEEK_API_KEY"
-fim = true
+base_url = "https://openrouter.ai/api/v1"
+models = ["mistralai/codestral-2508"]
+api_key_env = "OPENROUTER_API_KEY"
+fim = false
 max_tokens = 40
 temperature = 0.2
 timeout = 4.0

@@ -8,7 +8,8 @@ from completionist_engine.phrase_provider import PhraseProvider, PhraseRequest, 
 
 
 def settings(url: str, **overrides) -> ProviderSettings:
-    return ProviderSettings(base_url=url, model="test-model", timeout=1.0, **overrides)
+    overrides.setdefault("models", ("test-model",))
+    return ProviderSettings(base_url=url, timeout=1.0, **overrides)
 
 
 async def collect(provider: PhraseProvider, request: PhraseRequest):
@@ -32,7 +33,7 @@ def test_a_completion_streams_text_chunks_then_usage():
 def test_the_request_is_an_openai_style_completion_with_a_bearer_key():
     async def scenario():
         async with fake_provider() as (url, received):
-            await collect(PhraseProvider(settings(url), "sk-secret"), PhraseRequest(prompt="Hello wor", suffix="ld"))
+            await collect(PhraseProvider(settings(url, fim=True), "sk-secret"), PhraseRequest(prompt="Hello wor", suffix="ld"))
             return received[0]
 
     request = run(scenario())
@@ -154,3 +155,35 @@ def test_cancelling_the_stream_stops_reading():
 
     got = run(scenario())
     assert 1 <= len(got) < 20
+
+
+def test_a_failing_model_falls_back_to_the_next_one_in_the_list():
+    def script(received):
+        return Script(status=500) if received.body["model"] == "bad" else Script()
+
+    async def scenario():
+        async with fake_provider(script) as (url, received):
+            events = await collect(PhraseProvider(settings(url, models=("bad", "good")), "k"), PhraseRequest(prompt="Hi"))
+            return events, [r.body["model"] for r in received]
+
+    events, tried = run(scenario())
+    assert events[:2] == ["hello", " world"]
+    assert tried == ["bad", "good"]
+
+
+def test_every_model_failing_raises_a_provider_error():
+    async def scenario():
+        async with fake_provider(Script(status=500)) as (url, received):
+            with pytest.raises(ProviderError):
+                await collect(PhraseProvider(settings(url, models=("a", "b")), "k"), PhraseRequest(prompt="Hi"))
+            return [r.body["model"] for r in received]
+
+    assert run(scenario()) == ["a", "b"]
+
+
+def test_the_defaults_point_at_openrouter_without_fim():
+    defaults = ProviderSettings()
+    assert defaults.base_url == "https://openrouter.ai/api/v1"
+    assert defaults.api_key_env == "OPENROUTER_API_KEY"
+    assert defaults.fim is False
+    assert defaults.models

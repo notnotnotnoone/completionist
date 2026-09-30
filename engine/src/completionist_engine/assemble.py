@@ -95,7 +95,7 @@ def _phrase_service(config: Config, api_key: str | None, metrics: Metrics) -> Ph
     if service.available:
         logger.info(
             "phrases on: %s at %s, budget $%.2f/day ($%.4f spent today)",
-            phrase.provider.model,
+            ", ".join(phrase.provider.models),
             phrase.provider.base_url,
             phrase.daily_budget_usd,
             budget.spent_today,
