@@ -1058,6 +1058,10 @@ window.TYPER_ROADMAP = {
   "log": [
     {
       "date": "2026-09-29",
+      "text": "Map page sections: masthead sign, now sign, mile-marker posts, highway spotlight, legend, travel guide, road work and itinerary."
+    },
+    {
+      "date": "2026-09-29",
       "text": "Map drawing (map.js): highways with casing, built/construction/planned/idle road, barricades, stations, exit and gantry signs, shields, cul-de-sacs, you-are-here pin, lane labels."
     },
     {
