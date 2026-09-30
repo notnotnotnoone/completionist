@@ -1007,7 +1007,7 @@ window.COMPLETIONIST_ROADMAP = {
             64,
             65
           ],
-          "notes": "Needs you: type in Notepad, Discord and Chrome and judge whether it helps or is noisy. If the base tables (0.8M bigrams, 1.6M trigrams from WikiText-103) feel thin, rebuild them with a looser prune and a chat-style corpus such as subtitles. Don't do that before this check says it's needed."
+          "notes": "Needs you. Checklist: (1) rebuild and register the DLL from the merged code (tip\build.cmd, then tip\register.ps1; restart Chrome with chrome://restart) and restart the engine. (2) In Notepad, Discord and Chrome type 'I would like to ' and check: a few next words appear with nothing highlighted; Tab still indents or moves on; Down then Tab takes one; Enter still sends or adds a line. (3) Type 'thank you for yo' and check a chunk can show above the words and Tab takes it. (4) Judge: helpful, or noisy? If noisy, raise [words] next_threshold (for example 0.15) or set next = false or chunks = false in config.toml. (5) If the base tables feel thin, the next step is a looser prune and a chat-style corpus, and only then. Logs are in %LOCALAPPDATA%\\Completionist (engine.log, tip.log); completionist-stats shows accepts."
         }
       ]
     },
@@ -1628,6 +1628,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-30",
+      "text": "M7.9 prepared: the live-check checklist is in the task. It needs you to run it; nothing else in M7 is left."
+    },
     {
       "date": "2026-09-30",
       "text": "M7.7 and M7.8 done: next words and chunks show in the one popup box; next-word rows open with nothing highlighted so Tab and Enter pass through; [words] next and chunks default on. 70 native and 442 engine tests pass; the DLL builds. M7.9 (live check) is next."
