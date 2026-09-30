@@ -814,6 +814,13 @@ window.TYPER_ROADMAP = {
       "text": "Phrases now come only through OpenRouter from a list of model names in the config, DeepSeek and the benchmark tool were removed, and phrases are held back when text follows the caret on the same line."
     },
     {
+      "version": "0.0.7",
+      "status": "released",
+      "date": "2026-09-29",
+      "title": "Continue-only phrases",
+      "text": "The phrase prompt now tells models to continue the text instead of answering it, and the daily budget and price counting were removed in favour of a spending limit on the OpenRouter key."
+    },
+    {
       "version": "0.1.0",
       "status": "next",
       "title": "Words everywhere",
@@ -997,6 +1004,10 @@ window.TYPER_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-09-29",
+      "text": "Released 0.0.7: continue-only phrase prompt and no price counting, merged into main."
+    },
     {
       "date": "2026-09-29",
       "text": "Removed the daily budget and price counting; the user limits the OpenRouter key instead. Metrics drop the cost column."
