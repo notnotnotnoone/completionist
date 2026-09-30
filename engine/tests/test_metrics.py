@@ -176,3 +176,18 @@ def test_a_file_from_before_spend_was_dropped_still_opens_and_keeps_its_counts(t
     m.flush()
     assert m.summary().providers["old-model"].requests == 8
     m.close()
+
+
+def test_daily_gives_a_row_for_every_day_including_quiet_ones_with_saved_data_and_new_counts(tmp_path):
+    current = {"day": date(2026, 9, 27)}
+    path = tmp_path / "m.sqlite"
+    m = Metrics(path, today=lambda: current["day"])
+    m.record_shown("a.exe", "word")
+    m.record_accept("a.exe", "word", chars=6)
+    m.flush()
+    current["day"] = DAY
+    m.record_shown("a.exe", "phrase")
+    m.record_shown("b.exe", "word")
+    rows = m.daily(3)
+    m.close()
+    assert rows == [("2026-09-27", 1, 1, 5), ("2026-09-28", 0, 0, 0), ("2026-09-29", 2, 0, 0)]

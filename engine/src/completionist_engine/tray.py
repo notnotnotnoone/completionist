@@ -2,6 +2,7 @@
 
 import logging
 import os
+import webbrowser
 from collections.abc import Callable
 from pathlib import Path
 
@@ -75,6 +76,7 @@ class Tray:
         config_path: Path,
         log_dir: Path,
         quit_engine: Callable[[], None],
+        viewer_url: Callable[[], str] | None = None,
     ) -> None:
         self._toggle = toggle_pause
         self._is_paused = is_paused
@@ -82,12 +84,14 @@ class Tray:
         self._config_path = config_path
         self._log_dir = log_dir
         self._quit = quit_engine
+        self._viewer_url = viewer_url
         self._icon = pystray.Icon(
             "completionist",
             icon_image(is_paused()),
             "Completionist",
             menu=pystray.Menu(
                 pystray.MenuItem(lambda _item: pause_label(self._is_paused()), self._on_toggle, default=True),
+                pystray.MenuItem("Open viewer", self._on_viewer, visible=viewer_url is not None),
                 pystray.MenuItem("Show stats", self._on_stats),
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem("Open settings file", self._on_config),
@@ -120,6 +124,10 @@ class Tray:
             return
         self._metrics.flush()
         self._icon.notify(stats_line(self._metrics.summary(7)), "Completionist stats")
+
+    def _on_viewer(self, _icon=None, _item=None) -> None:
+        if self._viewer_url is not None:
+            webbrowser.open(self._viewer_url())  # the address carries the secret token, so it isn't logged
 
     def _on_config(self, _icon=None, _item=None) -> None:
         try:
