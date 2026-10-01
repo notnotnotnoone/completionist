@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.6.7 is released on branch m9-fuzzy. 0.7.0 is next once the merge lands; the demo GIF (0.6.9) and Spike keyboard removal (0.6.10) stay open for daily use.",
+  "now": "0.7.0 is released. M5 (Reply-aware phrases) is active and 1.1.0 is next; the 0.7.0 live check, demo GIF and Spike keyboard removal are dropped to daily use.",
   "highways": [
     {
       "id": "engine",
@@ -1197,7 +1197,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M9",
       "title": "Typo-tolerant words",
-      "status": "active",
+      "status": "done",
       "goal": "Still suggest the right word when the typed part has a typo, and show which letters were guessed.",
       "done_when": "Typing \"moutian\" offers \"mountain\" with the guessed letters in a different colour, exact prefix matches still rank first, and lookup p95 stays under 10 ms.",
       "tasks": [
@@ -1322,26 +1322,26 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M9.7",
           "version": "0.6.9",
           "title": "README demo GIF and a small web demo of the popup",
-          "status": "todo",
+          "status": "dropped",
           "area": "docs",
           "stories": [],
-          "notes": "Moved here from 0.4.0. The public showcase: a short GIF of the popup in use, and a plain HTML page with made-up text that shows the ranking (no engine, no server, no real data). Needs your OK before anything is published."
+          "notes": "Dropped for the 0.7.0 release: a public showcase with made-up data needs the owner's OK before publishing, and daily use is the test. Checklist: a short GIF of the popup in use and a plain HTML page showing the ranking (no engine, no server, no real data)."
         },
         {
           "id": "M9.8",
           "version": "0.6.10",
           "title": "Remove the Completionist Spike keyboard and unregister it",
-          "status": "todo",
+          "status": "dropped",
           "area": "install",
           "stories": [],
-          "notes": "Moved from 0.4.0 (and 0.1.0). The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`."
+          "notes": "Dropped for the 0.7.0 release: only the user can do it at a real desktop, and daily use is the test. Checklist: remove it from the language list, then run `tip/spike/register.ps1 -Unregister`."
         }
       ]
     },
     {
       "id": "M5",
       "title": "Reply-aware phrases",
-      "status": "planned",
+      "status": "active",
       "goal": "Phrase suggestions know what you're replying to.",
       "done_when": "A phrase suggestion in a Discord reply reflects the last few messages in the channel.",
       "tasks": [
@@ -1349,7 +1349,7 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M5.1",
           "version": "1.0.1",
           "title": "Reply-aware context from the surrounding window",
-          "status": "todo",
+          "status": "next",
           "area": "engine",
           "stories": [
             57,
@@ -1637,14 +1637,15 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "version": "0.7.0",
-      "status": "next",
+      "status": "released",
       "title": "Typo-tolerant words",
       "milestone": "M9",
-      "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing edit-distance library, rapidfuzz, over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile over the real pipe. Words you fix yourself are never learned as new vocabulary. Checks in real apps, the demo GIF and the Spike keyboard removal are left to daily use."
+      "date": "2026-10-01",
+      "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing edit-distance library, rapidfuzz, over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile over the real pipe. Words you fix yourself are never learned as new vocabulary. The live check, the demo GIF and the Spike keyboard removal are dropped to daily use."
     },
     {
       "version": "1.0.0",
-      "status": "planned",
+      "status": "next",
       "title": "Autocomplete for everything you type",
       "essay": [
         "Completionist 1.0 puts the suggestions of a code editor into every place you write English on Windows. Type a few letters in Discord, a browser text box or an email and a short list of completions appears just under the caret, ranked by the words before it and by the words you actually use. Tab takes the top one. In apps you choose, and on Ctrl+Space everywhere else, a greyed phrase appears above the list, a continuation of your sentence that you take whole with Tab or one word at a time with Ctrl+Right. Enter is never touched, and nothing in a password field is read or sent.",
@@ -1914,6 +1915,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "Release 0.7.0 (Typo-tolerant words): merged m9-fuzzy into main; M9 done; the live check, demo GIF and Spike removal are dropped to daily use; M5 is active and 1.1.0 is next."
+    },
     {
       "date": "2026-10-01",
       "text": "Release 0.6.7 on branch m9-fuzzy: the p95 latency check with the fuzzy index on; 0.7.0 is next once the merge lands."

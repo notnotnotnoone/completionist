@@ -92,6 +92,14 @@ Completionist uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `
 - **The user does hands-on app testing** to save cost:
   - Give a short checklist, then read the logs.
   - Don't drive the screen with computer use or screenshots unless asked.
+- **Keep the user in the review loop, in plain English.** The user is new to Python, tests and Windows internals, and wants to follow the project and take part without being overwhelmed.
+  - **Before you change code,** say in a few sentences what you'll change and why, and what the alternatives were. Ask when it's a real decision (design, scope, anything user-visible).
+  - **After you change code,** explain it in plain terms: what it does, why this way, and what could go wrong. Point at the one or two files or functions that matter; don't walk through every line unless asked.
+  - **Include some technical detail,** but keep it light. Name the real concepts (for example a function, a test, a database table) and say what each one is in a phrase the first time it comes up. Skip jargon, acronyms and internals that don't help the user decide or check anything.
+  - **Use analogies sparingly.** One good one beats three. Don't pile on diagrams, pseudocode or long file tours unless asked.
+  - **Give the user something to check or decide** at each step: a choice, a behaviour to try, or a question about what they'd expect. Keep it to one or two items, not a quiz.
+  - **Go at the user's pace.** If they say they're lost, stop and simplify instead of adding more.
+  - **Don't spend their budget on maps.** Skip multi-agent codebase-mapping skills (`/understand`, `/cartographer`); they burned a whole month's budget once. Explain the parts that matter directly.
 - **The TSF harness steals focus.** `tip/tests/tsf_e2e.ps1` pops a real window and needs the foreground for TSF focus. Run it only when the user says they are away, never while they work.
 - **Engine extras:** `completionist-stats` (usage numbers), the tray's Open viewer (a local page: words, stats, settings), tray icon and Ctrl+Alt+P pause (`--no-tray` to skip), config hot reload, `engine.log` and `metrics.sqlite` in `%LOCALAPPDATA%\Completionist`.
 - **Don't over-engineer.** Completionist is a typing tool. Build what the user asked for, the simplest way. Don't add side tools, benchmarks, dashboards or config knobs on your own, and don't turn a choice (like which model) into a project or homework for the user: pick a sensible default, say so, and make it easy to swap. Ask before adding anything beyond the request.
