@@ -1,0 +1,67 @@
+%% PersonalStore (engine/src/completionist_engine/personal.py): what it keeps and how data moves
+flowchart TD
+    subgraph callers["Who talks to the store"]
+        learner["TypingLearner<br/>you finished typing a word"]
+        accept["You accept a suggestion"]
+        ranker["Word ranking (words.py)<br/>asks for candidates"]
+        viewer["Viewer page (M8)<br/>list and forget words"]
+    end
+
+    subgraph memory["In memory (fast)"]
+        words["words<br/>word to count"]
+        sorted["sorted_words<br/>same words, A to Z<br/>for prefix search"]
+        total["total<br/>sum of all counts"]
+        pairs["pairs chain<br/>1 previous word to followers"]
+        triples["triples chain<br/>2 previous words to followers"]
+        dirty["dirty sets<br/>changed, not yet saved"]
+    end
+
+    subgraph file["personal.sqlite (saved)"]
+        t_words[("words table")]
+        t_pairs[("bigrams table")]
+        t_triples[("trigrams table")]
+    end
+
+    clean{"clean(word)<br/>short, lowercase letters only?"}
+    reject["Rejected:<br/>numbers, codes, junk"]
+
+    learner -->|record_typed| clean
+    accept -->|record_accepted| clean
+    clean -->|no| reject
+    clean -->|yes| add["add(word, context)"]
+
+    add --> words
+    add --> sorted
+    add --> total
+    add --> pairs
+    add --> triples
+    add --> dirty
+
+    ranker -->|counts| lookup["counts(context, prefix)"]
+    lookup -->|no context| sorted
+    lookup -->|no context| words
+    lookup -->|with context| pairs
+    lookup -->|with context| triples
+    lookup --> result["top 50 candidates<br/>plus a total"]
+
+    dirty -->|flush, changes only| t_words
+    dirty -->|flush, changes only| t_pairs
+    dirty -->|flush, changes only| t_triples
+    t_words -->|load on start| words
+    t_pairs -->|load on start| pairs
+    t_triples -->|load on start| triples
+
+    viewer -.->|"NEW: words(search)"| words
+    viewer -.->|"NEW: forget(word)"| forgetbox["forget(word) must clean ALL of these"]
+    forgetbox -.-> words
+    forgetbox -.-> sorted
+    forgetbox -.-> total
+    forgetbox -.-> pairs
+    forgetbox -.-> triples
+    forgetbox -.-> dirty
+    forgetbox -.-> t_words
+    forgetbox -.-> t_pairs
+    forgetbox -.-> t_triples
+
+    classDef newwork fill:#fff3cd,stroke:#b58900,color:#000
+    class viewer,forgetbox newwork

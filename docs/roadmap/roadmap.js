@@ -54,7 +54,7 @@ window.COMPLETIONIST_ROADMAP = {
   "milestones": [
     {
       "id": "M0",
-      "title": "Toolchain + TSF spike",
+      "title": "Foundations and TSF spike",
       "status": "done",
       "goal": "Prove a TSF text service fixes the three failures of the old hook-based attempt: popup position, text sync and key handling.",
       "done_when": "A throwaway TIP shows a popup at the caret, reads the real text and swallows Tab in the must-work apps.",
@@ -127,6 +127,96 @@ window.COMPLETIONIST_ROADMAP = {
           "refs": [
             "tip/spike/README.md"
           ]
+        },
+        {
+          "id": "M0.7",
+          "version": "0.0.1",
+          "title": "Scaffold the repository",
+          "status": "done",
+          "area": "repo",
+          "stories": [],
+          "notes": "README, gitignore and a standalone uv project for the engine."
+        },
+        {
+          "id": "M0.8",
+          "version": "0.0.2",
+          "title": "Engine word completion over the named pipe",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "notes": "146,000-word frequency list, p95 under 10 ms, 74 tests."
+        },
+        {
+          "id": "M0.9",
+          "version": "0.0.4",
+          "title": "Roadmap pages and agent guide",
+          "status": "done",
+          "area": "docs",
+          "stories": [],
+          "notes": "Task board, release timeline and the CLAUDE.md rules."
+        },
+        {
+          "id": "M0.11",
+          "version": "0.0.6",
+          "title": "OpenRouter-only phrases",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "notes": "Models list in the config; DeepSeek and the benchmark tool removed; phrases held back when text follows the caret."
+        },
+        {
+          "id": "M0.12",
+          "version": "0.0.7",
+          "title": "Highway map, Evergreen colors and the Completionist rename",
+          "status": "done",
+          "area": "docs",
+          "stories": [],
+          "notes": "CONTEXT.md added; old data folders move on first start."
+        },
+        {
+          "id": "M0.13",
+          "version": "0.0.8",
+          "title": "Continue-only phrase prompt",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "notes": "Daily budget and price counting removed in favour of a spending limit on the OpenRouter key."
+        },
+        {
+          "id": "M0.14",
+          "version": "0.0.9",
+          "title": "Stricter phrase prompt and the 0.5.0 to 2.0.0 plan",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "notes": "Thirty numbered rules and two worked examples in the prompt."
+        },
+        {
+          "id": "M0.15",
+          "version": "0.0.10",
+          "title": "Groq default model and API key in the config",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "notes": "Llama 3.3 70B on Groq through OpenRouter, with a provider_order setting."
+        },
+        {
+          "id": "M0.16",
+          "version": "0.0.11",
+          "title": "One-line launcher",
+          "status": "done",
+          "area": "install",
+          "stories": [],
+          "notes": "cd engine && uv run completionist.py"
+        },
+        {
+          "id": "M0.17",
+          "version": "0.0.12",
+          "title": "Task board by release",
+          "status": "done",
+          "area": "docs",
+          "stories": [],
+          "notes": "Milestones shown as releases, plain titles, tasks sorted by status."
         }
       ]
     },
@@ -139,7 +229,7 @@ window.COMPLETIONIST_ROADMAP = {
       "tasks": [
         {
           "id": "M1.1",
-          "version": "0.1.0",
+          "version": "0.0.13",
           "title": "Protocol codec: length-prefixed JSON frames",
           "status": "done",
           "area": "engine",
@@ -152,7 +242,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.2",
-          "version": "0.1.0",
+          "version": "0.0.14",
           "title": "Word completer over the wordfreq vocabulary",
           "status": "done",
           "area": "engine",
@@ -170,7 +260,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.3",
-          "version": "0.1.0",
+          "version": "0.0.15",
           "title": "TOML config and policy gating",
           "status": "done",
           "area": "engine",
@@ -188,7 +278,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.4",
-          "version": "0.1.0",
+          "version": "0.0.16",
           "title": "Named-pipe server, client and probe CLI",
           "status": "done",
           "area": "engine",
@@ -204,7 +294,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.5",
-          "version": "0.1.0",
+          "version": "0.0.17",
           "title": "Merge m1-engine-words and m0-tsf-spike into main",
           "status": "done",
           "area": "repo",
@@ -217,7 +307,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.6",
-          "version": "0.1.0",
+          "version": "0.0.18",
           "title": "TSF service shell from SampleIME: activation, key sink, edit sessions, registration",
           "status": "done",
           "area": "dll",
@@ -232,7 +322,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.7",
-          "version": "0.1.0",
+          "version": "0.0.19",
           "title": "Context reader: text around the caret, caret rect, input scope, app and title",
           "status": "done",
           "area": "dll",
@@ -248,7 +338,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.8",
-          "version": "0.1.0",
+          "version": "0.0.20",
           "title": "Pure popup state + key router with native tests",
           "status": "done",
           "area": "dll",
@@ -270,7 +360,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.9",
-          "version": "0.1.0",
+          "version": "0.0.21",
           "title": "Engine client on a worker thread",
           "status": "done",
           "area": "dll",
@@ -286,7 +376,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.14",
-          "version": "0.1.0",
+          "version": "0.0.22",
           "title": "TSF harness: real DLL, real engine, simulated app",
           "status": "done",
           "area": "test",
@@ -309,7 +399,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.10",
-          "version": "0.1.0",
+          "version": "0.0.23",
           "title": "Popup rendering at the caret",
           "status": "done",
           "area": "dll",
@@ -325,7 +415,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.11",
-          "version": "0.1.0",
+          "version": "0.0.24",
           "title": "Keyboard icon and an enable-keyboard step",
           "status": "done",
           "area": "install",
@@ -340,7 +430,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.12",
-          "version": "0.1.0",
+          "version": "0.0.25",
           "title": "Manual app matrix for the real DLL",
           "status": "dropped",
           "area": "test",
@@ -353,7 +443,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.13",
-          "version": "0.1.0",
+          "version": "0.0.26",
           "title": "Remove the Completionist Spike keyboard and unregister it",
           "status": "dropped",
           "area": "install",
@@ -362,7 +452,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.15",
-          "version": "0.1.0",
+          "version": "0.0.27",
           "title": "Roadmap as a highway map, in the Evergreen color scheme",
           "status": "done",
           "area": "docs",
@@ -380,7 +470,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.16",
-          "version": "0.1.0",
+          "version": "0.0.28",
           "title": "Rename the app from Typer to Completionist",
           "status": "done",
           "area": "repo",
@@ -395,7 +485,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M1.17",
-          "version": "0.1.0",
+          "version": "0.0.29",
           "title": "Make the roadmap easier to read: releases first, plain titles, tasks by status",
           "status": "done",
           "area": "docs",
@@ -418,7 +508,7 @@ window.COMPLETIONIST_ROADMAP = {
       "tasks": [
         {
           "id": "M2.1",
-          "version": "0.2.0",
+          "version": "0.1.1",
           "title": "N-gram builder: bigram and trigram tables from a public corpus",
           "status": "done",
           "area": "data",
@@ -433,7 +523,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M2.2",
-          "version": "0.2.0",
+          "version": "0.1.2",
           "title": "N-gram re-ranking in the word completer",
           "status": "done",
           "area": "engine",
@@ -447,7 +537,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M2.3",
-          "version": "0.2.0",
+          "version": "0.1.3",
           "title": "Filter misspellings and junk out of the base vocabulary",
           "status": "done",
           "area": "engine",
@@ -461,7 +551,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M2.4",
-          "version": "0.2.0",
+          "version": "0.1.4",
           "title": "Personal store: accept and typed-word counts in SQLite",
           "status": "done",
           "area": "engine",
@@ -476,7 +566,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M2.5",
-          "version": "0.2.0",
+          "version": "0.1.5",
           "title": "Promote new words to the vocabulary after N uses",
           "status": "done",
           "area": "engine",
@@ -491,7 +581,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M2.6",
-          "version": "0.2.0",
+          "version": "0.1.6",
           "title": "Accept events name the accepted item",
           "status": "done",
           "area": "dll",
@@ -506,7 +596,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M2.7",
-          "version": "0.2.0",
+          "version": "0.1.7",
           "title": "Check learning and n-gram ranking live through the DLL",
           "status": "dropped",
           "area": "test",
@@ -528,7 +618,7 @@ window.COMPLETIONIST_ROADMAP = {
       "tasks": [
         {
           "id": "M3.1",
-          "version": "0.3.0",
+          "version": "0.2.1",
           "title": "Provider benchmark: time-to-first-token and quality",
           "status": "dropped",
           "area": "bench",
@@ -539,7 +629,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.2",
-          "version": "0.3.0",
+          "version": "0.2.2",
           "title": "Benchmark time-to-first-token against context size",
           "status": "dropped",
           "area": "bench",
@@ -550,7 +640,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.3",
-          "version": "0.3.0",
+          "version": "0.2.3",
           "title": "Phrase provider: OpenAI-compatible /completions with optional FIM",
           "status": "done",
           "area": "engine",
@@ -569,7 +659,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.4",
-          "version": "0.3.0",
+          "version": "0.2.4",
           "title": "Cache-friendly anchored context window",
           "status": "done",
           "area": "engine",
@@ -583,7 +673,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.5",
-          "version": "0.3.0",
+          "version": "0.2.5",
           "title": "Daily budget cap and per-request cost tracking (removed)",
           "status": "dropped",
           "area": "engine",
@@ -598,7 +688,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.6",
-          "version": "0.3.0",
+          "version": "0.2.6",
           "title": "Phrase scheduler state machine",
           "status": "done",
           "area": "engine",
@@ -615,7 +705,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.7",
-          "version": "0.3.0",
+          "version": "0.2.7",
           "title": "Phrase push messages over the pipe",
           "status": "done",
           "area": "engine",
@@ -630,7 +720,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.8",
-          "version": "0.3.0",
+          "version": "0.2.8",
           "title": "Phrase row in the popup",
           "status": "done",
           "area": "dll",
@@ -649,7 +739,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.9",
-          "version": "0.3.0",
+          "version": "0.2.9",
           "title": "Ctrl+Space hotkey requests a phrase in any app",
           "status": "done",
           "area": "dll",
@@ -663,7 +753,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.10",
-          "version": "0.3.0",
+          "version": "0.2.10",
           "title": "Fall back to words when the provider is slow or down",
           "status": "done",
           "area": "engine",
@@ -677,7 +767,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.11",
-          "version": "0.3.0",
+          "version": "0.2.11",
           "title": "Check phrases live with a real provider and key",
           "status": "dropped",
           "area": "test",
@@ -691,7 +781,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M3.12",
-          "version": "0.3.0",
+          "version": "0.2.12",
           "title": "OpenRouter without FIM: prefix-only phrases, held back when text follows the caret on the same line",
           "status": "done",
           "area": "engine",
@@ -713,7 +803,7 @@ window.COMPLETIONIST_ROADMAP = {
       "tasks": [
         {
           "id": "M4.1",
-          "version": "0.4.0",
+          "version": "0.3.1",
           "title": "Tray icon with pause/resume and a global hotkey",
           "status": "done",
           "area": "engine",
@@ -730,7 +820,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M4.2",
-          "version": "0.4.0",
+          "version": "0.3.2",
           "title": "Start the engine at logon",
           "status": "done",
           "area": "install",
@@ -746,7 +836,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M4.3",
-          "version": "0.4.0",
+          "version": "0.3.3",
           "title": "Hot-reload the config file",
           "status": "done",
           "area": "engine",
@@ -763,7 +853,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M4.4",
-          "version": "0.4.0",
+          "version": "0.3.4",
           "title": "Install and uninstall scripts",
           "status": "done",
           "area": "install",
@@ -780,7 +870,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M4.5",
-          "version": "0.4.0",
+          "version": "0.3.5",
           "title": "Metrics store: shown, accepted, keystrokes saved, provider latency",
           "status": "done",
           "area": "engine",
@@ -800,7 +890,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M4.6",
-          "version": "0.4.0",
+          "version": "0.3.6",
           "title": "Stats summary from the CLI or tray",
           "status": "done",
           "area": "engine",
@@ -817,7 +907,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M4.7",
-          "version": "0.4.0",
+          "version": "0.3.7",
           "title": "Engine logging of request timings and provider errors",
           "status": "done",
           "area": "engine",
@@ -834,7 +924,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M4.8",
-          "version": "0.4.0",
+          "version": "0.3.8",
           "title": "Resilience pass: engine crashes and restarts",
           "status": "done",
           "area": "dll",
@@ -852,7 +942,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M4.9",
-          "version": "0.4.0",
+          "version": "0.3.9",
           "title": "Live check of install, tray, hotkey and logon start",
           "status": "dropped",
           "area": "install",
@@ -866,7 +956,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M4.10",
-          "version": "0.4.0",
+          "version": "0.3.10",
           "title": "README demo GIF and a small web demo of the popup",
           "status": "dropped",
           "area": "docs",
@@ -875,7 +965,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M4.11",
-          "version": "0.4.0",
+          "version": "0.3.11",
           "title": "Remove the Completionist Spike keyboard and unregister it",
           "status": "dropped",
           "area": "install",
@@ -1022,7 +1112,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M7.9",
-          "version": "0.5.0",
+          "version": "0.4.3",
           "title": "Check next words and chunks live in real apps",
           "status": "dropped",
           "area": "test",
@@ -1045,7 +1135,7 @@ window.COMPLETIONIST_ROADMAP = {
       "tasks": [
         {
           "id": "M8.1",
-          "version": "0.6.0",
+          "version": "0.5.1",
           "title": "Snapshot writer: personal dictionary and stats into one local HTML file",
           "status": "dropped",
           "area": "viewer",
@@ -1057,7 +1147,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M8.2",
-          "version": "0.6.0",
+          "version": "0.5.2",
           "title": "Viewer page: searchable, sortable dictionary with remove, a settings form and the stats, in the Evergreen theme",
           "status": "done",
           "area": "viewer",
@@ -1076,7 +1166,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M8.3",
-          "version": "0.6.0",
+          "version": "0.5.3",
           "title": "Tray item: Open viewer",
           "status": "done",
           "area": "engine",
@@ -1093,7 +1183,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M8.4",
-          "version": "0.6.0",
+          "version": "0.5.4",
           "title": "Tests: the page serves counts and dictionary entries only, and other websites can't drive it",
           "status": "done",
           "area": "test",
@@ -1111,7 +1201,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M8.5",
-          "version": "0.6.0",
+          "version": "0.5.5",
           "title": "Check the viewer live",
           "status": "dropped",
           "area": "test",
@@ -1124,7 +1214,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M8.6",
-          "version": "0.6.0",
+          "version": "0.5.6",
           "title": "Local viewer server in the engine, on this machine only",
           "status": "done",
           "area": "engine",
@@ -1141,7 +1231,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M8.7",
-          "version": "0.6.0",
+          "version": "0.5.7",
           "title": "Settings: show the config as a form and write changes back to config.toml",
           "status": "done",
           "area": "engine",
@@ -1537,12 +1627,222 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The task board now shows each milestone as its release and name, leads task rows with the plain title and a small grey id, and sorts tasks by status."
     },
     {
+      "version": "0.0.13",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Protocol codec",
+      "highways": [
+        "engine"
+      ],
+      "text": "The engine and the text service now speak length-prefixed JSON frames, with a streaming decoder that handles split and merged frames."
+    },
+    {
+      "version": "0.0.14",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Word completer",
+      "highways": [
+        "engine"
+      ],
+      "text": "The engine ranks about 146,000 words by frequency and completes the word being typed in under 5 ms."
+    },
+    {
+      "version": "0.0.15",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Config and policy",
+      "highways": [
+        "engine"
+      ],
+      "text": "A TOML config now blocks editors, terminals and silent fields such as passwords, and decides where phrases may appear."
+    },
+    {
+      "version": "0.0.16",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Pipe server and probe",
+      "highways": [
+        "engine"
+      ],
+      "text": "The engine serves a named pipe with a probe command, and a real-pipe test checks the 95th percentile lookup stays under 10 ms."
+    },
+    {
+      "version": "0.0.17",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Engine and spike merged",
+      "highways": [
+        "tooling"
+      ],
+      "text": "The word-completion engine branch and the spike branch were merged into main."
+    },
+    {
+      "version": "0.0.18",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Text service shell",
+      "highways": [
+        "tsf"
+      ],
+      "text": "The real text service shell came up from the spike code, with activation, edit sessions, a key sink and registration for English keyboards."
+    },
+    {
+      "version": "0.0.19",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Context reader",
+      "highways": [
+        "tsf"
+      ],
+      "text": "The text service now reads the text around the caret, the caret rectangle, the input scope and the app, and sends nothing from password fields."
+    },
+    {
+      "version": "0.0.20",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Popup state and key router",
+      "highways": [
+        "tsf"
+      ],
+      "text": "A pure popup model and key router with native tests now decide every key in every state, and Enter is never consumed."
+    },
+    {
+      "version": "0.0.21",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Engine client",
+      "highways": [
+        "tsf"
+      ],
+      "text": "The text service talks to the engine from a worker thread with stale replies dropped and reconnect with backoff."
+    },
+    {
+      "version": "0.0.22",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "TSF test harness",
+      "highways": [
+        "tooling"
+      ],
+      "text": "A harness runs the real DLL and the real engine against a simulated text field and checks the popup, the keys and the output."
+    },
+    {
+      "version": "0.0.23",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Popup at the caret",
+      "highways": [
+        "tsf"
+      ],
+      "text": "The popup draws word rows just under the caret with the typed part highlighted, without taking focus."
+    },
+    {
+      "version": "0.0.24",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Keyboard icon and enable step",
+      "highways": [
+        "tooling"
+      ],
+      "text": "The keyboard got an icon compiled into the DLL and a script that turns it on."
+    },
+    {
+      "version": "0.0.27",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Highway map",
+      "highways": [
+        "tooling"
+      ],
+      "text": "The roadmap became a highway map in the Evergreen color scheme, with a restyled task board and a CONTEXT.md."
+    },
+    {
+      "version": "0.0.28",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Typer renamed",
+      "highways": [
+        "tooling"
+      ],
+      "text": "The app was renamed from Typer to Completionist everywhere, and the engine moves old data folders on first start."
+    },
+    {
+      "version": "0.0.29",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Roadmap easier to read",
+      "highways": [
+        "tooling"
+      ],
+      "text": "The roadmap pages now lead with releases, plain task titles and tasks sorted by status."
+    },
+    {
       "version": "0.1.0",
       "status": "released",
       "title": "Words everywhere",
       "milestone": "M1",
       "text": "This was the first release you could type with. The real text service replaced the spike and connected to the engine, so a list of word completions appears under the caret in Notepad, Chrome, Edge, Discord and other Electron apps. Tab accepts the highlighted word, the arrow keys move through the list and Esc closes it. Enter is never intercepted, so chat messages still send. Password, URL, email and number fields stay silent, as do code editors and terminals. If the engine stops, apps carry on as if Completionist were not installed and reconnect when it returns. A keyboard icon lets Windows list Completionist in Settings, so it can be switched on without PowerShell. The text service, the popup and the engine link are tested natively and through a harness that drives the real DLL; checks in each app are left to daily use.",
       "date": "2026-09-30"
+    },
+    {
+      "version": "0.1.1",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "N-gram builder",
+      "highways": [
+        "engine"
+      ],
+      "text": "A command now builds bigram and trigram tables from a public corpus, and the tables were built from WikiText-103."
+    },
+    {
+      "version": "0.1.2",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "N-gram ranking",
+      "highways": [
+        "engine"
+      ],
+      "text": "The word completer now mixes word frequency with bigram and trigram counts, so the word that fits the sentence ranks first."
+    },
+    {
+      "version": "0.1.3",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Vocabulary cleanup",
+      "highways": [
+        "engine"
+      ],
+      "text": "Misspellings and junk were filtered out of the base vocabulary, which shrank from 146,000 to 53,000 words."
+    },
+    {
+      "version": "0.1.4",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Personal store",
+      "highways": [
+        "engine"
+      ],
+      "text": "A personal store now counts the words you accept and type in SQLite, saved every ten seconds and on exit."
+    },
+    {
+      "version": "0.1.5",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "New words promoted",
+      "highways": [
+        "engine"
+      ],
+      "text": "A word outside the dictionary is now suggested after you type it three times."
+    },
+    {
+      "version": "0.1.6",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Accept events",
+      "highways": [
+        "tsf"
+      ],
+      "text": "The text service now tells the engine which item you accepted so it can learn it and the word before it."
     },
     {
       "version": "0.2.0",
@@ -1553,12 +1853,172 @@ window.COMPLETIONIST_ROADMAP = {
       "date": "2026-09-30"
     },
     {
+      "version": "0.2.3",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Phrase provider",
+      "highways": [
+        "engine"
+      ],
+      "text": "The engine can stream phrases from an OpenAI-style completions endpoint, with optional fill-in-the-middle, and never includes the key in errors."
+    },
+    {
+      "version": "0.2.4",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Anchored context window",
+      "highways": [
+        "engine"
+      ],
+      "text": "Phrase prompts now start at a paragraph or sentence boundary so consecutive requests share a cacheable start."
+    },
+    {
+      "version": "0.2.6",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Phrase scheduler",
+      "highways": [
+        "engine"
+      ],
+      "text": "A phrase scheduler now asks after a 350 ms pause, trims a phrase as you type along and cancels it on anything else."
+    },
+    {
+      "version": "0.2.7",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Phrase pushes",
+      "highways": [
+        "engine"
+      ],
+      "text": "Streamed phrase text now reaches the text service as push messages over the pipe, and never for password fields."
+    },
+    {
+      "version": "0.2.8",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Phrase row",
+      "highways": [
+        "tsf"
+      ],
+      "text": "The popup gained a greyed phrase row on top that Tab accepts."
+    },
+    {
+      "version": "0.2.9",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Ctrl+Space phrases",
+      "highways": [
+        "tsf"
+      ],
+      "text": "Ctrl+Space now asks for a phrase in any app, Ctrl+Right inserts the next phrase word and Esc quiets the popup."
+    },
+    {
+      "version": "0.2.10",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Fall back to words",
+      "highways": [
+        "engine"
+      ],
+      "text": "A slow or failing phrase provider now ends the phrase quietly while word suggestions carry on."
+    },
+    {
+      "version": "0.2.12",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Prefix-only phrases",
+      "highways": [
+        "engine"
+      ],
+      "text": "Without fill-in-the-middle, phrases are now held back when text follows the caret on the same line."
+    },
+    {
       "version": "0.3.0",
       "status": "released",
       "title": "Phrase suggestions",
       "milestone": "M3",
       "text": "The popup gained a greyed phrase row at the top, a continuation of your sentence written by a cheap and fast cloud completion model. In allow-listed apps it appears after a short pause, it is highlighted by default so Tab takes the whole phrase, and Ctrl+Right takes it one word at a time. In any other app, Ctrl+Space asks for a phrase on demand. Phrases come through OpenRouter from a list of cheap models you name in the config, each tried in turn if the one before fails. Models without fill-in-the-middle support get the text before the caret only, and a phrase is held back when text follows the caret on the same line. An anchored context window keeps requests cache-friendly. Completionist does not count spend, so the limit is set on your OpenRouter key. When the provider is slow or unavailable it quietly falls back to words. Checks against a live provider are left to daily use.",
       "date": "2026-09-30"
+    },
+    {
+      "version": "0.3.1",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Tray and pause hotkey",
+      "highways": [
+        "engine"
+      ],
+      "text": "A tray icon now pauses and resumes Completionist, and Ctrl+Alt+P does the same from the keyboard."
+    },
+    {
+      "version": "0.3.2",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Start at logon",
+      "highways": [
+        "tooling"
+      ],
+      "text": "A logon task now starts the engine without a console window."
+    },
+    {
+      "version": "0.3.3",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Config hot reload",
+      "highways": [
+        "engine"
+      ],
+      "text": "The engine now reloads its config file when it changes and keeps the old settings if an edit is bad."
+    },
+    {
+      "version": "0.3.4",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Install scripts",
+      "highways": [
+        "tooling"
+      ],
+      "text": "Install and uninstall scripts now set up and remove the keyboard, the logon task and the DLL registration."
+    },
+    {
+      "version": "0.3.5",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Metrics store",
+      "highways": [
+        "engine"
+      ],
+      "text": "A local metrics store now counts suggestions shown and accepted, keystrokes saved and provider latency, never text."
+    },
+    {
+      "version": "0.3.6",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Stats summary",
+      "highways": [
+        "engine"
+      ],
+      "text": "The completionist-stats command and the tray now show a usage summary."
+    },
+    {
+      "version": "0.3.7",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Engine logging",
+      "highways": [
+        "engine"
+      ],
+      "text": "The engine now logs slow requests and provider errors to a rotating file."
+    },
+    {
+      "version": "0.3.8",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Resilience",
+      "highways": [
+        "tsf"
+      ],
+      "text": "Tests that kill and restart the engine now show typing never hangs and the popup returns after reconnect."
     },
     {
       "version": "0.4.0",
@@ -1596,6 +2056,56 @@ window.COMPLETIONIST_ROADMAP = {
       "milestone": "M7",
       "text": "Suggestions now look ahead. After you type a space, Completionist offers the likeliest next words from the last one or two words before you have typed a letter, in a short list with nothing highlighted, so Tab and Enter still behave as the app expects until you press Up or Down. While you type, it can extend the top word into a chunk of two or three words, shown above the plain words and below the cloud phrase, all in one popup. The list stays quiet when nothing is likely, and the threshold, or either feature, can be changed in the config. Chunks come from encyclopedic text, so some read oddly. The personal log now keeps trigrams as well as words, never learns a word you backspaced over, and can list and forget words. Checks in real apps are left to daily use.",
       "date": "2026-09-30"
+    },
+    {
+      "version": "0.5.2",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Viewer page",
+      "highways": [
+        "engine"
+      ],
+      "text": "The engine now serves a viewer page with a searchable dictionary, a settings form and usage stats."
+    },
+    {
+      "version": "0.5.3",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Tray Open viewer",
+      "highways": [
+        "engine"
+      ],
+      "text": "The tray gained an Open viewer item that opens the viewer with its token."
+    },
+    {
+      "version": "0.5.4",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Viewer privacy tests",
+      "highways": [
+        "tooling"
+      ],
+      "text": "Tests now check the viewer serves only counts and dictionary entries and refuses other websites."
+    },
+    {
+      "version": "0.5.6",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Local viewer server",
+      "highways": [
+        "engine"
+      ],
+      "text": "The engine now runs a viewer server on this machine only, behind a secret token and Host and Origin checks."
+    },
+    {
+      "version": "0.5.7",
+      "status": "released",
+      "date": "2026-09-30",
+      "title": "Settings form",
+      "highways": [
+        "engine"
+      ],
+      "text": "The viewer can now show the config as a form and write changes back, with the API key write-only."
     },
     {
       "version": "0.6.0",
@@ -1682,6 +2192,16 @@ window.COMPLETIONIST_ROADMAP = {
       "milestone": "M9",
       "date": "2026-10-01",
       "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing edit-distance library, rapidfuzz, over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile over the real pipe. Words you fix yourself are never learned as new vocabulary. The live check, the demo GIF and the Spike keyboard removal are dropped to daily use."
+    },
+    {
+      "version": "0.7.1",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Every task is a stop",
+      "highways": [
+        "tooling"
+      ],
+      "text": "Every shipped task now has its own patch number and a stop on the map, the numbering rule and the prompt-rewriting rule are in CLAUDE.md, and the checker lets shipped work sit below the previous group's release."
     },
     {
       "version": "1.0.0",
@@ -1955,6 +2475,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {"date": "2026-10-01", "text": "Released 0.7.1: committed the per-task numbering, the 0.0.x stops and the CLAUDE.md rules; tagged v0.7.1 and pushed."},
+    {"date": "2026-10-01", "text": "Gave every task in the 0.1.0 to 0.4.0 and 0.6.0 groups its own patch number counting up from the release before it (0.0.13 to 0.0.29, 0.1.x, 0.2.x, 0.3.x, 0.5.x), added a released patch entry for each shipped task, kept dropped tasks numbered but without a stop, moved M7.9 to 0.4.3, and wrote the numbering rule into CLAUDE.md."},
+    {"date": "2026-10-01", "text": "Moved the M1 to M4 tasks onto the 0.0.x release they actually shipped in (0.0.2, 0.0.4 to 0.0.8, 0.0.12), removed the 0.0.5 umbrella task, and let the checker accept a shipped patch earlier than its group's minor."},
+    {"date": "2026-10-01", "text": "Added a done task for every 0.0.x release that had none (0.0.1, 0.0.2, 0.0.4 to 0.0.12) to the first group, so each stop on the map has work on the task board; renamed that group Foundations and TSF spike."},
     {
       "date": "2026-10-01",
       "text": "Pushed main and tagged v0.7.0, plus v0.6.3 to v0.6.7 (0.6.3 and 0.6.4 share one commit); all are on origin. Added the missing 0.6.3 to 0.6.6 release entries so they show on the highway map."

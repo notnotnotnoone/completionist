@@ -185,7 +185,7 @@ def check_task_versions(data: dict, errors: list[str]) -> None:
             # Shipped work may name a patch released after its group's minor (a fix that followed it), so it only
             # has to stay before the next group's release; unshipped work must land on or before its own.
             top, inclusive = (after, False) if v in by_version and after else (end, True)
-            if top and not ((before is None or parsed > before) and (parsed <= top if inclusive else parsed < top)):
+            if top and not ((before is None or v in by_version or parsed > before) and (parsed <= top if inclusive else parsed < top)):
                 errors.append(f"{where}: version {v} must be after {'.'.join(map(str, before)) if before else 'the start'} "
                               f"and {'no later than' if inclusive else 'before'} {'.'.join(map(str, top))}")
             if v not in by_version:

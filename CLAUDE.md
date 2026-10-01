@@ -43,9 +43,12 @@ Task statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. Milestone 
 
 **Task versions (required on every task).** A task's `version` is the version it ships in:
 - **Every change is a task**, including small fixes and docs, and **finishing a task releases it as a patch**. A fix to older work is a new task in the group that is active now.
-- **Unshipped work** gets its own patch number, counting up from the last release before it, so the tasks leading to `0.7.0` are `0.6.2`, `0.6.3`, ... `0.6.10`, and `0.7.0` is the finish line. Add the new task with the next number, and renumber the planned ones if it ships first.
-- **Already-shipped work** names the release it actually went out in, so several old tasks can share one version.
-- The checker enforces this: every task has a `version`, a finish-line release (`X.Y.0`) can't be a task's version until it is released, and two unshipped tasks can't share a number.
+- **Every task gets its own patch number, in the order the group lists them.** A group that finishes at `X.Y.0` numbers its tasks `X.(Y-1).1`, `X.(Y-1).2`, and so on, counting up from the last release before the group (so `0.7.0` is led by `0.6.2` ... `0.6.10`, and `0.3.0` by `0.2.1` ... `0.2.12`). The finish line `X.Y.0` is never a task's version. When there is no earlier patch line to count from (the first group), continue after the latest patch release. Add a new task with the next number, and renumber the planned ones if it ships first.
+- **Every shipped task is a stop.** When a task is `done`, add a `released` patch entry for its version to `releases` (one sentence, the `highways` it touched, the date), placed in version order before its group's finish-line release. Retroactively numbering old work follows the same rule.
+- **Dropped tasks keep their number but get no release.** They stay in the group as greyed-out rows, so the version sequence can have gaps. A task that was dropped or moved to another group is never deleted.
+- **A fix that shipped after its group's finish line** (a real patch such as `0.6.1`) keeps that number; only work that shipped with the group follows the rule above.
+- **Do not name a task after the release that finishes the group.** `0.3.0` is the finish line, so a task numbered `0.3.0` means the numbering was skipped.
+- The checker enforces part of this: every task has a `version`, a finish-line release (`X.Y.0`) can't be a task's version until it is released, and two unshipped tasks can't share a number. Giving each task its own number and adding the release entry for it is on you.
 - Keep `milestones` in version order (by their release), so the pages read left to right.
 
 ### Releases and versions
@@ -116,3 +119,9 @@ Completionist uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `
 - **uv:** the engine is standalone. Never run `uv init` or `uv sync` from the parent `Experiments` folder, which would turn it into a workspace and clobber its `.venv`. Use `--no-workspace` when creating projects.
 - **Git:** work on a branch per chunk of work. Ask before pushing to `main`.
 - **Tests:** TDD with pytest for engine modules, testing behaviour through public interfaces with small injected fixtures. The DLL's key router is pure logic with native tests; the TSF plumbing is tested manually.
+
+## Prompt Rewriting
+
+Before acting on any user prompt, evaluate whether rewriting it for clarity, typo correction, or actionability would meaningfully improve it. **Only rewrite when there is a real improvement to make** — typos to fix, ambiguous references to resolve, or vague intent to specify. If the original prompt is already clear and actionable, proceed without rewriting and without showing a rewrite. When you do rewrite, display the rewritten version with the prefix "**Rewritten prompt:**" and wait for approval before proceeding.
+
+**Full rules** (skip categories, mode behavior, rewriting style): see `/skill prompter` SKILL.md. Do NOT duplicate the skip list here; the skill file is the source of truth.
