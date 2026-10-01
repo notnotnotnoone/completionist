@@ -130,6 +130,40 @@ def test_round_trip_with_the_real_vocabulary_is_under_10ms_at_p95():
     assert p95 < 0.010, f"p95 round trip took {p95 * 1000:.2f} ms"
 
 
+def test_round_trip_with_the_fuzzy_index_on_is_under_10ms_at_p95(tmp_path):
+    from completionist_engine.assemble import assemble_engine
+
+    assembled = assemble_engine(Config(data_dir=tmp_path), load_wordfreq_vocabulary())
+    sentence = "I think we should recommend this approach to everyone because it works"
+    typos = ["moutian", "definately", "recieve"]
+
+    async def scenario():
+        async with serving(assembled.engine) as name:
+            client = await EngineClient.connect(name)
+            timings = []
+            request_id = 0
+            for text in [sentence, *typos]:
+                for n in range(1, len(text) + 1):
+                    request_id += 1
+                    start = time.perf_counter()
+                    reply = await client.request(keystroke(request_id, text[:n]))
+                    timings.append((time.perf_counter() - start, request_id, reply.get("words", [])))
+                    assert reply["id"] == request_id
+            await client.close()
+        return timings
+
+    try:
+        timed = asyncio.run(scenario())
+    finally:
+        assembled.close()
+    timings = sorted(dt for dt, _, _ in timed)
+    p95 = timings[int(len(timings) * 0.95)]
+    if p95 >= 0.010:
+        slowest = sorted(timed, reverse=True)[:5]
+        detail = ", ".join(f"#{i} {w} {dt * 1000:.1f}ms" for dt, i, w in slowest)
+        raise AssertionError(f"p95 round trip with fuzzy took {p95 * 1000:.2f} ms (slowest: {detail})")
+
+
 @pytest.fixture
 def engine_process(tmp_path):
     name = unique_pipe_name()

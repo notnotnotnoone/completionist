@@ -5,10 +5,10 @@ window.COMPLETIONIST_ROADMAP = {
   "schema": 3,
   "project": "Completionist",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
-  "updated": "2026-09-30",
+  "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); its first task is 0.6.3, and 0.7.0 is the release that finishes the set.",
+  "now": "0.6.7 is released on branch m9-fuzzy. 0.7.0 is next once the merge lands; the demo GIF (0.6.9) and Spike keyboard removal (0.6.10) stay open for daily use.",
   "highways": [
     {
       "id": "engine",
@@ -1220,23 +1220,35 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M9.1",
           "version": "0.6.3",
-          "title": "Fuzzy index with SymSpell over the vocabulary and personal words",
-          "status": "todo",
+          "title": "Fuzzy index over the vocabulary and personal words",
+          "status": "done",
           "area": "engine",
           "stories": [
             71
           ],
-          "notes": "Use the existing `symspellpy` library, not a hand-made matcher. Try it first; only if it can't handle half-typed words (it corrects whole words, but we complete prefixes), compare `rapidfuzz` or a trie with a Levenshtein automaton, and record the result in `decisions`."
+          "refs": [
+            "m9-fuzzy",
+            "engine/src/completionist_engine/fuzzy.py",
+            "engine/tests/test_fuzzy.py",
+            "0.6.3"
+          ],
+          "notes": "Tried SymSpell first as planned, but it corrects whole words and can't handle half-typed fragments (see the decision). Uses rapidfuzz instead: a first-letter bucket scan with OSA edit distance and an early cutoff (see the decision)."
         },
         {
           "id": "M9.2",
           "version": "0.6.4",
           "title": "Fuzzy candidates fill the rows after exact prefix matches",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             71,
             73
+          ],
+          "refs": [
+            "m9-fuzzy",
+            "engine/src/completionist_engine/words.py",
+            "engine/src/completionist_engine/assemble.py",
+            "0.6.4"
           ],
           "notes": "Exact matches always come first. Corrections fill the remaining rows, or all of them when nothing matches. Edit distance 1 for short fragments and 2 for longer ones, and no correcting 1 to 2 letter fragments, names or learned words. Tests: moutian, definately, recieve."
         },
@@ -1244,10 +1256,18 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M9.3",
           "version": "0.6.5",
           "title": "Protocol marks the guessed letters of each suggestion",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             72
+          ],
+          "refs": [
+            "m9-fuzzy",
+            "engine/src/completionist_engine/protocol.py",
+            "engine/src/completionist_engine/words.py",
+            "engine/src/completionist_engine/engine.py",
+            "tip/src/protocol.cpp",
+            "0.6.5"
           ],
           "notes": "Each item carries the positions it corrected. Tests on both sides. Builds on the suggestion kind from 0.4.2."
         },
@@ -1255,36 +1275,48 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M9.4",
           "version": "0.6.6",
           "title": "Popup draws guessed letters in a third colour",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             72
           ],
-          "notes": "New colour token, validated as CONTEXT.md describes. Checked in the TSF harness with a screenshot."
+          "refs": [
+            "m9-fuzzy",
+            "tip/src/popup.cpp",
+            "tip/src/popup.h",
+            "tip/src/tsf_service.cpp",
+            "0.6.6"
+          ],
+          "notes": "Guessed letters draw in amber (validated: 10.6 on the popup background, 5.0 on the highlight row). Native tests pass and the DLL builds; the TSF harness screenshot runs when you say you are away."
         },
         {
           "id": "M9.5",
           "version": "0.6.7",
           "title": "Latency check with the fuzzy index on",
-          "status": "todo",
+          "status": "done",
           "area": "test",
           "stories": [
             71
           ],
-          "notes": "Lookup p95 stays under 10 ms over the real pipe."
+          "refs": [
+            "m9-fuzzy",
+            "engine/tests/test_server.py",
+            "0.6.7"
+          ],
+          "notes": "Lookup p95 stays under 10 ms over the real pipe (5 ms with typos typed; the fuzzy scan only runs when rows are unfilled)."
         },
         {
           "id": "M9.6",
           "version": "0.6.8",
           "title": "Check typo completion live in real apps",
-          "status": "todo",
+          "status": "dropped",
           "area": "test",
           "stories": [
             71,
             72,
             73
           ],
-          "notes": "Needs you: type moutian, definately, recieve and similar, and check that correct rare words aren't pushed aside."
+          "notes": "Dropped for the release: live checks no longer gate a milestone (see the 2026-09-30 decision); daily use is the test. Checklist for when you want it: type moutian, definately, recieve and similar, and check that correct rare words aren't pushed aside."
         },
         {
           "id": "M9.7",
@@ -1594,11 +1626,21 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The roadmap pages now show every task by the version it ships in instead of an M-number, and the checker enforces it, so each patch counts up to the next release."
     },
     {
+      "version": "0.6.7",
+      "status": "released",
+      "title": "Latency check with the fuzzy index on",
+      "highways": [
+        "engine"
+      ],
+      "date": "2026-10-01",
+      "text": "A new pipe test types typos as well as plain text and holds the 95th percentile under 10 ms, since the fuzzy scan only runs when rows are unfilled."
+    },
+    {
       "version": "0.7.0",
       "status": "next",
       "title": "Typo-tolerant words",
       "milestone": "M9",
-      "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing spell-correction library, SymSpell, built over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile. Words you fix yourself are never learned as new vocabulary."
+      "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing edit-distance library, rapidfuzz, over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile over the real pipe. Words you fix yourself are never learned as new vocabulary. Checks in real apps, the demo GIF and the Spike keyboard removal are left to daily use."
     },
     {
       "version": "1.0.0",
@@ -1717,6 +1759,10 @@ window.COMPLETIONIST_ROADMAP = {
     "75": "Change my settings in the viewer"
   },
   "decisions": [
+    {
+      "date": "2026-10-01",
+      "text": "Typo tolerance uses rapidfuzz (OSA edit distance with an early cutoff over a first-letter bucket of the vocabulary), not SymSpell: SymSpell corrects whole words and can't complete half-typed fragments (\"moutia\" finds \"mouth\", never \"mountain\"), and its whole-word deletes index costs ~580 MB in memory. Only fragments of 3+ letters are corrected, exact prefix matches always rank first, and corrections only fill unfilled rows, so short fragments, names and learned words are never corrected."
+    },
     {
       "date": "2026-09-30",
       "text": "Milestones are no longer a thing you read on the roadmap; versions are. A task shows the version it ships in: shipped work names its real release (several tasks can share one), unshipped work gets one patch number each, counting up from the last release so 0.6.10 comes before 0.7.0. The M-ids stay in roadmap.js as internal keys (and in the old log lines and git history) and are never renumbered. Planned releases are ordered by version, so the reply-aware and web-field work (1.1.0, 1.2.0) now sits after 0.7.0."
@@ -1868,6 +1914,30 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "Release 0.6.7 on branch m9-fuzzy: the p95 latency check with the fuzzy index on; 0.7.0 is next once the merge lands."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "0.6.3 to 0.6.7 built on branch m9-fuzzy (fuzzy index, ranking, marks, amber popup, p95 check); 0.6.8 is next and needs you at a real desktop."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "0.6.7 done on branch m9-fuzzy: p95 stays under 10 ms over the real pipe with the fuzzy index on (new test types typos too); 0.6.8 needs you."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "0.6.6 done on branch m9-fuzzy: the popup draws guessed letters in amber (validated contrast) from the reply marks; native tests pass and the DLL builds; M9.5 is doing."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "0.6.5 done on branch m9-fuzzy: replies carry guessed-letter marks per suggestion, parsed on both sides; M9.4 is doing."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "0.6.3 and 0.6.4 done on branch m9-fuzzy: rapidfuzz fuzzy index (SymSpell tried and dropped, see the decision) and corrections filling rows after exact matches; M9.3 is doing."
+    },
     {
       "date": "2026-09-30",
       "text": "0.6.2: versions replace milestones on the roadmap. Every task has a version, pages show it instead of the M-id, milestones sort by release, and the checker enforces the numbering. Rebased after the viewer took 0.6.1."

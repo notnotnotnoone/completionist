@@ -108,6 +108,8 @@ class WordReply:
     words: tuple[str, ...]
     kinds: tuple[str, ...] = ()
     """What each of `words` is: "word", "chunk" (two or three words) or "next" (offered before a letter is typed). Empty means all words."""
+    marks: tuple[tuple[int, ...], ...] = ()
+    """Per word, the letter positions the typed fragment did not earn (a typo correction's guessed letters). Empty means none are marked."""
     phrase: str = ""
     """The phrase continuation to show as the top row, if one is ready."""
     phrase_done: bool = True
@@ -119,6 +121,8 @@ class WordReply:
         message: dict[str, Any] = {"id": self.id, "type": "words", "replace": self.replace, "words": list(self.words)}
         if len(self.kinds) == len(self.words) and any(kind != "word" for kind in self.kinds):
             message["kinds"] = list(self.kinds)
+        if len(self.marks) == len(self.words) and any(self.marks):
+            message["marks"] = [list(positions) for positions in self.marks]
         if self.phrase_mode != "off":
             message["phrase_mode"] = self.phrase_mode
         if self.phrase or not self.phrase_done:

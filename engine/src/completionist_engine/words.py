@@ -12,6 +12,7 @@ from functools import lru_cache
 from heapq import nlargest
 
 from completionist_engine.counts import NO_COUNTS, Counts, CountSource
+from completionist_engine.fuzzy import FuzzyIndex, guessed_positions
 
 # A word is a letter followed by letters or apostrophes. Only the tail of the text matters.
 _WORD_AT_END = re.compile(r"[^\W\d_](?:[^\W\d_]|')*$")
@@ -42,6 +43,8 @@ class Completion:
     replace: int
     """How many characters before the caret the chosen word replaces."""
     words: tuple[str, ...]
+    marks: tuple[tuple[int, ...], ...] = ()
+    """Per word, the letter positions the typed fragment did not earn (guessed letters). Empty means none."""
 
 
 def current_word(before: str) -> str:
@@ -74,11 +77,14 @@ class WordCompleter:
         ngrams: CountSource | None = None,
         personal: CountSource | None = None,
         promote_after: int = 3,
+        fuzzy: FuzzyIndex | None = None,
     ) -> None:
         """`vocabulary` is (word, weight) pairs; a higher weight ranks the word higher.
 
         `ngrams` re-ranks by the words before the one being typed; `personal` boosts the writer's own
         words and adds ones outside the dictionary once they've been used `promote_after` times.
+        `fuzzy` offers guesses when the typed fragment has a typo; without one (or when it holds
+        no words) only exact prefix matches are offered.
         """
         weights: dict[str, float] = {}
         for word, weight in vocabulary:
@@ -94,6 +100,7 @@ class WordCompleter:
         self._ngrams = ngrams
         self._personal = personal
         self._promote_after = promote_after
+        self._fuzzy = fuzzy
         self._ranked = lru_cache(maxsize=4096)(self._rank)
 
     def complete(self, before: str, limit: int = 5) -> Completion:
@@ -101,12 +108,16 @@ class WordCompleter:
         if not prefix:
             return Completion(replace=0, words=())
         key = prefix.lower()
-        if self._ngrams is None and self._personal is None:
+        if self._ngrams is None and self._personal is None and self._fuzzy is None:
             words = self._ranked(key, limit)  # frequency alone
-        else:
-            words = self._rerank(key, previous_words(before, 2), limit)
-        cased = (_match_case(word, prefix) for word in words)
-        return Completion(replace=len(prefix), words=tuple(dict.fromkeys(cased)))
+            cased = tuple(dict.fromkeys(_match_case(word, prefix) for word in words))
+            return Completion(replace=len(prefix), words=cased)
+        words, marks = self._rerank(key, previous_words(before, 2), limit)
+        seen: dict[str, tuple[int, ...]] = {}
+        for word, mark in zip(words, marks):
+            seen.setdefault(_match_case(word, prefix), mark)
+        cased = tuple(seen)
+        return Completion(replace=len(prefix), words=cased, marks=tuple(seen.values()))
 
     def next_words(self, before: str, limit: int = 5, threshold: float = 0.05) -> Completion:
         """Likely words to follow the last one, offered after a space and before any letter is typed.
@@ -176,7 +187,7 @@ class WordCompleter:
                         scores[word] = scores.get(word, 0.0) + n / (counts.total + _PERSONAL_BIGRAM_SMOOTHING)
         return scores
 
-    def _rerank(self, key: str, context: tuple[str, ...], limit: int) -> tuple[str, ...]:
+    def _rerank(self, key: str, context: tuple[str, ...], limit: int) -> tuple[tuple[str, ...], tuple[tuple[int, ...], ...]]:
         # Evidence from the n-gram tables: a bigram (last word) and a trigram (last two words).
         ngram_counts = [NO_COUNTS, NO_COUNTS]
         if self._ngrams is not None:
@@ -201,7 +212,17 @@ class WordCompleter:
 
         scored = [(self._score(w, ngram_counts, personal_uni, personal_bi), w) for w in candidates]
         scored.sort(key=lambda pair: (-pair[0], pair[1]))
-        return tuple(word for _, word in scored[:limit])
+        exact = [w for _, w in scored if w.startswith(key)][:limit]
+        if len(exact) >= limit or self._fuzzy is None:
+            words = exact
+            fuzzy_set: set[str] = set()
+        else:
+            fuzzy_hits = [(d, w) for d, w in self._fuzzy.candidates(key) if w in self._index and w != key and w not in exact]
+            fuzzy_set = {w for _, w in fuzzy_hits}
+            words = [*exact, *[w for _, w in fuzzy_hits][: limit - len(exact)]]
+        marks = tuple(guessed_positions(key, w) if w in fuzzy_set else () for w in words)
+        return tuple(words), marks
+
 
     def _usable_personal(self, word: str, counts: Counts, unigrams: Counts) -> bool:
         if word in self._index:

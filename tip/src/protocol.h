@@ -42,6 +42,7 @@ struct WordReply {
     int replace = 0;  // characters before the caret that a chosen word replaces
     std::vector<std::wstring> words;
     std::vector<std::string> kinds;  // one per word: "word", "chunk" (2 or 3 words) or "next" (before a letter is typed)
+    std::vector<std::vector<int>> marks;  // one per word: letter positions the typed fragment did not earn (a typo correction's guessed letters)
     std::wstring phrase;          // the phrase continuation to show, if any
     bool phrase_done = true;      // false while more phrase text may arrive
     std::string phrase_mode = "off";  // "auto", "hotkey" or "off": whether phrases are available here

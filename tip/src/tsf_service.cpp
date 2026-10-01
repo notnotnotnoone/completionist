@@ -494,6 +494,7 @@ private:
         completionist::PopupContent content;
         content.words = words_;
         content.typedChars = static_cast<int>(promptWord_.size());
+        content.marks = marks_;
         content.phrase = phrase_;
         content.phraseLead = promptWord_;
         popup_.Show(content, model_.selection(now), caret_);
@@ -684,6 +685,7 @@ private:
         bool useWords = wordsAllowed_ && !reply.words.empty() && reply.replace == static_cast<int>(promptWord_.size()) && kindsFit;
         words_ = useWords ? reply.words : std::vector<std::wstring>();
         kinds_ = useWords ? reply.kinds : std::vector<std::string>();
+        marks_ = useWords && reply.marks.size() == reply.words.size() ? reply.marks : std::vector<std::vector<int>>();
         phrase_ = phraseAllowed_ ? reply.phrase : std::wstring();
         model_.Open(words_.size(), /*highlightFirst=*/!(useWords && allNext));  // next words: Tab stays the app's until Down
         model_.SetPhrase(!phrase_.empty(), NowMs());
@@ -883,6 +885,7 @@ private:
     completionist::PopupModel model_;
     std::vector<std::wstring> words_;
     std::vector<std::string> kinds_;  // what each of words_ is: "word", "chunk" or "next"
+    std::vector<std::vector<int>> marks_;  // guessed letter positions per word (a typo correction's marks)
     std::wstring phrase_;  // the phrase continuation on screen (what's left of it)
     WPARAM eatenKey_ = 0;
 

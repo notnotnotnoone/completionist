@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from completionist_engine.config import Config
 from completionist_engine.engine import Engine
+from completionist_engine.fuzzy import FuzzyIndex
 from completionist_engine.metrics import Metrics
 from completionist_engine.ngrams import NgramTable
 from completionist_engine.personal import PersonalStore
@@ -62,7 +63,8 @@ def assemble_engine(
     if ngrams is not None:
         vocabulary = filter_vocabulary(vocabulary, ngrams.unigram_stats(), core_rank=core_rank)
     personal = PersonalStore(config.data_dir / PERSONAL_FILE) if config.learning else None
-    completer = WordCompleter(vocabulary, ngrams=ngrams, personal=personal, promote_after=config.promote_after)
+    fuzzy = FuzzyIndex({word.lower() for word, _ in vocabulary})
+    completer = WordCompleter(vocabulary, ngrams=ngrams, personal=personal, promote_after=config.promote_after, fuzzy=fuzzy)
     metrics = Metrics(config.data_dir / METRICS_FILE)
     phrases = _phrase_service(config, metrics)
     engine = Engine(completer, config, personal=personal, phrases=phrases, metrics=metrics)

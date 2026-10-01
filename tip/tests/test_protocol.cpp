@@ -250,6 +250,27 @@ TEST(malformed_kinds_are_rejected) {
     CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["a"],"kinds":"word"})").has_value());               // not a list
 }
 
+TEST(a_words_reply_may_mark_the_guessed_letters_of_each_suggestion) {
+    auto reply = ParseWordReply(R"({"id":4,"type":"words","replace":7,"words":["motion","mountain"],"marks":[[],[3,5]]})");
+    CHECK(reply.has_value());
+    CHECK(reply->marks.size() == 2);
+    CHECK(reply->marks[0].empty());
+    CHECK_EQ(reply->marks[1].size(), 2u);
+    CHECK_EQ(reply->marks[1][0], 3);
+    CHECK_EQ(reply->marks[1][1], 5);
+    auto none = ParseWordReply(R"({"id":4,"type":"words","replace":3,"words":["work"]})");
+    CHECK(none.has_value() && none->marks.empty());
+}
+
+TEST(malformed_marks_are_rejected) {
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["a","b"],"marks":[[]]})").has_value());       // too few
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["ab"],"marks":[[0,2]]})").has_value());      // past the end
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["ab"],"marks":[[-1]]})").has_value());       // negative
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["ab"],"marks":[[0.5]]})").has_value());      // not whole
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["ab"],"marks":[0]})").has_value());          // not a list
+    CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["ab"],"marks":"x"})").has_value());          // not a list
+}
+
 TEST(an_accept_request_can_name_a_chunk_or_next_word) {
     for (const char* kind : {"chunk", "next"}) {
         Request request;
