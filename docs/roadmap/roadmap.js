@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); 0.6.3 to 0.6.6 are done on branch m9-fuzzy, and 0.6.7 is doing.",
+  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); 0.6.3 to 0.6.7 are done on branch m9-fuzzy, and 0.6.8 needs you.",
   "highways": [
     {
       "id": "engine",
@@ -1293,12 +1293,17 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M9.5",
           "version": "0.6.7",
           "title": "Latency check with the fuzzy index on",
-          "status": "todo",
+          "status": "done",
           "area": "test",
           "stories": [
             71
           ],
-          "notes": "Lookup p95 stays under 10 ms over the real pipe."
+          "refs": [
+            "m9-fuzzy",
+            "engine/tests/test_server.py",
+            "0.6.7"
+          ],
+          "notes": "Lookup p95 stays under 10 ms over the real pipe (6.7 ms with typos typed)."
         },
         {
           "id": "M9.6",
@@ -1899,6 +1904,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "0.6.7 done on branch m9-fuzzy: p95 stays under 10 ms over the real pipe with the fuzzy index on (new test types typos too); 0.6.8 needs you."
+    },
     {
       "date": "2026-10-01",
       "text": "0.6.6 done on branch m9-fuzzy: the popup draws guessed letters in amber (validated contrast) from the reply marks; native tests pass and the DLL builds; M9.5 is doing."
