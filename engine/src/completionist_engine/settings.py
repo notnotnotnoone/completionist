@@ -14,11 +14,15 @@ from pathlib import Path
 from typing import Any
 
 from completionist_engine.config import ConfigError, load_config
+from completionist_engine.context import INSTRUCTIONS
 
 EDITABLE: dict[str, frozenset[str]] = {
     "words": frozenset({"limit", "next", "chunks", "next_threshold"}),
     "learning": frozenset({"enabled", "promote_after"}),
-    "phrase": frozenset({"enabled", "api_key", "models"}),
+    "phrase": frozenset({
+        "enabled", "api_key", "models", "provider_order", "max_tokens", "temperature", "timeout", "debounce",
+        "context_before", "context_after", "fim", "instructions",
+    }),  # fmt: skip
     "apps": frozenset({"block", "allow"}),
     "hotkeys": frozenset({"pause"}),
 }
@@ -35,6 +39,17 @@ def read_settings(path: Path) -> dict[str, dict[str, Any]]:
         "phrase": {
             "enabled": config.phrase.enabled,
             "models": list(config.phrase.provider.models),
+            "provider_order": list(config.phrase.provider.provider_order),
+            "max_tokens": config.phrase.provider.max_tokens,
+            "temperature": config.phrase.provider.temperature,
+            "timeout": config.phrase.provider.timeout,
+            "debounce": round(config.phrase.debounce, 3),  # seconds here; the file keeps milliseconds
+            "context_before": config.phrase.context_before,
+            "context_after": config.phrase.context_after,
+            "fim": config.phrase.provider.fim,
+            "instructions": config.phrase.instructions or INSTRUCTIONS,
+            "instructions_default": INSTRUCTIONS,
+            "instructions_custom": bool(config.phrase.instructions),
             "api_key_set": bool(config.phrase.provider.api_key),
         },
         "apps": {"block": sorted(config.block), "allow": sorted(config.allow)},
@@ -54,7 +69,7 @@ def apply_settings(path: Path, changes: dict[str, dict[str, Any]]) -> None:
         for key, value in values.items():
             if key not in EDITABLE[section]:
                 raise ConfigError(f"unknown setting {section}.{key}")
-            wanted.append((section, key, value))
+            wanted.append((section, *_as_stored(section, key, value)))
     for section, key, value in wanted:
         text = _set(text, section, key, _toml(value, f"{section}.{key}"))
 
@@ -78,6 +93,20 @@ def apply_settings(path: Path, changes: dict[str, dict[str, Any]]) -> None:
     except OSError:
         candidate.unlink(missing_ok=True)
         raise
+
+
+def _as_stored(section: str, key: str, value: Any) -> tuple[str, Any]:
+    """The key and value as the file keeps them where the form differs.
+
+    The wait is seconds on the page and milliseconds in the file. Instructions that are blank or the built-in text
+    are stored as blank, so a later improvement to the built-in text still applies."""
+    if (section, key) == ("phrase", "debounce"):
+        if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value) or value < 0:
+            raise ConfigError("phrase.debounce must be a number of seconds, 0 or more")
+        return "debounce_ms", round(value * 1000)
+    if (section, key) == ("phrase", "instructions") and isinstance(value, str):
+        return key, "" if value.strip() in ("", INSTRUCTIONS.strip()) else value.strip()
+    return key, value
 
 
 def _toml(value: Any, name: str) -> str:

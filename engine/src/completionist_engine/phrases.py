@@ -8,9 +8,10 @@ from collections.abc import Callable
 from completionist_engine.config import PhraseConfig
 from completionist_engine.metrics import Metrics
 from completionist_engine.context import anchored_window, build_prompt, trim_suffix
-from completionist_engine.phrase_provider import PhraseProvider, PhraseRequest, ProviderError
+from completionist_engine.phrase_provider import Attempt, PhraseProvider, PhraseRequest, ProviderError
 from completionist_engine.phrase_scheduler import Action, Cancel, Mode, PhraseScheduler, Start, Update
 from completionist_engine.protocol import PhraseUpdate, Request
+from completionist_engine.request_log import RequestLog
 
 logger = logging.getLogger("completionist_engine.phrases")
 
@@ -33,10 +34,12 @@ class PhraseService:
         provider: PhraseProvider | None = None,
         clock: Callable[[], float] = time.monotonic,
         metrics: Metrics | None = None,
+        log: RequestLog | None = None,
     ) -> None:
         """The API key is `config.provider.api_key`; with none, phrases are off."""
         self.config = config
         self.metrics = metrics
+        self.log = log if log is not None else RequestLog()
         self.clock = clock
         self._provider = provider
         if provider is None:
@@ -87,9 +90,9 @@ class PhraseService:
         if self._provider is not None:
             await self._provider.aclose()
 
-    def _stream(self, request: PhraseRequest):
+    def _stream(self, request: PhraseRequest, attempts: list[Attempt]):
         assert self._provider is not None
-        return self._provider.stream(request)
+        return self._provider.stream(request, attempts)
 
 
 class PhraseSession:
@@ -191,25 +194,40 @@ class PhraseSession:
 
     async def _run(self, request: Request) -> None:
         config = self._service.config
-        prompt = build_prompt(request.app, request.title, anchored_window(request.before, config.context_before))
+        prompt = build_prompt(request.app, request.title, anchored_window(request.before, config.context_before), config.instructions)
         phrase_request = PhraseRequest(prompt=prompt, suffix=trim_suffix(request.after, config.context_after))
         task = asyncio.current_task()
         service = self._service
         started = service.clock()
         first: float | None = None
+        attempts: list[Attempt] = []
+        reply = ""
+        outcome = "cancelled"  # stays this way if the request is cancelled (the user kept typing)
         try:
-            async for text in service._stream(phrase_request):
+            async for text in service._stream(phrase_request, attempts):
                 if first is None:
                     first = service.clock() - started
+                reply += text
                 self._emit(self._scheduler.chunk(text, self._now()))
+            outcome = "failover" if any(not a.ok for a in attempts) else "ok"
             service.note_success()
             service.record_provider(first, service.clock() - started, True)
             self._emit(self._scheduler.finished())
         except ProviderError as err:
+            outcome = "failed"
             logger.warning("phrase request failed: %s", err)
             service.note_failure()
             service.record_provider(first, None, False)
             self._emit(self._scheduler.failed())
         finally:
+            service.log.add(
+                app=request.app,
+                prompt=prompt,
+                reply=reply,
+                outcome=outcome,
+                attempts=attempts,
+                ttft_ms=None if first is None else round(first * 1000),
+                total_ms=round((service.clock() - started) * 1000),
+            )
             if self._tasks.get(request.id) is task:
                 del self._tasks[request.id]

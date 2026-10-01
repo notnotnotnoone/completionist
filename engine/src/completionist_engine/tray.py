@@ -13,9 +13,10 @@ from completionist_engine.metrics import Metrics, Summary
 
 logger = logging.getLogger("completionist_engine.tray")
 
-_BLUE = (44, 71, 201, 255)
-_GREY = (110, 116, 130, 255)
+_GREEN = (10, 90, 61, 255)  # Evergreen --sign, #0A5A3D
+_GREY = (86, 98, 91, 255)  # Evergreen --todo, #56625B
 _WHITE = (255, 255, 255, 255)
+_PINK = (255, 158, 210, 255)  # Evergreen --vms-ink, #FF9ED2: the caret
 
 CONFIG_TEMPLATE = """# Completionist settings. Everything here is optional; changes apply within a couple of seconds.
 # The full list of settings is in engine/README.md.
@@ -39,15 +40,15 @@ CONFIG_TEMPLATE = """# Completionist settings. Everything here is optional; chan
 
 
 def icon_image(paused: bool = False, size: int = 64) -> Image.Image:
-    """A rounded square with a T and a caret bar: blue when Completionist is on, grey when paused."""
+    """A rounded square with a C and a caret bar: pine green when Completionist is on, grey when paused."""
     scale = 4  # draw big, then shrink, for smooth edges
     big = size * scale
     image = Image.new("RGBA", (big, big), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((0, 0, big - 1, big - 1), radius=int(big * 0.22), fill=_GREY if paused else _BLUE)
-    draw.rectangle((big * 0.24, big * 0.24, big * 0.76, big * 0.38), fill=_WHITE)  # top of the T
-    draw.rectangle((big * 0.43, big * 0.24, big * 0.57, big * 0.80), fill=_WHITE)  # stem
-    draw.rectangle((big * 0.69, big * 0.50, big * 0.75, big * 0.80), fill=_WHITE)  # caret
+    draw.rounded_rectangle((0, 0, big - 1, big - 1), radius=int(big * 0.22), fill=_GREY if paused else _GREEN)
+    # the C: a thick ring open on the right (PIL angles run clockwise from 3 o'clock)
+    draw.arc((big * 0.13, big * 0.23, big * 0.67, big * 0.77), start=45, end=315, fill=_WHITE, width=int(big * 0.12))
+    draw.rectangle((big * 0.72, big * 0.30, big * 0.78, big * 0.70), fill=_PINK)  # caret
     return image.resize((size, size), Image.LANCZOS)
 
 

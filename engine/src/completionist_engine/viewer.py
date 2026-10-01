@@ -1,7 +1,9 @@
 """The viewer: a page, served to this machine only, that shows what Completionist has learned.
 
-It lists the learned words (and lets you remove one), shows the usage stats, and edits the settings.
-Only counts are ever served, never typed text. Because it can change things, it is locked down:
+It lists the learned words (and lets you remove one), shows the usage stats, edits the settings and lists
+recent phrase requests. Apart from those requests (the in-memory log, which holds the text sent and the
+suggestion that came back), only counts are ever served, never typed text. Because it can change things,
+it is locked down:
 
 - it listens on 127.0.0.1 only, on a port picked at start;
 - every request needs the secret token the tray puts in the address it opens (kept in memory, never logged);
@@ -24,6 +26,7 @@ from urllib.parse import parse_qs, urlsplit
 from completionist_engine.config import ConfigError
 from completionist_engine.metrics import Metrics
 from completionist_engine.personal import PersonalStore
+from completionist_engine.request_log import LoggedRequest, RequestLog
 from completionist_engine.settings import apply_settings, read_settings
 
 logger = logging.getLogger("completionist_engine.viewer")
@@ -45,7 +48,9 @@ class ViewerServer:
         metrics: Metrics | None,
         config_path: Path,
         token: str | None = None,
+        request_log: RequestLog | None = None,
     ) -> None:
+        self._request_log = request_log
         self._personal = personal
         self._metrics = metrics
         self._config_path = config_path
@@ -165,6 +170,14 @@ class ViewerServer:
             return self._forget_trigram(body)
         if (method, path) == ("GET", "/api/stats"):
             return _json(200, self._stats(query))
+        if (method, path) == ("GET", "/api/requests"):
+            return _json(200, self._requests(query))
+        if (method, path) == ("POST", "/api/requests/clear"):
+            if self._request_log is not None:
+                self._request_log.clear()
+            return _json(200, {"cleared": True})
+        if method == "GET" and path.startswith("/api/requests/"):
+            return self._request_detail(path.removeprefix("/api/requests/"))
         if (method, path) == ("GET", "/api/settings"):
             return self._settings()
         if (method, path) == ("POST", "/api/settings"):
@@ -227,6 +240,19 @@ class ViewerServer:
             ],
         }  # fmt: skip
 
+    def _requests(self, query: dict[str, list[str]]) -> dict[str, Any]:
+        if self._request_log is None:
+            return {"available": False, "total": 0, "requests": []}
+        limit = max(1, min(_number(query.get("limit", ["50"])[0], 50), 200))
+        found, total = self._request_log.recent(result=query.get("result", [""])[0], q=query.get("q", [""])[0], limit=limit)
+        return {"available": True, "total": total, "requests": [_request_row(r) for r in found]}
+
+    def _request_detail(self, raw_id: str) -> tuple[int, bytes, str]:
+        found = self._request_log.get(int(raw_id)) if self._request_log is not None and raw_id.isdigit() else None
+        if found is None:
+            return _json(404, {"error": "that request is no longer in the log"})
+        return _json(200, {**_request_row(found), "prompt": found.prompt, "attempts": [vars(a) for a in found.attempts]})
+
     def _settings(self) -> tuple[int, bytes, str]:
         try:
             return _json(200, read_settings(self._config_path))
@@ -243,6 +269,13 @@ class ViewerServer:
 
 def _json(status: int, payload: dict[str, Any]) -> tuple[int, bytes, str]:
     return status, json.dumps(payload).encode("utf-8"), "application/json"
+
+
+def _request_row(r: LoggedRequest) -> dict[str, Any]:
+    return {
+        "id": r.id, "at": r.at, "app": r.app, "outcome": r.outcome, "model": r.answered_by, "reply": r.reply,
+        "ttft_ms": r.ttft_ms, "total_ms": r.total_ms, "tries": len(r.attempts),
+    }  # fmt: skip
 
 
 def _number(text: str, default: int) -> int:

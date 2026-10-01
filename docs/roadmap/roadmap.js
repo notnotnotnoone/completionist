@@ -1454,16 +1454,117 @@ window.COMPLETIONIST_ROADMAP = {
           "notes": "15 fixes from a full review: phrase and Esc suppression survive the sliding 8000-character window, DLL edit sessions hold the service alive, tray stats run on the engine loop, pause cancels phrases, personal-word promotion and chunk seeds, config encoding, viewer 500s, uninstall removes the roaming config, learning-off stops ranking."
         },
         {
-          "id": "M5.1",
+          "id": "M5.3",
           "version": "1.0.1",
+          "title": "Evergreen tray and keyboard icon (no more Typer T)",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "refs": [
+            "tray-icon-evergreen",
+            "engine/src/completionist_engine/tray.py",
+            "tip/assets/make_icon.py",
+            "1.0.1"
+          ],
+          "notes": "The old icon was a blue square with a T for Typer. Now a pine-green square (Evergreen --sign) with a white C and a pink caret bar (--vms-ink); grey (--todo) when paused. Same drawing in the tray (Pillow) and the keyboard .ico (make_icon.py)."
+        },
+        {
+          "id": "M5.4",
+          "version": "1.0.2",
+          "title": "Preferred Providers option in the viewer settings",
+          "status": "done",
+          "area": "viewer",
+          "stories": [],
+          "refs": [
+            "tray-icon-evergreen",
+            "engine/src/completionist_engine/settings.py",
+            "engine/src/completionist_engine/viewer.html",
+            "1.0.2"
+          ],
+          "notes": "provider_order (default Groq) is now a list box under Cloud Phrases in the viewer settings, one provider per line; an empty list lets OpenRouter choose."
+        },
+        {
+          "id": "M5.5",
+          "version": "1.0.3",
+          "title": "Requests log tab in the viewer",
+          "status": "done",
+          "area": "viewer",
+          "stories": [],
+          "refs": [
+            "tray-icon-evergreen",
+            "engine/src/completionist_engine/request_log.py",
+            "engine/src/completionist_engine/viewer.html",
+            "engine/src/completionist_engine/viewer.py",
+            "1.0.3"
+          ],
+          "notes": "Modelled on the flexrouter request log: a live table (time, app, answered by, suggestion, first text, took, result) with search and a result filter, a side sheet with the text sent, the suggestion and each model tried (and why it failed), and a two-step Clear Log. Results are OK, Failover, Failed and Cancelled (the user kept typing). Text is held in memory only, last 200."
+        },
+        {
+          "id": "M5.6",
+          "version": "1.0.4",
+          "title": "Advanced phrase settings and editable instructions in the viewer",
+          "status": "done",
+          "area": "viewer",
+          "stories": [],
+          "refs": [
+            "tray-icon-evergreen",
+            "engine/src/completionist_engine/settings.py",
+            "engine/src/completionist_engine/config.py",
+            "engine/src/completionist_engine/context.py",
+            "engine/src/completionist_engine/viewer.html",
+            "1.0.4"
+          ],
+          "notes": "Cloud Phrases gains an expandable Advanced section (max output length, temperature, seconds before asking, give-up timeout, text before and after the caret, send-text-after) and an expandable Instructions section holding the system prompt, new as [phrase] instructions with a Restore Built-in button. The wait is shown in seconds but the file keeps debounce_ms. base_url stays out of the page on purpose: it would let a page redirect the key and typed text."
+        },
+        {
+          "id": "M5.1",
+          "version": "1.0.5",
           "title": "Reply-aware context from the surrounding window",
-          "status": "next",
+          "status": "doing",
           "area": "engine",
           "stories": [
             57,
             58
           ],
-          "notes": "Read-only UI Automation with Windows OCR as a fallback, refreshed on window switch. No AI or vision models."
+          "notes": "Read-only UI Automation, refreshed on window switch. No OCR (a deliberate decision, see decisions) and no AI or vision models. When an app exposes no text the suggestion falls back to caret context, and the engine logs per app whether context was found."
+        }
+      ]
+    },
+    {
+      "id": "M10",
+      "title": "Major UI redesign",
+      "status": "planned",
+      "goal": "Give the dashboard first, then the suggestion popup, one deliberate look.",
+      "done_when": "The dashboard (the viewer) is rebuilt and reads well in the Evergreen colours, and the popup, with all its row types, reads well at 100% and 200% scaling and on a second monitor, with the rewritten drawing code passing the harness.",
+      "tasks": [
+        {
+          "id": "M10.3",
+          "version": "1.1.1",
+          "title": "Overhaul the dashboard (the viewer)",
+          "status": "todo",
+          "area": "viewer",
+          "stories": [],
+          "notes": "Prioritised ahead of the popup redesign (2026-10-01). Scope first, in plain English with mockups: what the dashboard shows, how Words, Stats, Requests and Settings are laid out, in the Evergreen tokens. Split into tasks once scoped."
+        },
+        {
+          "id": "M10.1",
+          "version": "1.1.2",
+          "title": "Scope the popup redesign: audit the popup in real apps and decide what else is included",
+          "status": "todo",
+          "area": "dll",
+          "stories": [],
+          "notes": "Assumed to mean the popup. The viewer now has its own task (M10.3), so this only decides whether the tray menu comes too. Mockups and Evergreen design tokens follow; split into tasks when scoped."
+        },
+        {
+          "id": "M10.2",
+          "version": "1.1.3",
+          "title": "Redesign and rewrite the popup drawing",
+          "status": "todo",
+          "area": "dll",
+          "stories": [
+            74
+          ],
+          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.2 is done. A bad popup must fall back to the current look, never crash the host app."
         }
       ]
     },
@@ -1476,41 +1577,12 @@ window.COMPLETIONIST_ROADMAP = {
       "tasks": [
         {
           "id": "M6.1",
-          "version": "1.1.1",
+          "version": "2.0.1",
           "title": "Chrome extension over Native Messaging",
           "status": "todo",
           "area": "extension",
           "stories": [],
-          "notes": "Inline ghost text and page context in web fields."
-        }
-      ]
-    },
-    {
-      "id": "M10",
-      "title": "Major UI redesign",
-      "status": "planned",
-      "goal": "Give the suggestion popup, and whatever else the audit says belongs with it, one deliberate look.",
-      "done_when": "The popup, with all its row types, reads well at 100% and 200% scaling and on a second monitor, in the Evergreen colours, and the rewritten drawing code passes the harness.",
-      "tasks": [
-        {
-          "id": "M10.1",
-          "version": "1.2.1",
-          "title": "Scope the redesign: audit the popup in real apps and decide what else is included",
-          "status": "todo",
-          "area": "dll",
-          "stories": [],
-          "notes": "Assumed to mean the popup. Decide whether the tray menu and the viewer's look come too. Mockups and Evergreen design tokens follow; split into tasks when scoped."
-        },
-        {
-          "id": "M10.2",
-          "version": "1.2.2",
-          "title": "Redesign and rewrite the popup drawing",
-          "status": "todo",
-          "area": "dll",
-          "stories": [
-            74
-          ],
-          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.2.1 is done. A bad popup must fall back to the current look, never crash the host app."
+          "notes": "Inline ghost text and page context in web fields. Moved from 1.1.1 to 2.0.1 (2026-10-01): it now leads the 3.0.0 major release, after the dashboard and popup redesign."
         }
       ]
     }
@@ -2252,6 +2324,47 @@ window.COMPLETIONIST_ROADMAP = {
       ]
     },
     {
+      "version": "1.0.1",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Evergreen icon",
+      "highways": [
+        "engine",
+        "tsf"
+      ],
+      "text": "The tray and keyboard icon is now a pine-green square with a white C and a pink caret instead of the old blue T from the Typer days, grey when paused."
+    },
+    {
+      "version": "1.0.2",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Preferred Providers setting",
+      "highways": [
+        "engine"
+      ],
+      "text": "The viewer's settings page now has a Preferred Providers box under Cloud Phrases for provider_order (Groq by default), so you can change which OpenRouter provider is tried first without editing the file."
+    },
+    {
+      "version": "1.0.3",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Requests log",
+      "highways": [
+        "engine"
+      ],
+      "text": "The viewer has a new Requests tab, modelled on the flexrouter request log, listing the latest phrase requests live with their text, timings, result and the models tried, kept in memory only."
+    },
+    {
+      "version": "1.0.4",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Advanced phrase settings",
+      "highways": [
+        "engine"
+      ],
+      "text": "The viewer's Cloud Phrases settings gain an Advanced section (output length, temperature, seconds before asking, timeout, context sizes) and an Instructions section where the model's system prompt can be edited or restored."
+    },
+    {
       "version": "1.1.0",
       "status": "next",
       "title": "Reply-aware phrases",
@@ -2259,22 +2372,33 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "Phrase suggestions learn what you are replying to. When you switch to a window, Completionist reads the surrounding conversation in the background through UI Automation, falling back to Windows’ built-in text recognition for apps that expose little text. That context travels with each phrase request, so a reply in Discord or Slack can follow the last few messages and an email reply can respond to the message it quotes. Reading the screen involves no AI or vision model. The phrase request remains the only model call."
     },
     {
-      "version": "1.2.0",
-      "status": "planned",
-      "title": "Web fields",
-      "milestone": "M6",
-      "text": "A Chrome extension connects web pages to the same engine through Native Messaging. Inside the browser it can show true inline ghost text instead of a popup row, and it can read context a text service never sees, such as the post you are commenting on. Desktop apps keep using the text service, so the extension adds to what already works and replaces nothing."
-    },
-    {
       "version": "2.0.0",
       "status": "planned",
-      "title": "A popup with a deliberate look",
+      "title": "A dashboard and popup with a deliberate look",
       "milestone": "M10",
       "essay": [
-        "Completionist 2.0 is a redesign of the thing you actually look at. The popup that appears under the caret began as a way to prove that the plumbing worked, and by now it carries single words, next-word predictions, multi-word chunks, letters it guessed after a typo, and a greyed cloud phrase, all in one box. This release gives that box one deliberate look: a single set of Evergreen colours, one type scale, clear rules for which kind of row sits where and how it is marked, and a version that reads well at 100% and 200% scaling and on a second monitor. The goal is that you can tell at a glance, without reading, which row is a word, which is a chunk, which is the cloud phrase and which letters were a guess, and that the popup still feels like a quiet part of whatever app you are in, not a foreign window sitting on top of it.",
+        "Completionist 2.0 is a redesign of the two things you actually look at, led by the dashboard. The dashboard, the page the tray opens with your words, stats, request log and settings, grew one tab at a time in 1.0.x, and it is rebuilt first as one deliberate page in the Evergreen colours. The popup that appears under the caret began as a way to prove that the plumbing worked, and by now it carries single words, next-word predictions, multi-word chunks, letters it guessed after a typo, and a greyed cloud phrase, all in one box. After the dashboard, this release gives that box one deliberate look: a single set of Evergreen colours, one type scale, clear rules for which kind of row sits where and how it is marked, and a version that reads well at 100% and 200% scaling and on a second monitor. The goal is that you can tell at a glance, without reading, which row is a word, which is a chunk, which is the cloud phrase and which letters were a guess, and that the popup still feels like a quiet part of whatever app you are in, not a foreign window sitting on top of it.",
         "The reason to do it late is that a design made before the features exist is a guess. By 2.0 the row types and the colour for guessed letters are real, so the redesign can begin from an audit of what actually feels wrong in Notepad, Chrome and Discord, instead of from a blank page. The popup stays what it has always been: a thin C++ window that draws what the engine sends, never takes focus and never consumes a key it shouldn’t. The redesign changes how it looks and reads, not what it is allowed to do. Mockups come first, then design tokens checked against the colour rules in CONTEXT.md, then a rewrite of the drawing code, then harness screenshots at several scales and on more than one monitor.",
-        "It costs a rewrite of the most delicate rendering code in the project. That code lives inside every application the user types in, so each change is proved in the harness before it is tried in a real app, and a popup that can’t draw the new design has to fall back to the current one and never crash the host. It also costs restraint. A redesign is an invitation to add themes, settings and animation, and for a typing tool each of those makes it slower to read and easier to distract. The audit will say how far the scope goes, and whether the tray menu and the personal viewer deserve the same treatment or are fine as they are.",
-        "What 2.0 leaves out is as deliberate as what it includes. It adds no new suggestion features, no themes or user-editable styles, no settings window, no dashboard and no animation beyond whatever helps the eye follow the highlighted row. It does not change how suggestions are ranked, what leaves the machine, or which keys are taken. Its whole scope is how the existing suggestions look and read, which keeps the release small enough to finish and to test properly. This essay is a plan for now, and it becomes a retrospective of what actually shipped when the release is done."
+        "It costs a rewrite of the most delicate rendering code in the project. That code lives inside every application the user types in, so each change is proved in the harness before it is tried in a real app, and a popup that can’t draw the new design has to fall back to the current one and never crash the host. It also costs restraint. A redesign is an invitation to add themes, settings and animation, and for a typing tool each of those makes it slower to read and easier to distract. The audit will say how far the scope goes, and whether the tray menu deserves the same treatment or is fine as it is.",
+        "What 2.0 leaves out is as deliberate as what it includes. It adds no new suggestion features, no themes or user-editable styles and no animation beyond whatever helps the eye follow the highlighted row. It does not change how suggestions are ranked, what leaves the machine, or which keys are taken. Its whole scope is how the dashboard and the existing suggestions look and read, which keeps the release small enough to finish and to test properly. This essay is a plan for now, and it becomes a retrospective of what actually shipped when the release is done."
+      ]
+    },
+    {
+      "version": "3.0.0",
+      "status": "planned",
+      "title": "Autocomplete in the browser",
+      "milestone": "M6",
+      "highways": [
+        "engine",
+        "tsf",
+        "tooling",
+        "browser"
+      ],
+      "essay": [
+        "Completionist 3.0 takes the autocomplete into the one place a Windows text service can only reach halfway: the web page. A Chrome extension talks to the same Python engine through Native Messaging, the browser's own way of letting an extension speak to a local program, so the words, the personal dictionary and the cloud phrases you already have follow you into every web text field. Inside the browser the extension can do what a text service cannot. It draws true inline ghost text in the field itself, instead of a popup row under the caret, and it reads context that only the page knows, such as the post you are commenting on or the email thread you are answering.",
+        "The reason this is a major release, and the reason it comes after the redesign, is that it adds a second front end to a product that has had one. Until now the text service was the only thing that touched the screen: the engine ranked, the DLL drew. With the extension there are two clients with two different ideas of where the caret is and how a suggestion looks, and the engine has to serve both without confusing them. It was placed after the dashboard and popup redesign on purpose, so the look of a suggestion is settled before a second client has to match it, and the extension can borrow the same Evergreen colours, the same row types and the same marks for guessed letters instead of inventing its own.",
+        "It costs a new toolchain, a new kind of code and a new way to break. The extension is JavaScript running in someone else's browser, shipped with a small native host that Windows registers for Chrome, and every web page is a different and sometimes hostile environment, with rich editors, shadow roots, iframes and fields that rewrite themselves as you type. Each of those has to be proved on real pages before it is trusted. It also raises the privacy bar. A browser extension can see far more than a text service, so it reads only the field you are typing in and the page context needed for a phrase, stays silent in password fields, and sends nothing anywhere except to the local engine, which still makes the one phrase request you configured.",
+        "What 3.0 leaves out is as deliberate as what it includes. It does not replace the text service: desktop apps keep working through it exactly as before, and Chrome itself still gets word suggestions from the text service in any field the extension cannot handle. It targets Chrome first, with no Firefox or Safari version, no store listing or sync, and no accounts. It adds no new suggestion features and no new places for your typing to leave the machine. The aim is narrow and testable: inline ghost text working in a Chrome textarea, then in the rich editors people actually write in, with the engine unchanged from the user's point of view. This essay is a plan for now, and it becomes a retrospective of what actually shipped when the release is done."
       ]
     }
   ],
@@ -2356,6 +2480,22 @@ window.COMPLETIONIST_ROADMAP = {
     "75": "Change my settings in the viewer"
   },
   "decisions": [
+    {
+      "date": "2026-10-01",
+      "text": "Reply-aware context (M5.1, 1.0.5) reads the surrounding window with read-only UI Automation only. OCR is deliberately left out: it is a heavy, noisy fallback (it reads menus and sidebars along with the thread) that would only help the few apps that expose no UIA text, and it sits close to the 'no AI or vision for screen tracking' rule. When an app exposes nothing the suggestion falls back to caret context, as today. The engine will log per app whether context was found, so OCR can be reconsidered later as its own task if real misses justify it. Selecting all and copying (Ctrl+A / Ctrl+C) was also ruled out: it would copy the wrong text, overwrite the clipboard and disturb the user's selection."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "The owner reordered the plan: the dashboard (viewer) overhaul is prioritised and now leads the 2.0.0 redesign, and the Chrome extension moves from 1.2.0 to its own major release, 3.0.0, after the redesign so a second client can match a settled look. This supersedes the 2026-09-30 'no dashboard' line only in that the viewer gets a full redesign; it is still a local page, not a server or a TUI."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "The endpoint (base_url) is deliberately not editable from the viewer: a page that could change it could send the API key and the text being typed to another host. Everything else about phrases (output length, temperature, wait, timeout, context sizes, and the instructions the model is given) is. The instructions are stored in config.toml as [phrase] instructions; saving blank or the built-in text stores blank, so improvements to the built-in prompt still reach anyone who has not customised it."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "The Requests log stores the text sent and the suggestion returned (the owner chose this over metadata only, to debug bad phrases). To keep the 'your typing is never saved' promise as far as possible it is held in memory only, capped at the last 200 requests, trimmed to the end of the prompt, cleared when the engine stops and by a Clear Log button, and every other number stays counts only. Writing it to disk would be a separate, deliberate change."
+    },
     {
       "date": "2026-10-01",
       "text": "Typo tolerance uses rapidfuzz (OSA edit distance with an early cutoff over a first-letter bucket of the vocabulary), not SymSpell: SymSpell corrects whole words and can't complete half-typed fragments (\"moutia\" finds \"mouth\", never \"mountain\"), and its whole-word deletes index costs ~580 MB in memory. Only fragments of 3+ letters are corrected, exact prefix matches always rank first, and corrections only fill unfilled rows, so short fragments, names and learned words are never corrected."
@@ -2512,6 +2652,15 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {"date": "2026-10-01", "text": "Picked up M5.1 (1.0.5, now doing) and removed the OCR fallback as a deliberate decision: reply-aware context is read-only UI Automation only, falling back to caret context, with a per-app found/empty log to revisit OCR later if needed."},
+    {"date": "2026-10-01", "text": "Replanned: the Chrome extension (M6.1) moves from 1.1.1 to 2.0.1 and becomes the major 3.0.0 release (new essay); the dashboard overhaul is a new first task M10.3 (1.1.1) leading 2.0.0, and the popup tasks shift to 1.1.2 and 1.1.3; the 1.2.0 release is removed."},
+    {"date": "2026-10-01", "text": "Released 1.0.4 (new task M5.6): Advanced and Instructions sections in the viewer's Cloud Phrases settings (max output, temperature, seconds before asking, timeout, context sizes, editable system prompt); base_url stays uneditable on purpose; reply-aware context (M5.1) moves to 1.0.5."},
+    {"date": "2026-10-01", "text": "Released 1.0.3 (new task M5.5): Requests tab in the viewer, modelled on the flexrouter request log, with a live table, a detail sheet and Clear Log; the text is in memory only; reply-aware context (M5.1) moves to 1.0.4."},
+    {"date": "2026-10-01", "text": "Released 1.0.2 (new task M5.4): Preferred Providers (provider_order) option in the viewer's Cloud Phrases settings; reply-aware context (M5.1) moves to 1.0.3."},
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.0.1 (new task M5.3): new tray and keyboard icon in the Evergreen colours with a C instead of the Typer T; reply-aware context (M5.1) moves to 1.0.2."
+    },
     {"date": "2026-10-01", "text": "Released 1.0.0: rewrote the planned essay as a retrospective, marked it released on all four highways and made 1.1.0 the next release; the live checks stay dropped because daily use was the test and it works well."},
     {"date": "2026-10-01", "text": "Released 0.7.2, 15 code-review fixes (new task M5.2): phrase and Esc suppression survive the sliding 8000-character window, tray stats run on the engine loop, personal-word promotion and chunk seeds, config encoding, DLL edit sessions hold the service, viewer 500s, pause cancels phrases, uninstall removes the roaming config, learning-off stops ranking."},
     {"date": "2026-10-01", "text": "Released 0.7.1: committed the per-task numbering, the 0.0.x stops and the CLAUDE.md rules; tagged v0.7.1 and pushed."},

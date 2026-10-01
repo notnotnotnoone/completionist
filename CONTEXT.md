@@ -69,6 +69,7 @@ It is built as a **Text Services Framework (TSF) text service**, the same mechan
 - Block-listed apps (`[apps] block`) get no suggestions at all.
 - Nothing is learned from pasted text.
 - Metrics are counts and timings only, never typed text.
+- The one exception is the viewer's Requests log: the last 200 phrase requests with the text sent and the suggestion returned. It lives in memory only, never on disk, is gone when the engine stops, and can be cleared from the viewer.
 - Text goes only to the provider you configured.
 - The caret comes from TSF only. There is no AI and no vision for caret or screen tracking.
 

@@ -30,7 +30,7 @@ def test_the_stats_command_takes_a_day_count(tmp_path, capsys):
     assert "nothing recorded" in capsys.readouterr().out.lower()
 
 
-def test_the_tray_icon_is_blue_when_on_and_grey_when_paused():
+def test_the_tray_icon_is_green_when_on_and_grey_when_paused():
     on, off = icon_image(False, 32), icon_image(True, 32)
     assert on.size == (32, 32) and on.mode == "RGBA"
     assert on.getpixel((3, 16)) != off.getpixel((3, 16))

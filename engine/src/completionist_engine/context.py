@@ -100,9 +100,11 @@ The user should be able to press Tab and then immediately continue writing their
 TEXT TO CONTINUE:"""
 
 
-def build_prompt(app: str, title: str, window: str) -> str:
-    """Fixed instructions and a short header (so the cached prefix is shared), then the text so far."""
+def build_prompt(app: str, title: str, window: str, instructions: str = "") -> str:
+    """Fixed instructions and a short header (so the cached prefix is shared), then the text so far.
+
+    `instructions` replaces the built-in ones; blank means the built-in ones."""
     app_name = _one_line(app).removesuffix(".exe").removesuffix(".EXE")
     where = " - ".join(part for part in (_one_line(title), app_name) if part)
     header = f"[Text typed in: {where}]" if where else "[Text typed in an app]"
-    return f"{INSTRUCTIONS}\n\n{header}\n\n{window}"
+    return f"{instructions.strip() or INSTRUCTIONS}\n\n{header}\n\n{window}"

@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 
@@ -10,6 +11,16 @@ import httpx
 
 class ProviderError(Exception):
     """The provider was unreachable, slow, or answered with an error. Never carries the API key."""
+
+
+@dataclass(frozen=True)
+class Attempt:
+    """One model tried for a request: whether it worked, why not, and how long it took."""
+
+    model: str
+    ok: bool
+    error: str
+    ms: int
 
 
 @dataclass(frozen=True)
@@ -40,20 +51,26 @@ class PhraseProvider:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def stream(self, request: PhraseRequest) -> AsyncIterator[str]:
+    async def stream(self, request: PhraseRequest, attempts: list[Attempt] | None = None) -> AsyncIterator[str]:
         """Yields text chunks as they arrive.
 
         Tries each configured model in turn; a model that fails before producing any text hands over to
-        the next one. The error of the last model is raised if all fail."""
+        the next one. The error of the last model is raised if all fail. If `attempts` is given, each model
+        tried is added to it (a model cut off by cancelling is not)."""
         last_error: ProviderError | None = None
         for model in self._settings.models:
             produced = False
+            began = time.monotonic()
             try:
                 async for event in self._stream_one(model, request):
                     produced = True
                     yield event
+                if attempts is not None:
+                    attempts.append(Attempt(model, True, "", round((time.monotonic() - began) * 1000)))
                 return
             except ProviderError as err:
+                if attempts is not None:
+                    attempts.append(Attempt(model, False, str(err), round((time.monotonic() - began) * 1000)))
                 if produced:
                     raise
                 last_error = err

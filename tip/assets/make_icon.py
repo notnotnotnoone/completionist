@@ -1,17 +1,19 @@
-"""Generates completionist.ico: a blue rounded square with a white T and a caret bar.
+"""Generates completionist.ico: a pine-green rounded square with a white C and a caret bar.
 
     python make_icon.py
 
 Uses only the standard library. The .ico holds PNG images at several sizes (supported since Vista).
 """
 
+import math
 import struct
 import zlib
 from pathlib import Path
 
 SIZES = (16, 24, 32, 48, 64)
-BLUE = (44, 71, 201)
+GREEN = (10, 90, 61)  # Evergreen --sign, #0A5A3D
 WHITE = (255, 255, 255)
+PINK = (255, 158, 210)  # Evergreen --vms-ink, #FF9ED2: the caret
 SUPERSAMPLE = 4
 
 
@@ -21,11 +23,13 @@ def coverage(x: float, y: float) -> tuple[float, tuple[int, int, int]]:
     cx = min(max(x, radius), 1 - radius)
     cy = min(max(y, radius), 1 - radius)
     if (x - cx) ** 2 + (y - cy) ** 2 > radius**2:
-        return 0.0, BLUE
-    top_bar = 0.24 <= y <= 0.38 and 0.24 <= x <= 0.76
-    stem = 0.43 <= x <= 0.57 and 0.24 <= y <= 0.80
-    caret = 0.69 <= x <= 0.75 and 0.50 <= y <= 0.80
-    return 1.0, WHITE if (top_bar or stem or caret) else BLUE
+        return 0.0, GREEN
+    dx, dy = x - 0.40, y - 0.50
+    in_ring = 0.15 <= math.hypot(dx, dy) <= 0.27
+    in_opening = dx > 0 and abs(dy) < dx  # the gap on the right, +-45 degrees
+    c_shape = in_ring and not in_opening
+    caret = 0.72 <= x <= 0.78 and 0.30 <= y <= 0.70
+    return 1.0, PINK if caret else WHITE if c_shape else GREEN
 
 
 def render(size: int) -> bytes:

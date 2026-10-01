@@ -30,6 +30,7 @@
     debounce_ms = 350           # pause before an automatic request
     context_before = 6000       # characters of text before the caret sent to the model
     context_after = 2000
+    instructions = ""           # replaces the built-in instructions the model is given ("" keeps them)
 
     [hotkeys]
     pause = "ctrl+alt+p"        # pause / resume Completionist from anywhere ("" turns the hotkey off)
@@ -73,7 +74,7 @@ DEFAULT_ALLOW = frozenset({"obsidian.exe", "notepad.exe", "winword.exe", "outloo
 
 _PHRASE_KEYS = {
     "enabled", "base_url", "models", "provider_order", "api_key", "fim", "max_tokens", "temperature", "timeout", "debounce_ms",
-    "context_before", "context_after",
+    "context_before", "context_after", "instructions",
 }  # fmt: skip
 _SCHEMA = {
     "apps": {"block", "allow"},
@@ -102,6 +103,7 @@ class PhraseConfig:
     debounce: float = 0.35  # seconds
     context_before: int = 6000  # below what the DLL sends (8000), so the window can anchor
     context_after: int = 2000
+    instructions: str = ""  # blank: the built-in instructions in context.py
 
 
 @dataclass(frozen=True)
@@ -204,6 +206,7 @@ def _phrase(section: dict[str, Any]) -> PhraseConfig:
         debounce=debounce_ms / 1000,
         context_before=get("context_before", base.context_before, _positive_int),
         context_after=get("context_after", base.context_after, _non_negative_int),
+        instructions=get("instructions", base.instructions, _instructions),
     )
 
 
@@ -264,6 +267,12 @@ def _model_list(value: Any, name: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not value or not all(isinstance(m, str) and m.strip() for m in value):
         raise ConfigError(f"{name} must be a non-empty list of model names")
     return tuple(m.strip() for m in value)
+
+
+def _instructions(value: Any, name: str) -> str:
+    if not isinstance(value, str):
+        raise ConfigError(f"{name} must be text in quotes")
+    return value.strip()  # blank keeps the built-in instructions
 
 
 def _api_key(value: Any, name: str) -> str:

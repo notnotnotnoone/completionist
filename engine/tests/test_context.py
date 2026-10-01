@@ -83,3 +83,13 @@ def test_the_prompt_copes_with_a_missing_title_or_app():
     assert build_prompt("", "", "hi").endswith("hi")
     assert header_of(build_prompt("", "", "hi")) == "[Text typed in an app]"
     assert header_of(build_prompt("x\ny", "t\nu", "hi")) == "[Text typed in: t u - x y]"  # no newline injected into the header
+
+
+def test_custom_instructions_replace_the_built_in_ones():
+    prompt = build_prompt("notepad.exe", "Notes", "Thanks, I will", instructions="Continue the text. Be brief.\nTEXT TO CONTINUE:")
+    assert prompt.startswith("Continue the text. Be brief.") and INSTRUCTIONS not in prompt
+    assert prompt.endswith("[Text typed in: Notes - notepad]\n\nThanks, I will")
+
+
+def test_blank_instructions_mean_the_built_in_ones():
+    assert build_prompt("notepad.exe", "Notes", "Hi", instructions="  \n") == build_prompt("notepad.exe", "Notes", "Hi")

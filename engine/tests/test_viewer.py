@@ -7,6 +7,8 @@ import pytest
 
 from completionist_engine.metrics import Metrics
 from completionist_engine.personal import PersonalStore
+from completionist_engine.phrase_provider import Attempt
+from completionist_engine.request_log import RequestLog
 from completionist_engine.viewer import TOKEN_HEADER, ViewerServer
 
 TOKEN = "test-token-abc"
@@ -24,10 +26,10 @@ def store() -> PersonalStore:
 
 
 @contextlib.asynccontextmanager
-async def running(tmp_path, personal=None, metrics=None, config_text="[words]\nlimit = 5\n"):
+async def running(tmp_path, personal=None, metrics=None, config_text="[words]\nlimit = 5\n", request_log=None):
     path = tmp_path / "config.toml"
     path.write_text(config_text, encoding="utf-8")
-    server = ViewerServer(personal, metrics, path, token=TOKEN)
+    server = ViewerServer(personal, metrics, path, token=TOKEN, request_log=request_log)
     await server.start()
     try:
         yield server
@@ -331,5 +333,65 @@ def test_trigram_changes_are_guarded_like_the_rest(tmp_path):
         async with running(tmp_path, None) as server:
             assert json.loads((await api(server, "GET", "/api/trigrams"))[2]) == {"learning": False, "total": 0, "trigrams": []}
             assert (await api(server, "POST", "/api/forget-trigram", {"words": ["a", "b", "c"]}))[0] == 404
+
+    run(go())
+
+
+# --- the requests log -------------------------------------------------------------------------------
+
+
+def logged() -> RequestLog:
+    log = RequestLog()
+    log.add(app="notepad.exe", prompt="Hello wor", reply="ld is", outcome="ok", attempts=[Attempt("m/one", True, "", 280)], ttft_ms=120, total_ms=300)
+    log.add(
+        app="chrome.exe", prompt="Dear Sam, thx", reply="", outcome="failed", attempts=[Attempt("m/one", False, "provider timed out", 4000)], ttft_ms=None, total_ms=4000
+    )
+    return log
+
+
+def test_the_request_list_is_newest_first_and_filterable(tmp_path):
+    async def go():
+        async with running(tmp_path, request_log=logged()) as server:
+            data = json.loads((await api(server, "GET", "/api/requests"))[2])
+            assert data["total"] == 2 and [r["app"] for r in data["requests"]] == ["chrome.exe", "notepad.exe"]
+            row = data["requests"][1]
+            assert row["outcome"] == "ok" and row["model"] == "m/one" and row["reply"] == "ld is" and row["total_ms"] == 300
+            assert "prompt" not in row  # the list stays light; the prompt is in the detail
+            failed = json.loads((await api(server, "GET", "/api/requests?result=failed"))[2])
+            assert [r["app"] for r in failed["requests"]] == ["chrome.exe"]
+            found = json.loads((await api(server, "GET", "/api/requests?q=dear+sam"))[2])
+            assert found["total"] == 1
+
+    run(go())
+
+
+def test_one_request_opens_with_its_prompt_reply_and_attempts(tmp_path):
+    async def go():
+        async with running(tmp_path, request_log=logged()) as server:
+            detail = json.loads((await api(server, "GET", "/api/requests/2"))[2])
+            assert detail["prompt"] == "Dear Sam, thx" and detail["outcome"] == "failed"
+            assert detail["attempts"] == [{"model": "m/one", "ok": False, "error": "provider timed out", "ms": 4000}]
+            assert (await api(server, "GET", "/api/requests/99"))[0] == 404
+            assert (await api(server, "GET", "/api/requests/abc"))[0] == 404
+
+    run(go())
+
+
+def test_the_log_can_be_cleared_and_needs_the_token(tmp_path):
+    async def go():
+        log = logged()
+        async with running(tmp_path, request_log=log) as server:
+            assert (await http(server, "GET", "/api/requests"))[0] == 403  # no token
+            assert (await api(server, "POST", "/api/requests/clear", {}))[0] == 200
+            assert json.loads((await api(server, "GET", "/api/requests"))[2])["total"] == 0
+
+    run(go())
+
+
+def test_without_a_log_the_requests_list_is_empty(tmp_path):
+    async def go():
+        async with running(tmp_path) as server:
+            data = json.loads((await api(server, "GET", "/api/requests"))[2])
+            assert data["available"] is False and data["requests"] == []
 
     run(go())

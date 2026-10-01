@@ -367,3 +367,59 @@ def test_with_fim_text_after_the_caret_is_sent_and_does_not_hold_the_phrase_back
     pushes, received = asyncio.run(scenario())
     assert pushes[-1].text == "ld"
     assert received[0].body["suffix"] == " and more text"
+
+
+# --- the requests log ---------------------------------------------------------------------------
+
+
+def run_one(script, models=("m",), cancel_after=None):
+    """Run one hotkey request against a scripted fake provider and return the service (with its log)."""
+
+    async def scenario():
+        async with fake_provider(script) as (url, _):
+            config = PhraseConfig(provider=ProviderSettings(base_url=url, models=models, timeout=1.0, api_key="k"), debounce=0.05)
+            service = PhraseService(config)
+            pushes: list[PhraseUpdate] = []
+            session = service.open_session(pushes.append)
+            session.on_hotkey(req(1, "Hello wor", event="hotkey"), "hotkey")
+            if cancel_after is None:
+                await settle(pushes)
+            else:
+                await asyncio.sleep(cancel_after)
+            session.close()
+            await asyncio.sleep(0.05)  # let the cancelled task finish
+            await service.aclose()
+            return service
+
+    return asyncio.run(scenario())
+
+
+def test_a_finished_request_is_logged_with_its_text_and_timings():
+    service = run_one(Script(chunks=["ld is", " big"]))
+    (entry,), total = service.log.recent()
+    assert (entry.outcome, entry.app, entry.reply) == ("ok", "notepad.exe", "ld is big")
+    assert "Hello wor" in entry.prompt and entry.total_ms is not None and entry.ttft_ms is not None
+    assert [(a.model, a.ok) for a in entry.attempts] == [("m", True)]
+
+
+def test_a_request_that_fell_back_to_the_next_model_is_a_failover():
+    def script(received):
+        return Script(status=500) if received.body["model"] == "bad" else Script(chunks=["ok"])
+
+    service = run_one(script, models=("bad", "good"))
+    (entry,), _ = service.log.recent()
+    assert entry.outcome == "failover" and entry.answered_by == "good" and entry.reply == "ok"
+    assert [(a.model, a.ok) for a in entry.attempts] == [("bad", False), ("good", True)]
+    assert "500" in entry.attempts[0].error
+
+
+def test_a_request_every_model_failed_is_logged_as_failed():
+    service = run_one(Script(status=500))
+    (entry,), _ = service.log.recent()
+    assert entry.outcome == "failed" and entry.reply == "" and entry.answered_by == ""
+
+
+def test_a_request_dropped_because_the_user_kept_typing_is_logged_as_cancelled():
+    service = run_one(Script(hang=True), cancel_after=0.2)
+    (entry,), _ = service.log.recent()
+    assert entry.outcome == "cancelled"

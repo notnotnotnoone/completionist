@@ -82,7 +82,9 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
     if not args.no_tray:
         from completionist_engine.tray import Tray  # imported here: it needs a desktop, which the tests don't have
 
-        viewer = ViewerServer(assembled.personal, assembled.metrics, args.config)
+        viewer = ViewerServer(
+            assembled.personal, assembled.metrics, args.config, request_log=assembled.phrases.log if assembled.phrases else None
+        )
         await viewer.start()
         tray = Tray(
             toggle_pause=toggle_pause,

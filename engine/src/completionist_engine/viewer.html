@@ -17,7 +17,7 @@
   --ok: #1F6B45; --ok-soft: #DCEDE2; --bad: #B3261E; --bad-soft: #F8DEDA;
   --bar: #0B6E4B; --bar-soft: #CFE1D6;
   --shadow: 0 1px 2px rgb(12 30 20 / .08), 0 8px 24px rgb(12 30 20 / .08);
-  --enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --enter: cubic-bezier(0.22, 1, 0.36, 1); --move: cubic-bezier(0.25, 1, 0.5, 1);
   --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
   color-scheme: light dark;
@@ -182,6 +182,54 @@ details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32
 .savebar .note { flex: 1 1 200px; font-size: .875rem; }
 .savebar .note.bad { color: var(--bad); }
 
+.fold { border-top: 1px solid var(--line); margin-top: 4px; }
+.fold > summary { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; font-weight: 600; list-style: none; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform 160ms var(--enter); }
+.fold[open] > summary::before { transform: rotate(45deg); }
+@media (hover: hover) and (pointer: fine) { .fold > summary:hover { color: var(--accent-ink); } }
+.set.wide { grid-template-columns: minmax(0, 1fr) auto; }
+.set.wide .wide-field { grid-column: 1 / -1; }
+.field.prompt { min-height: 280px; font: .8125rem/1.5 var(--mono); }
+
+/* ---- requests log */
+.toolbar .live { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: var(--muted); font-size: .8125rem; }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--bar); }
+.live.paused i { background: var(--line-strong); }
+.log td, .log th { white-space: nowrap; }
+.mono, .log td.mono { font-family: var(--mono); font-size: .8125rem; }
+.log tbody tr { cursor: pointer; transition: background-color 160ms ease; }
+@media (hover: hover) and (pointer: fine) { .log tbody tr:hover { background: var(--paper-2); } }
+.log tbody tr.in { animation: rise 200ms var(--enter) both; }
+.log td.reply { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+.rowbtn { border: 0; background: transparent; padding: 0; min-height: 32px; cursor: pointer; font: inherit; color: inherit; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.outcome { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: .75rem; font-weight: 600; letter-spacing: .02em; background: var(--paper-2); color: var(--muted); }
+.outcome-ok { background: var(--ok-soft); color: var(--ok); }
+.outcome-failover { background: var(--accent-soft); color: var(--accent-ink); }
+.outcome-failed { background: var(--bad-soft); color: var(--bad); }
+.scrim { position: fixed; inset: 0; z-index: 50; background: rgb(12 30 20 / .4); opacity: 0; visibility: hidden; transition: opacity 160ms ease-out, visibility 0s linear 160ms; }
+.scrim.show { opacity: 1; visibility: visible; transition: opacity 200ms ease, visibility 0s; }
+.sheet {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 60; width: min(520px, 100vw); overflow-y: auto; background: var(--surface); border-left: 1px solid var(--line-strong); box-shadow: var(--shadow);
+  padding: 20px max(16px, env(safe-area-inset-right)) 32px 20px; transform: translateX(100%); visibility: hidden; transition: transform 160ms ease-out, visibility 0s linear 160ms;
+}
+.sheet.show { transform: none; visibility: visible; transition: transform 260ms var(--move), visibility 0s; }
+.sheet.instant, .scrim.instant { transition: none; }
+.sheet-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.sheet-head > div { flex: 1; min-width: 0; }
+.sheet-head p { color: var(--muted); font-size: .8125rem; }
+.sheet .line { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin-bottom: 4px; }
+.sheet .line span:not(.outcome) { color: var(--muted); font-size: .8125rem; }
+.sheet .line b { font-weight: 600; }
+.sheet h4 { margin: 20px 0 6px; font-size: .8125rem; font-weight: 600; color: var(--muted); letter-spacing: .02em; text-transform: uppercase; }
+.text { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); font: .8125rem/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40vh; overflow-y: auto; }
+.text.none { color: var(--muted); font-family: var(--font); }
+.tried { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.tried li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.tried li:last-child { border-bottom: 0; }
+.tried .why { grid-column: 1 / -1; font-size: .8125rem; color: var(--bad); }
+.tried .ms { color: var(--muted); font-size: .8125rem; }
+
 /* ---- toast */
 .toast { position: fixed; left: 50%; bottom: 24px; z-index: 40; translate: -50% 0; max-width: min(92vw, 460px); padding: 12px 18px; border-radius: 12px; background: var(--ink); color: var(--paper); box-shadow: var(--shadow); opacity: 0; transform: translateY(12px); pointer-events: none; transition: opacity 150ms ease-out, transform 150ms ease-out; }
 .toast.show { opacity: 1; transform: none; transition: opacity 200ms var(--enter), transform 200ms var(--enter); }
@@ -205,6 +253,7 @@ body.has-savebar .toast { bottom: 96px; }
     <div class="tabs" role="tablist" aria-label="Sections">
       <button class="tab" role="tab" id="tab-words" aria-controls="panel-words" aria-selected="true">Words</button>
       <button class="tab" role="tab" id="tab-phrases" aria-controls="panel-phrases" aria-selected="false" tabindex="-1">Phrases</button>
+      <button class="tab" role="tab" id="tab-requests" aria-controls="panel-requests" aria-selected="false" tabindex="-1">Requests</button>
       <button class="tab" role="tab" id="tab-stats" aria-controls="panel-stats" aria-selected="false" tabindex="-1">Stats</button>
       <button class="tab" role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" tabindex="-1">Settings</button>
     </div>
@@ -236,6 +285,19 @@ body.has-savebar .toast { bottom: 96px; }
     <div class="foot"><span id="phrases-count" aria-live="polite"></span><button class="btn" id="phrases-more" type="button" hidden>Show More</button></div>
   </section>
 
+  <section class="panel" id="panel-requests" role="tabpanel" aria-labelledby="tab-requests" hidden>
+    <div class="head"><h2>Phrase Requests</h2><p>The latest cloud phrase requests, newest first. Unlike the rest of this viewer, this shows the text that was sent and what came back. It is kept in memory only (never saved to disk), holds the last 200, and is gone when Completionist stops.</p></div>
+    <div class="toolbar">
+      <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input class="field" type="search" id="requests-q" name="q" autocomplete="off" spellcheck="false" placeholder="Search app, text or model…" aria-label="Search requests"></div>
+      <select class="field" id="requests-result" name="result" aria-label="Filter by result"><option value="">Any Result</option><option value="ok">OK</option><option value="failover">Failover</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option></select>
+      <button class="btn quiet" id="requests-clear" type="button">Clear Log</button>
+      <span class="live" id="requests-live"><i></i>Live</span>
+    </div>
+    <div id="requests-body"></div>
+    <div class="foot"><span id="requests-count" aria-live="polite"></span></div>
+  </section>
+
   <section class="panel" id="panel-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
     <div class="head"><h2>Your Numbers</h2><p>Counts only, kept on this computer. Never what you typed.</p></div>
     <div class="toolbar"><div class="seg" role="group" aria-label="Period" id="period"></div></div>
@@ -248,6 +310,14 @@ body.has-savebar .toast { bottom: 96px; }
   </section>
 </main>
 
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" aria-hidden="true">
+  <div class="sheet-head">
+    <div><h2 id="sheet-title">Request</h2><p>What was sent, what came back, and which models were tried.</p></div>
+    <button class="btn" id="sheet-close" type="button" aria-label="Close request">Close</button>
+  </div>
+  <div id="sheet-body"></div>
+</aside>
 <div class="savebar" id="savebar" inert>
   <div class="savebar-in">
     <p class="note" id="savenote" role="status">You have unsaved changes.</p>
@@ -313,7 +383,7 @@ function armable(button, label, confirmLabel, action) {
 }
 
 // ---- sections, tabs and the address hash
-const NAMES = ["words", "phrases", "stats", "settings"];
+const NAMES = ["words", "phrases", "requests", "stats", "settings"];
 let current = "words";
 function show(name, animate = true) {
   if (!NAMES.includes(name)) name = "words";
@@ -328,7 +398,8 @@ function show(name, animate = true) {
   }
   if (location.hash !== "#" + name) history.replaceState(null, "", location.pathname + "#" + name);
   updateBar();
-  ({ words: () => lists.words.load(animate), phrases: () => lists.phrases.load(animate), stats: loadStats, settings: loadSettings })[name]();
+  setPoll(name === "requests");
+  ({ words: () => lists.words.load(animate), phrases: () => lists.phrases.load(animate), requests: () => loadRequests(true), stats: loadStats, settings: loadSettings })[name]();
 }
 for (const n of NAMES) {
   $("tab-" + n).addEventListener("click", (ev) => show(n, ev.detail !== 0));  // a keyboard activation doesn't animate
@@ -399,6 +470,100 @@ const lists = {
   phrases: makeList({ id: "phrases", path: "/api/trigrams", key: "trigrams", text: (t) => t.words.join(" "), forget: "/api/forget-trigram", forgetBody: (t) => ({ words: t.words }), one: "phrase", many: "phrases", emptyTitle: "No phrases yet", emptyText: "Phrases appear once you have typed the same three words a few times." }),
 };
 
+// ---- requests log
+const reqs = { seen: new Set(), sig: "", fresh: true, timer: null, opener: null };
+const clock = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" });
+const WORDS = { ok: "OK", failover: "Failover", failed: "Failed", cancelled: "Cancelled" };
+const ms = (v) => (v == null ? "–" : v >= 1000 ? (v / 1000).toFixed(1) + " s" : nf.format(v) + " ms");
+const outcome = (o) => el("span", { className: "outcome outcome-" + o, textContent: WORDS[o] || o });
+function requestFilters() { return { q: $("requests-q").value.trim(), result: $("requests-result").value }; }
+async function loadRequests(reset = false) {
+  if (reset) { reqs.fresh = true; reqs.sig = ""; }
+  const f = requestFilters(), box = $("requests-body");
+  let data;
+  try { data = await api("/api/requests?" + new URLSearchParams({ ...f, limit: 100 })); } catch (e) { if (!e.shown) banner(e.message); return; }
+  if (!data.available) { box.replaceChildren(el("div", { className: "empty" }, el("strong", { textContent: "Nothing is logging" }), el("span", { textContent: "Cloud phrases are not running, so there are no requests." }))); $("requests-count").textContent = ""; return; }
+  const sig = data.requests.map((r) => r.id).join(",") + "|" + data.total;
+  if (sig === reqs.sig) return;  // nothing new: leave the table alone so hover and focus stay put
+  reqs.sig = sig;
+  $("requests-count").textContent = data.total ? `${nf.format(data.total)} ${data.total === 1 ? "request" : "requests"}${f.q || f.result ? " match" : ""}${data.total > data.requests.length ? `, showing the newest ${data.requests.length}` : ""}` : "";
+  if (!data.requests.length) {
+    const any = f.q || f.result;
+    box.replaceChildren(el("div", { className: "empty" }, el("strong", { textContent: any ? "No requests match" : "No requests yet" }), el("span", { textContent: any ? "Try a different search or result." : "Phrase requests show up here as they happen. Ctrl+Space asks for one anywhere." })));
+    reqs.seen = new Set(); reqs.fresh = false;
+    return;
+  }
+  const rows = data.requests.map((r) => {
+    const at = clock.format(new Date(r.at * 1000));
+    const tr = el("tr", {},
+      el("td", { className: "mono" }, el("button", { className: "rowbtn", type: "button", textContent: at, "aria-label": `Open request from ${at}, ${WORDS[r.outcome] || r.outcome}` })),
+      el("td", { className: "mono", textContent: r.app }),
+      el("td", { className: "mono", textContent: r.model || "–" }),
+      el("td", { className: "reply", textContent: r.reply || "" }),
+      el("td", { className: "n mono", textContent: ms(r.ttft_ms) }),
+      el("td", { className: "n mono", textContent: ms(r.total_ms) }),
+      el("td", {}, outcome(r.outcome)));
+    if (!reqs.fresh && !reqs.seen.has(r.id) && !reduced.matches) tr.classList.add("in");
+    tr.addEventListener("click", (ev) => openRequest(r.id, tr.querySelector(".rowbtn"), ev.detail !== 0));
+    return tr;
+  });
+  const heads = [["Time", ""], ["App", ""], ["Answered by", ""], ["Suggestion", ""], ["First text", "n"], ["Took", "n"], ["Result", ""]];
+  box.replaceChildren(el("div", { className: "scroll" }, el("table", { className: "log" },
+    el("thead", {}, el("tr", {}, ...heads.map(([h, c]) => el("th", { className: c, scope: "col", textContent: h })))), el("tbody", {}, ...rows))));
+  reqs.seen = new Set(data.requests.map((r) => r.id)); reqs.fresh = false;
+}
+function setPoll(on) {
+  clearInterval(reqs.timer); reqs.timer = null;
+  $("requests-live").classList.toggle("paused", !on);
+  if (on) reqs.timer = setInterval(() => { if (!document.hidden && current === "requests") loadRequests(); }, 3000);
+}
+let typingTimer;
+$("requests-q").addEventListener("input", () => { clearTimeout(typingTimer); typingTimer = setTimeout(() => loadRequests(true), 250); });
+$("requests-result").addEventListener("change", () => loadRequests(true));
+{
+  const clear = $("requests-clear"); clear.dataset.what = "";
+  armable(clear, "Clear Log", "Confirm Clear", async () => {
+    try { await api("/api/requests/clear", {}); toast("Request log cleared."); loadRequests(true); } catch (e) { if (!e.shown) toast(e.message); }
+  });
+}
+
+// The side sheet: slides in from the right after a click; opening it from the keyboard is instant.
+const sheet = $("sheet"), scrim = $("scrim"), behindSheet = [document.querySelector("header.sign"), $("main")];
+function section(title, ...kids) { return el("div", {}, el("h4", { textContent: title }), ...kids); }
+async function openRequest(id, opener, animate) {
+  let r;
+  try { r = await api("/api/requests/" + id); } catch (e) { if (!e.shown) { toast(e.message); loadRequests(true); } return; }
+  const at = clock.format(new Date(r.at * 1000));
+  const tried = r.attempts.length
+    ? el("ul", { className: "tried" }, ...r.attempts.map((a) => el("li", {},
+        el("span", { className: "mono", textContent: a.model }), el("span", { className: "ms", textContent: (a.ok ? "answered in " : "gave up after ") + ms(a.ms) }),
+        ...(a.ok ? [] : [el("span", { className: "why", textContent: a.error || "failed" })]))))
+    : el("p", { className: "text none", textContent: r.outcome === "cancelled" ? "Dropped before any model answered: you kept typing." : "No model was tried." });
+  $("sheet-body").replaceChildren(
+    el("div", { className: "line" }, outcome(r.outcome), el("b", { textContent: r.app }), el("span", { textContent: at })),
+    el("div", { className: "line" }, el("span", { textContent: `First text ${ms(r.ttft_ms)} · took ${ms(r.total_ms)}` })),
+    section("You (text before the caret)", el("pre", { className: "text", textContent: r.prompt })),
+    section("Suggestion", r.reply ? el("pre", { className: "text", textContent: r.reply }) : el("p", { className: "text none", textContent: r.outcome === "cancelled" ? "Nothing arrived before the request was dropped." : "Nothing came back." })),
+    section(r.attempts.length > 1 ? "Models tried" : "Model tried", tried));
+  reqs.opener = opener;
+  for (const n of [sheet, scrim]) n.classList.toggle("instant", !animate || reduced.matches);
+  sheet.setAttribute("aria-hidden", "false");
+  sheet.classList.add("show"); scrim.classList.add("show");
+  for (const n of behindSheet) n.inert = true;
+  $("sheet-close").focus({ preventScroll: true });
+  sheet.scrollTop = 0;
+}
+function closeRequest() {
+  if (!sheet.classList.contains("show")) return;
+  sheet.classList.remove("show"); scrim.classList.remove("show");
+  sheet.setAttribute("aria-hidden", "true");
+  for (const n of behindSheet) n.inert = false;
+  if (reqs.opener && reqs.opener.isConnected) reqs.opener.focus({ preventScroll: true });
+}
+$("sheet-close").addEventListener("click", closeRequest);
+scrim.addEventListener("click", closeRequest);
+addEventListener("keydown", (ev) => { if (ev.key === "Escape") closeRequest(); });
+
 // ---- stats
 let days = 7;
 const period = $("period");
@@ -464,6 +629,15 @@ const GROUPS = [
     ["enabled", "bool", "Suggest Phrases", "Turn cloud phrases on or off."],
     ["api_key", "key", "OpenRouter Key", "Saved into your settings file. The page can write it but never shows it back."],
     ["models", "list", "Models", "One per line. Tried in order; the next only if the one before fails."],
+    ["provider_order", "list", "Preferred Providers", "One per line, like Groq. OpenRouter tries these first for the model; others stay as fallbacks. Leave empty to let OpenRouter choose."],
+    ["max_tokens", "number", "Max Output Length", "The longest suggestion, counted in tokens (a token is about four characters). Lower is faster and cheaper.", { min: 1, step: 1, fold: "Advanced" }],
+    ["temperature", "number", "Temperature", "0 is the most predictable and higher is more varied. Around 0.2 suits autocomplete.", { min: 0, max: 2, step: 0.05, inputmode: "decimal", fold: "Advanced" }],
+    ["debounce", "number", "Seconds Before Asking", "How long you pause typing before a request is sent automatically. Ctrl+Space never waits.", { min: 0, step: 0.05, inputmode: "decimal", fold: "Advanced" }],
+    ["timeout", "number", "Give Up After (Seconds)", "How long to wait on a model before trying the next one.", { min: 0.5, step: 0.5, inputmode: "decimal", fold: "Advanced" }],
+    ["context_before", "number", "Text Before the Caret", "How many characters before the caret the model sees. More is smarter but slower.", { min: 1, step: 100, fold: "Advanced" }],
+    ["fim", "bool", "Send Text After the Caret", "Also show the model what comes after the caret. Leave off unless your models support fill-in-the-middle; OpenRouter's do not.", { fold: "Advanced" }],
+    ["context_after", "number", "Text After the Caret", "How many characters after the caret to send when the option above is on.", { min: 0, step: 100, fold: "Advanced" }],
+    ["instructions", "prompt", "Instructions to the Model", "What the model is told before your text. It must end by leading into the text to continue.", { fold: "Instructions (System Prompt)" }],
   ]],
   ["apps", "Apps", "Where Completionist speaks up.", [
     ["block", "list", "Stay Silent In", "One program name per line, like code.exe."],
@@ -472,6 +646,7 @@ const GROUPS = [
   ["hotkeys", "Hotkey", "", [["pause", "text", "Pause and Resume", "For example ctrl+alt+p. Leave empty for no hotkey.", { placeholder: "ctrl+alt+p" }]]],
 ];
 let loaded = null;
+const openFolds = new Set();  // which expandable sections are open, kept across saves
 const form = $("form");
 function dirty() { return loaded !== null && Object.keys(readForm()).length > 0; }
 async function loadSettings() {
@@ -483,7 +658,20 @@ function renderSettings() {
   form.replaceChildren(...GROUPS.map(([sec, title, about, rows]) => {
     const g = el("fieldset", { className: "group" }, el("legend", { className: "sr", textContent: title }),
       el("header", {}, el("h3", { textContent: title }), about ? el("p", { textContent: about }) : ""));
-    for (const [key, kind, label, hint, opt = {}] of rows) g.append(setting(sec, key, kind, label, hint, opt));
+    const folds = {};
+    for (const [key, kind, label, hint, opt = {}] of rows) {
+      let into = g;
+      if (opt.fold) {
+        const id = `${sec}/${opt.fold}`;
+        if (!folds[id]) {
+          const d = el("details", { className: "fold", open: openFolds.has(id) }, el("summary", {}, opt.fold));
+          d.addEventListener("toggle", () => { if (d.open) openFolds.add(id); else openFolds.delete(id); });
+          folds[id] = d; g.append(d);
+        }
+        into = folds[id];
+      }
+      into.append(setting(sec, key, kind, label, hint, opt));
+    }
     return g;
   }));
   updateBar();
@@ -494,12 +682,13 @@ function setting(sec, key, kind, label, hint, opt) {
   if (kind === "bool") input = el("input", { type: "checkbox", id, className: "switch", checked: !!value });
   else if (kind === "number") input = el("input", { type: "number", id, className: "field", value, min: opt.min, max: opt.max, step: opt.step, inputMode: opt.inputmode || "numeric" });
   else if (kind === "list") { input = el("textarea", { id, className: "field", value: value.join("\n"), spellcheck: false }); }
+  else if (kind === "prompt") input = el("textarea", { id, className: "field prompt", value, spellcheck: false, rows: 14 });
   else if (kind === "key") input = el("input", { type: "password", id, className: "field", autocomplete: "off", spellcheck: false, placeholder: loaded.phrase.api_key_set ? "Paste a new key to replace it…" : "Paste your key…" });
   else input = el("input", { type: "text", id, className: "field", value, spellcheck: false, autocomplete: "off", placeholder: opt.placeholder || "" });
   input.name = `${sec}.${key}`; input.dataset.sec = sec; input.dataset.key = key; input.dataset.kind = kind;
   if (kind === "bool") input.setAttribute("role", "switch");
   const t = el("label", { className: "t", htmlFor: id }, label, el("small", { textContent: hint }));
-  const ctl = el("div", { className: "ctl" }, input);
+  const ctl = el("div", { className: "ctl" }, ...(kind === "prompt" ? [] : [input]));
   if (kind === "key") {
     ctl.prepend(el("span", { className: "pill" + (loaded.phrase.api_key_set ? " on" : ""), textContent: loaded.phrase.api_key_set ? "Key set" : "No key yet" }));
     if (loaded.phrase.api_key_set) {
@@ -507,6 +696,15 @@ function setting(sec, key, kind, label, hint, opt) {
       armable(rm, "Remove Key", "Confirm Remove", () => save({ phrase: { api_key: "" } }, "Key removed."));
       ctl.append(rm);
     }
+  }
+  if (kind === "prompt") {
+    const custom = loaded.phrase.instructions_custom;
+    const restore = el("button", { className: "btn quiet", type: "button", textContent: "Restore Built-in", disabled: !custom && input.value === loaded.phrase.instructions_default });
+    restore.addEventListener("click", () => { input.value = loaded.phrase.instructions_default; input.dispatchEvent(new Event("input", { bubbles: true })); restore.disabled = true; input.focus(); });
+    input.addEventListener("input", () => { restore.disabled = input.value.trim() === loaded.phrase.instructions_default.trim(); });
+    ctl.prepend(el("span", { className: "pill" + (custom ? " on" : ""), textContent: custom ? "Custom" : "Built-in" }));
+    ctl.append(restore);
+    return el("div", { className: "set wide" }, t, ctl, el("div", { className: "wide-field" }, input));
   }
   return el("div", { className: "set" }, t, ctl);
 }
@@ -520,7 +718,7 @@ function readForm() {
     else if (kind === "list") v = i.value.split("\n").map((x) => x.trim()).filter(Boolean);
     else if (kind === "key") { if (!i.value) continue; v = i.value.trim(); }
     else v = i.value.trim();
-    if (kind !== "key" && JSON.stringify(v) === JSON.stringify(loaded[sec][key])) continue;  // send only what changed
+    if (kind !== "key" && JSON.stringify(v) === JSON.stringify(kind === "prompt" ? loaded[sec][key].trim() : loaded[sec][key])) continue;  // send only what changed
     (out[sec] = out[sec] || {})[key] = v;
   }
   return out;
@@ -544,7 +742,12 @@ async function save(changes, done) {
   const btn = $("save"); btn.disabled = true; btn.textContent = "Saving…";
   try { loaded = await api("/api/settings", changes); renderSettings(); toast(done); }
   catch (e) {
-    if (!e.shown) { toast(e.message); updateBar(e.message, true); const first = form.querySelector("[data-key]"); if (first) first.focus({ preventScroll: true }); }
+    if (!e.shown) {
+      toast(e.message); updateBar(e.message, true);
+      const changed = Object.entries(readForm()).flatMap(([sec, keys]) => Object.keys(keys).map((k) => form.querySelector(`[name="${sec}.${k}"]`))).filter(Boolean);
+      for (const c of changed) { const d = c.closest("details"); if (d) d.open = true; }  // show the field that may be wrong
+      const first = changed[0] || form.querySelector("[data-key]"); if (first) first.focus({ preventScroll: true });
+    }
   } finally { btn.disabled = false; btn.textContent = "Save Settings"; }
 }
 addEventListener("beforeunload", (ev) => { if (dirty()) { ev.preventDefault(); ev.returnValue = ""; } });
