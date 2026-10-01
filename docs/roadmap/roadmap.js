@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); 0.6.3 to 0.6.7 are done on branch m9-fuzzy, and 0.6.8 (live check) needs you.",
+  "now": "0.6.7 is released on branch m9-fuzzy. 0.7.0 is next once the merge lands; the demo GIF (0.6.9) and Spike keyboard removal (0.6.10) stay open for daily use.",
   "highways": [
     {
       "id": "engine",
@@ -1309,14 +1309,14 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M9.6",
           "version": "0.6.8",
           "title": "Check typo completion live in real apps",
-          "status": "next",
+          "status": "dropped",
           "area": "test",
           "stories": [
             71,
             72,
             73
           ],
-          "notes": "Needs you: type moutian, definately, recieve and similar, and check that correct rare words aren't pushed aside."
+          "notes": "Dropped for the release: live checks no longer gate a milestone (see the 2026-09-30 decision); daily use is the test. Checklist for when you want it: type moutian, definately, recieve and similar, and check that correct rare words aren't pushed aside."
         },
         {
           "id": "M9.7",
@@ -1626,11 +1626,21 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The roadmap pages now show every task by the version it ships in instead of an M-number, and the checker enforces it, so each patch counts up to the next release."
     },
     {
+      "version": "0.6.7",
+      "status": "released",
+      "title": "Latency check with the fuzzy index on",
+      "highways": [
+        "engine"
+      ],
+      "date": "2026-10-01",
+      "text": "A new pipe test types typos as well as plain text and holds the 95th percentile under 10 ms, since the fuzzy scan only runs when rows are unfilled."
+    },
+    {
       "version": "0.7.0",
       "status": "next",
       "title": "Typo-tolerant words",
       "milestone": "M9",
-      "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing edit-distance library, rapidfuzz, over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile. Words you fix yourself are never learned as new vocabulary."
+      "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing edit-distance library, rapidfuzz, over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile over the real pipe. Words you fix yourself are never learned as new vocabulary. Checks in real apps, the demo GIF and the Spike keyboard removal are left to daily use."
     },
     {
       "version": "1.0.0",
@@ -1904,6 +1914,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "Release 0.6.7 on branch m9-fuzzy: the p95 latency check with the fuzzy index on; 0.7.0 is next once the merge lands."
+    },
     {
       "date": "2026-10-01",
       "text": "0.6.3 to 0.6.7 built on branch m9-fuzzy (fuzzy index, ranking, marks, amber popup, p95 check); 0.6.8 is next and needs you at a real desktop."
