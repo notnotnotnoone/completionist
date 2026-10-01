@@ -1917,6 +1917,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-01",
+      "text": "Pushed main and tagged v0.7.0, plus v0.6.3 to v0.6.7 (0.6.3 and 0.6.4 share one commit); all are on origin."
+    },
+    {
+      "date": "2026-10-01",
       "text": "Release 0.7.0 (Typo-tolerant words): merged m9-fuzzy into main; M9 done; the live check, demo GIF and Spike removal are dropped to daily use; M5 is active and 1.1.0 is next."
     },
     {
