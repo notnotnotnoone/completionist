@@ -152,7 +152,45 @@ def test_ngrams_and_personal_habits_work_together():
     assert set(words[:2]) == {"know", "knew"}
 
 
+# --- typo tolerance: corrections fill the rows after exact prefix matches -------------------------------
+
+from completionist_engine.fuzzy import FuzzyIndex  # noqa: E402
+
+
+def test_a_typo_still_offers_the_right_word_after_exact_matches():
+    completer = WordCompleter([("mountain", 6.0), ("motion", 5.0), ("moulin", 4.0)], fuzzy=FuzzyIndex({"mountain", "motion", "moulin"}))
+    assert "mountain" in completer.complete("moutian").words
+
+
+def test_exact_prefix_matches_always_come_first():
+    completer = WordCompleter(
+        [("recieve", 6.0), ("recieved", 5.5), ("receive", 5.0), ("relieve", 4.0)],
+        fuzzy=FuzzyIndex({"recieve", "recieved", "receive", "relieve"}),
+    )
+    words = completer.complete("recie").words
+    assert words[0] == "recieve"  # the real prefix match, not a guess
+    assert "receive" in words
+
+
+def test_a_guess_never_outranks_a_real_prefix_match():
+    completer = WordCompleter(
+        [("the", 9.0), ("then", 7.0), ("teh", 1.0)], fuzzy=FuzzyIndex({"the", "then", "teh"})
+    )
+    assert completer.complete("the").words[0] == "then"
+
+
+def test_short_fragments_and_learned_words_are_never_corrected():
+    completer = WordCompleter([("know", 6.0), ("known", 5.0)], fuzzy=FuzzyIndex({"know", "known"}))
+    assert completer.complete("kn").words == ("know", "known")
+
+
+def test_without_a_fuzzy_index_a_typo_gives_only_prefix_matches():
+    completer = WordCompleter([("recieve", 6.0), ("recieved", 5.5), ("receive", 5.0)])
+    assert "receive" not in completer.complete("recie").words
+
+
 # --- next words: suggestions after a space, before any letter is typed ------------------------------
+
 
 NEXT_VOCAB = VOCAB + [("see", 7.0), ("be", 9.0), ("write", 6.0), ("i", 9.5), ("go", 8.0)]
 TO = {("to",): {"know": 30, "see": 20, "be": 10, "go": 5}}  # after "to": know 46%, see 31%, be 15%, go 8%

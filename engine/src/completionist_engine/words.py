@@ -12,6 +12,7 @@ from functools import lru_cache
 from heapq import nlargest
 
 from completionist_engine.counts import NO_COUNTS, Counts, CountSource
+from completionist_engine.fuzzy import FuzzyIndex
 
 # A word is a letter followed by letters or apostrophes. Only the tail of the text matters.
 _WORD_AT_END = re.compile(r"[^\W\d_](?:[^\W\d_]|')*$")
@@ -74,11 +75,14 @@ class WordCompleter:
         ngrams: CountSource | None = None,
         personal: CountSource | None = None,
         promote_after: int = 3,
+        fuzzy: FuzzyIndex | None = None,
     ) -> None:
         """`vocabulary` is (word, weight) pairs; a higher weight ranks the word higher.
 
         `ngrams` re-ranks by the words before the one being typed; `personal` boosts the writer's own
         words and adds ones outside the dictionary once they've been used `promote_after` times.
+        `fuzzy` offers guesses when the typed fragment has a typo; without one (or when it holds
+        no words) only exact prefix matches are offered.
         """
         weights: dict[str, float] = {}
         for word, weight in vocabulary:
@@ -94,6 +98,7 @@ class WordCompleter:
         self._ngrams = ngrams
         self._personal = personal
         self._promote_after = promote_after
+        self._fuzzy = fuzzy
         self._ranked = lru_cache(maxsize=4096)(self._rank)
 
     def complete(self, before: str, limit: int = 5) -> Completion:
@@ -101,7 +106,7 @@ class WordCompleter:
         if not prefix:
             return Completion(replace=0, words=())
         key = prefix.lower()
-        if self._ngrams is None and self._personal is None:
+        if self._ngrams is None and self._personal is None and self._fuzzy is None:
             words = self._ranked(key, limit)  # frequency alone
         else:
             words = self._rerank(key, previous_words(before, 2), limit)
@@ -197,11 +202,22 @@ class WordCompleter:
             candidates.update(dict.fromkeys(w for w in counts.words if w in self._index))
         for counts in (personal_uni, personal_bi):
             candidates.update(dict.fromkeys(w for w in counts.words if self._usable_personal(w, counts, personal_uni)))
+        fuzzy_hits: list[tuple[int, str]] = []
+        if self._fuzzy is not None:
+            fuzzy_hits = [(d, w) for d, w in self._fuzzy.candidates(key) if w in self._index and w != key]
+            candidates.update(dict.fromkeys(w for _, w in fuzzy_hits))
         candidates.pop(key, None)  # never suggest the word already typed
 
         scored = [(self._score(w, ngram_counts, personal_uni, personal_bi), w) for w in candidates]
         scored.sort(key=lambda pair: (-pair[0], pair[1]))
-        return tuple(word for _, word in scored[:limit])
+        if not fuzzy_hits:
+            return tuple(word for _, word in scored[:limit])
+        fuzzy_set = {w for _, w in fuzzy_hits}
+        exact = [w for _, w in scored if w.startswith(key) or w not in fuzzy_set][:limit]
+        if len(exact) >= limit:
+            return tuple(exact)
+        fuzzy_first = [w for _, w in fuzzy_hits if w not in exact]
+        return tuple([*exact, *fuzzy_first[: limit - len(exact)]])
 
     def _usable_personal(self, word: str, counts: Counts, unigrams: Counts) -> bool:
         if word in self._index:

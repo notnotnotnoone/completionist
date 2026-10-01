@@ -5,10 +5,10 @@ window.COMPLETIONIST_ROADMAP = {
   "schema": 3,
   "project": "Completionist",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
-  "updated": "2026-09-30",
+  "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); its first task is 0.6.3, and 0.7.0 is the release that finishes the set.",
+  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); 0.6.3 and 0.6.4 are done on branch m9-fuzzy, and 0.6.5 is doing.",
   "highways": [
     {
       "id": "engine",
@@ -1220,23 +1220,35 @@ window.COMPLETIONIST_ROADMAP = {
         {
           "id": "M9.1",
           "version": "0.6.3",
-          "title": "Fuzzy index with SymSpell over the vocabulary and personal words",
-          "status": "todo",
+          "title": "Fuzzy index over the vocabulary and personal words",
+          "status": "done",
           "area": "engine",
           "stories": [
             71
           ],
-          "notes": "Use the existing `symspellpy` library, not a hand-made matcher. Try it first; only if it can't handle half-typed words (it corrects whole words, but we complete prefixes), compare `rapidfuzz` or a trie with a Levenshtein automaton, and record the result in `decisions`."
+          "refs": [
+            "m9-fuzzy",
+            "engine/src/completionist_engine/fuzzy.py",
+            "engine/tests/test_fuzzy.py",
+            "0.6.3"
+          ],
+          "notes": "Tried SymSpell first as planned, but it corrects whole words and can't handle half-typed fragments (see the decision). Uses rapidfuzz instead: a first-letter bucket scan with OSA edit distance and an early cutoff (see the decision)."
         },
         {
           "id": "M9.2",
           "version": "0.6.4",
           "title": "Fuzzy candidates fill the rows after exact prefix matches",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             71,
             73
+          ],
+          "refs": [
+            "m9-fuzzy",
+            "engine/src/completionist_engine/words.py",
+            "engine/src/completionist_engine/assemble.py",
+            "0.6.4"
           ],
           "notes": "Exact matches always come first. Corrections fill the remaining rows, or all of them when nothing matches. Edit distance 1 for short fragments and 2 for longer ones, and no correcting 1 to 2 letter fragments, names or learned words. Tests: moutian, definately, recieve."
         },
@@ -1598,7 +1610,7 @@ window.COMPLETIONIST_ROADMAP = {
       "status": "next",
       "title": "Typo-tolerant words",
       "milestone": "M9",
-      "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing spell-correction library, SymSpell, built over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile. Words you fix yourself are never learned as new vocabulary."
+      "text": "Suggestions now survive typos. Type a misspelled word such as “moutian” and the popup still offers “mountain”, with the letters it guessed drawn in a different colour so you can see what was corrected. Exact prefix matches always rank first, and corrections only fill the remaining rows or step in when nothing matches, so a real word is never pushed aside by a guess. The matching comes from an existing edit-distance library, rapidfuzz, over the vocabulary and your personal words, and lookups stay under ten milliseconds at the 95th percentile. Words you fix yourself are never learned as new vocabulary."
     },
     {
       "version": "1.0.0",
@@ -1717,6 +1729,10 @@ window.COMPLETIONIST_ROADMAP = {
     "75": "Change my settings in the viewer"
   },
   "decisions": [
+    {
+      "date": "2026-10-01",
+      "text": "Typo tolerance uses rapidfuzz (OSA edit distance with an early cutoff over a first-letter bucket of the vocabulary), not SymSpell: SymSpell corrects whole words and can't complete half-typed fragments (\"moutia\" finds \"mouth\", never \"mountain\"), and its whole-word deletes index costs ~580 MB in memory. Only fragments of 3+ letters are corrected, exact prefix matches always rank first, and corrections only fill unfilled rows, so short fragments, names and learned words are never corrected."
+    },
     {
       "date": "2026-09-30",
       "text": "Milestones are no longer a thing you read on the roadmap; versions are. A task shows the version it ships in: shipped work names its real release (several tasks can share one), unshipped work gets one patch number each, counting up from the last release so 0.6.10 comes before 0.7.0. The M-ids stay in roadmap.js as internal keys (and in the old log lines and git history) and are never renumbered. Planned releases are ordered by version, so the reply-aware and web-field work (1.1.0, 1.2.0) now sits after 0.7.0."
@@ -1868,6 +1884,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "0.6.3 and 0.6.4 done on branch m9-fuzzy: rapidfuzz fuzzy index (SymSpell tried and dropped, see the decision) and corrections filling rows after exact matches; M9.3 is doing."
+    },
     {
       "date": "2026-09-30",
       "text": "0.6.2: versions replace milestones on the roadmap. Every task has a version, pages show it instead of the M-id, milestones sort by release, and the checker enforces the numbering. Rebased after the viewer took 0.6.1."
