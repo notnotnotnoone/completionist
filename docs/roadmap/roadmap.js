@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); 0.6.3 to 0.6.7 are done on branch m9-fuzzy, and 0.6.8 needs you.",
+  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); 0.6.3 to 0.6.7 are done on branch m9-fuzzy, and 0.6.8 (live check) needs you.",
   "highways": [
     {
       "id": "engine",
@@ -1309,7 +1309,7 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M9.6",
           "version": "0.6.8",
           "title": "Check typo completion live in real apps",
-          "status": "todo",
+          "status": "next",
           "area": "test",
           "stories": [
             71,
@@ -1904,6 +1904,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "0.6.3 to 0.6.7 built on branch m9-fuzzy (fuzzy index, ranking, marks, amber popup, p95 check); 0.6.8 is next and needs you at a real desktop."
+    },
     {
       "date": "2026-10-01",
       "text": "0.6.7 done on branch m9-fuzzy: p95 stays under 10 ms over the real pipe with the fuzzy index on (new test types typos too); 0.6.8 needs you."
