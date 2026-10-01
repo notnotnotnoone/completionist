@@ -73,7 +73,11 @@ def apply_settings(path: Path, changes: dict[str, dict[str, Any]]) -> None:
     except ConfigError:
         candidate.unlink(missing_ok=True)
         raise
-    os.replace(candidate, path)
+    try:
+        os.replace(candidate, path)
+    except OSError:
+        candidate.unlink(missing_ok=True)
+        raise
 
 
 def _toml(value: Any, name: str) -> str:

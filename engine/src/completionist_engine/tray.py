@@ -77,6 +77,7 @@ class Tray:
         log_dir: Path,
         quit_engine: Callable[[], None],
         viewer_url: Callable[[], str] | None = None,
+        on_loop: Callable[[Callable[[], str]], str] | None = None,
     ) -> None:
         self._toggle = toggle_pause
         self._is_paused = is_paused
@@ -85,6 +86,7 @@ class Tray:
         self._log_dir = log_dir
         self._quit = quit_engine
         self._viewer_url = viewer_url
+        self._on_loop = on_loop  # runs a function on the engine's loop (the metrics database lives there)
         self._icon = pystray.Icon(
             "completionist",
             icon_image(is_paused()),
@@ -122,8 +124,18 @@ class Tray:
         if self._metrics is None:
             self._icon.notify("Stats are off.", "Completionist")
             return
-        self._metrics.flush()
-        self._icon.notify(stats_line(self._metrics.summary(7)), "Completionist stats")
+        metrics = self._metrics
+
+        def line() -> str:
+            metrics.flush()
+            return stats_line(metrics.summary(7))
+
+        try:
+            text = self._on_loop(line) if self._on_loop is not None else line()
+        except Exception as err:
+            logger.warning("could not read stats: %s", err)
+            return
+        self._icon.notify(text, "Completionist stats")
 
     def _on_viewer(self, _icon=None, _item=None) -> None:
         if self._viewer_url is not None:

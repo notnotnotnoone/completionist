@@ -31,5 +31,8 @@ if ($DeleteData) {
     Step "Deleting data"
     Remove-Item (Join-Path $env:LOCALAPPDATA "Completionist") -Recurse -Force -ErrorAction SilentlyContinue
     "Deleted $env:LOCALAPPDATA\Completionist"
+    # The settings file (with the OpenRouter key in plain text) lives in the roaming profile.
+    Remove-Item (Join-Path $env:APPDATA "Completionist") -Recurse -Force -ErrorAction SilentlyContinue
+    "Deleted $env:APPDATA\Completionist"
 }
 "`nCompletionist is uninstalled. Restart open apps so they let go of the DLL."

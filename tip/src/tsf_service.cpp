@@ -476,6 +476,7 @@ private:
     void HideAll() {
         popup_.Hide();
         model_.Close();
+        model_.SetPhraseAvailable(false);  // no request goes out from here, so Ctrl+Space isn't ours to take
         phrase_.clear();
         latestId_ = 0;
         hotkeyPending_ = false;
@@ -509,7 +510,7 @@ private:
     void QueueInspect(ITfContext* context) {
         if (inspectQueued_ || !context) return;
         inspectQueued_ = true;
-        auto* session = new (std::nothrow) EditSession([this, context = ComPtrHold(context)](TfEditCookie ec) mutable {
+        auto* session = new (std::nothrow) EditSession([this, self = ServiceHold(this), context = ComPtrHold(context)](TfEditCookie ec) mutable {
             inspectQueued_ = false;
             Inspect(context.get(), ec);
         });
@@ -543,6 +544,25 @@ private:
         ITfContext* get() const { return ptr_; }
         ITfContext* ptr_;
     };
+
+    // Keeps the service alive for a queued edit session: TSF may run it after the last reference is gone.
+    struct ServiceHold {
+        explicit ServiceHold(CompletionistService* p) : ptr_(p) { ptr_->AddRef(); }
+        ServiceHold(const ServiceHold& o) : ptr_(o.ptr_) { ptr_->AddRef(); }
+        ~ServiceHold() { ptr_->Release(); }
+        CompletionistService* ptr_;
+    };
+
+    // Where the text typed since `base` begins in `before`, or -1 if `before` doesn't continue `base`.
+    // `before` is a sliding window, so in a long field its start moves with every keystroke.
+    static std::ptrdiff_t TypedStart(const std::wstring& before, const std::wstring& base) {
+        const std::size_t n = base.size();
+        if (before.size() >= n && before.compare(0, n, base) == 0) return static_cast<std::ptrdiff_t>(n);
+        if (before.size() != n) return -1;
+        for (std::size_t k = 1; k < n && k < 500; ++k)
+            if (before.compare(0, n - k, base, k, n - k) == 0) return static_cast<std::ptrdiff_t>(n - k);
+        return -1;
+    }
 
     void Inspect(ITfContext* context, TfEditCookie ec) {
         bool hotkey = hotkeyPending_;
@@ -612,8 +632,8 @@ private:
         // After Esc, stay quiet while the writer is still in the same word (or the same gap).
         bool suppressed = false;
         if (dismissed_) {
-            suppressed = before.size() >= dismissedBefore_.size() && before.compare(0, dismissedBefore_.size(), dismissedBefore_) == 0 &&
-                         OnlyWordChars(before, dismissedBefore_.size());
+            std::ptrdiff_t typedFrom = TypedStart(before, dismissedBefore_);
+            suppressed = typedFrom >= 0 && OnlyWordChars(before, static_cast<std::size_t>(typedFrom));
             if (!suppressed) {
                 dismissed_ = false;
                 dismissedBefore_.clear();
@@ -701,7 +721,7 @@ private:
         std::string kind = index < kinds_.size() ? kinds_[index] : "word";
         if (typed.empty() != (kind == "next")) return;  // a next word has nothing to replace; the others need a typed word
 
-        auto body = [this, context = ComPtrHold(context), chosen, typed, kind](TfEditCookie ec) mutable {
+        auto body = [this, self = ServiceHold(this), context = ComPtrHold(context), chosen, typed, kind](TfEditCookie ec) mutable {
             ReplaceWord(context.get(), ec, typed, chosen, kind);
         };
         RunWriteSession(context, body);
@@ -711,7 +731,7 @@ private:
     void InsertPhrase(ITfContext* context, const std::wstring& text, const char* kind) {
         if (text.empty()) return;
         std::wstring expectedBefore = promptBefore_;
-        auto body = [this, context = ComPtrHold(context), text, expectedBefore, kind](TfEditCookie ec) mutable {
+        auto body = [this, self = ServiceHold(this), context = ComPtrHold(context), text, expectedBefore, kind](TfEditCookie ec) mutable {
             InsertAtCaret(context.get(), ec, text, expectedBefore, kind);
         };
         RunWriteSession(context, body);

@@ -13,6 +13,7 @@ class TypingLearner:
 
     def __init__(self) -> None:
         self._last: str | None = None
+        self._last_len = 0  # full length of the previous text, which `_last` (a tail) can't tell
         self._corrected = False
 
     def reset(self) -> None:
@@ -22,7 +23,9 @@ class TypingLearner:
     def observe(self, before: str) -> tuple[str, tuple[str, ...]] | None:
         """The finished word (lowercase) and up to two words before it, if this text completed one."""
         last, self._last = self._last, before[-_TAIL:]
-        if last is not None and len(before) < len(last) and last.startswith(before[-_TAIL:]):
+        last_len, self._last_len = self._last_len, len(before)
+        removed = last_len - len(before)
+        if last is not None and 0 < removed < len(last) and before.endswith(last[: len(last) - removed]):
             self._corrected = True
             return None
         if last is None or not before or before[:-1][-_TAIL:] != last:

@@ -45,6 +45,7 @@ class Update:
 
 
 _NOTHING = Update((), "", True)
+_MAX_SLIDE = 500  # how far the window may have slid and still count as the same text
 
 
 class PhraseScheduler:
@@ -67,7 +68,7 @@ class PhraseScheduler:
         self._mode = mode
         actions: list[Action] = []
         if self._base is not None:
-            if request.before.startswith(self._base) and self._consistent():
+            if self._typed_since(request.before) is not None and self._consistent():
                 shown = self._shown()
                 if shown or not self._done:
                     return Update((), shown, self._done, request.id)
@@ -84,7 +85,7 @@ class PhraseScheduler:
         del now
         self._latest = request
         self._mode = mode
-        if self._base is not None and request.before.startswith(self._base) and self._consistent():
+        if self._base is not None and self._typed_since(request.before) is not None and self._consistent():
             shown = self._shown()
             if shown or not self._done:
                 return Update((), shown, self._done, request.id)
@@ -155,19 +156,38 @@ class PhraseScheduler:
         self._inflight = None
         return actions
 
-    def _typed(self) -> str:
-        assert self._latest is not None and self._base is not None
-        return self._latest.before[len(self._base) :]
+    def _typed_since(self, before: str) -> str | None:
+        """What was typed after the request began, or None if `before` doesn't continue its text.
+
+        The text service sends a sliding window, so once the field is longer than the window the start
+        moves with every keystroke: a continuation then matches the base shifted by what was typed.
+        """
+        base = self._base
+        assert base is not None
+        if before.startswith(base):
+            return before[len(base) :]
+        n = len(base)
+        if len(before) == n:
+            for k in range(1, min(n, _MAX_SLIDE)):
+                if base.startswith(before[:32], k) and base[k:] == before[: n - k]:
+                    return before[n - k :]
+        return None
+
+    def _typed(self) -> str | None:
+        assert self._latest is not None
+        return self._typed_since(self._latest.before)
 
     def _consistent(self) -> bool:
         """Whether what the writer has typed since the request agrees with the phrase so far."""
         if self._latest is None or self._base is None:
             return False
         typed = self._typed()
+        if typed is None:
+            return False
         if self._text.startswith(typed):
             return True
         return not self._done and typed.startswith(self._text)  # still streaming: can't tell yet
 
     def _shown(self) -> str:
         typed = self._typed()
-        return self._text[len(typed) :] if self._text.startswith(typed) else ""
+        return self._text[len(typed) :] if typed is not None and self._text.startswith(typed) else ""

@@ -108,7 +108,7 @@ def test_phrase_defaults():
     assert phrase.provider.models == ("meta-llama/llama-3.3-70b-instruct",)
     assert phrase.provider.provider_order == ("Groq",)
     assert phrase.debounce == pytest.approx(0.35)
-    assert (phrase.context_before, phrase.context_after) == (8000, 2000)
+    assert (phrase.context_before, phrase.context_after) == (6000, 2000)
 
 
 def test_phrase_settings_can_be_overridden(tmp_path):

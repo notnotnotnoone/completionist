@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import logging
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from completionist_engine.assemble import Assembled, assemble_engine
@@ -69,6 +70,15 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
             tray.refresh()
         return engine.paused
 
+    server = await start_server(engine, args.pipe)  # first: if the pipe is taken, nothing else has started
+    logger.info("listening on %s", args.pipe)
+
+    def run_on_loop(fn: Callable[[], str]) -> str:
+        async def call() -> str:
+            return fn()
+
+        return asyncio.run_coroutine_threadsafe(call(), loop).result(timeout=5)
+
     if not args.no_tray:
         from completionist_engine.tray import Tray  # imported here: it needs a desktop, which the tests don't have
 
@@ -82,6 +92,7 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
             log_dir=config.data_dir,
             quit_engine=lambda: loop.call_soon_threadsafe(stop.set),
             viewer_url=lambda: viewer.url,
+            on_loop=run_on_loop,
         )
         tray.start()
         if config.pause_hotkey:
@@ -90,9 +101,6 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
 
     watcher = ConfigWatcher(args.config, config, engine.set_config)
     watch_task = asyncio.create_task(watcher.run())
-    server = await start_server(engine, args.pipe)
-    logger.info("listening on %s", args.pipe)
-
     async def flush_regularly() -> None:
         while True:
             await asyncio.sleep(_FLUSH_SECONDS)

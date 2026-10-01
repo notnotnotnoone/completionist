@@ -103,6 +103,9 @@ class WordCompleter:
         self._fuzzy = fuzzy
         self._ranked = lru_cache(maxsize=4096)(self._rank)
 
+    def set_promote_after(self, promote_after: int) -> None:
+        self._promote_after = promote_after
+
     def complete(self, before: str, limit: int = 5) -> Completion:
         prefix = current_word(before)
         if not prefix:
@@ -136,20 +139,22 @@ class WordCompleter:
         likely.sort(key=lambda pair: (-pair[0], pair[1]))
         return Completion(replace=0, words=tuple(_display(w) for _, w in likely[:limit]))
 
-    def chunks(self, before: str, limit: int = 2, cutoff: float = 0.3, max_words: int = 3) -> Completion:
+    def chunks(
+        self, before: str, limit: int = 2, cutoff: float = 0.3, max_words: int = 3, seeds: tuple[str, ...] | None = None
+    ) -> Completion:
         """Two- or three-word suggestions for the word being typed.
 
         Each of the top `limit` words is extended with the word most likely to follow it, then the
         next, for as long as that word scores at least `cutoff` and the chunk has fewer than
         `max_words`. A chunk never ends on a word that leaves it hanging ("the", "of", "and"), and a
-        word that can't be extended gives no chunk.
+        word that can't be extended gives no chunk. `seeds` are the words `complete` already found, to skip ranking again.
         """
         prefix = current_word(before)
         if not prefix:
             return Completion(replace=0, words=())
         context = previous_words(before, 2)
         found: list[str] = []
-        for seed in self.complete(before, limit=limit).words:
+        for seed in (seeds if seeds is not None else self.complete(before, limit=limit).words)[:limit]:
             chunk = [seed.lower()]
             while len(chunk) < max_words:
                 scores = self._next_scores((*context, *chunk)[-2:])
@@ -177,13 +182,12 @@ class WordCompleter:
                     scores[word] = (1 - weight) * scores.get(word, 0.0) + weight * counts.words.get(word, 0) / counts.total
             scores = {w: p for w, p in scores.items() if w in self._index}
         if self._personal is not None:
-            known = self._personal.counts((), "")
             for order in _NGRAM_ORDERS:
                 if len(context) < order:
                     continue
                 counts = self._personal.counts(context[-order:], "")
                 for word, n in counts.words.items():
-                    if n >= _PERSONAL_MIN_COUNT and (word in self._index or known.words.get(word, 0) >= self._promote_after):
+                    if n >= _PERSONAL_MIN_COUNT and (word in self._index or self._personal.counts((), word).words.get(word, 0) >= self._promote_after):
                         scores[word] = scores.get(word, 0.0) + n / (counts.total + _PERSONAL_BIGRAM_SMOOTHING)
         return scores
 

@@ -1,5 +1,6 @@
 """Turns requests from the text service into replies, and learns from what the writer types."""
 
+import logging
 from collections.abc import Callable
 
 from completionist_engine.config import Config
@@ -10,6 +11,8 @@ from completionist_engine.phrases import PhraseService, PhraseSession
 from completionist_engine.policy import decide
 from completionist_engine.protocol import PhraseUpdate, Request, WordReply
 from completionist_engine.words import WordCompleter, current_word, previous_words
+
+logger = logging.getLogger("completionist_engine")
 
 
 class Engine:
@@ -39,7 +42,10 @@ class Engine:
 
     def set_config(self, config: Config) -> None:
         """Apply a changed config to running sessions (app lists, word limit, phrase settings, learning)."""
+        if config.learning and self._store is None:
+            logger.warning("learning was turned on, but it starts only after the engine restarts")
         self._config = config
+        self._completer.set_promote_after(config.promote_after)
         if self._phrases is not None:
             self._phrases.reconfigure(config.phrase)
 
@@ -107,7 +113,7 @@ class Session:
             self._learner.reset()
             self._words_open = self._phrase_open = False
             if self._phrase is not None:
-                self._phrase.on_request(request, "off")
+                self._phrase.on_dismiss()  # cancel a phrase still showing or streaming
             return WordReply(id=request.id, replace=0, words=())
         if engine._personal is not None:
             finished = self._learner.observe(request.before)
@@ -125,7 +131,7 @@ class Session:
             words, kinds = completion.words, ("next",) * len(completion.words)
             marks = ()
         elif config.chunks and words:
-            chunks = engine._completer.chunks(request.before).words
+            chunks = engine._completer.chunks(request.before, seeds=completion.words).words
             words = (*chunks, *words)[: config.word_limit]
             kinds = (*("chunk",) * len(chunks), *("word",) * len(completion.words))[: config.word_limit]
             marks = (*(() for _ in chunks), *completion.marks)[: config.word_limit]

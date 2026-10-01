@@ -1436,6 +1436,24 @@ window.COMPLETIONIST_ROADMAP = {
       "done_when": "A phrase suggestion in a Discord reply reflects the last few messages in the channel.",
       "tasks": [
         {
+          "id": "M5.2",
+          "version": "0.7.2",
+          "title": "Code-review fixes before 1.0",
+          "status": "done",
+          "area": "engine",
+          "stories": [
+            34,
+            35
+          ],
+          "refs": [
+            "release-1.0",
+            "engine/src/completionist_engine/phrase_scheduler.py",
+            "tip/src/tsf_service.cpp",
+            "0.7.2"
+          ],
+          "notes": "15 fixes from a full review: phrase and Esc suppression survive the sliding 8000-character window, DLL edit sessions hold the service alive, tray stats run on the engine loop, pause cancels phrases, personal-word promotion and chunk seeds, config encoding, viewer 500s, uninstall removes the roaming config, learning-off stops ranking."
+        },
+        {
           "id": "M5.1",
           "version": "1.0.1",
           "title": "Reply-aware context from the surrounding window",
@@ -2204,6 +2222,17 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "Every shipped task now has its own patch number and a stop on the map, the numbering rule and the prompt-rewriting rule are in CLAUDE.md, and the checker lets shipped work sit below the previous group's release."
     },
     {
+      "version": "0.7.2",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Review fixes before 1.0",
+      "highways": [
+        "engine",
+        "tsf"
+      ],
+      "text": "Fifteen fixes from a full code review: Esc and phrase suppression survive the sliding text window, queued DLL edit sessions keep the service alive, pause cancels phrases, config and viewer errors are handled, and uninstall removes the roaming config."
+    },
+    {
       "version": "1.0.0",
       "status": "next",
       "title": "Autocomplete for everything you type",
@@ -2475,6 +2504,7 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {"date": "2026-10-01", "text": "Released 0.7.2, 15 code-review fixes (new task M5.2): phrase and Esc suppression survive the sliding 8000-character window, tray stats run on the engine loop, personal-word promotion and chunk seeds, config encoding, DLL edit sessions hold the service, viewer 500s, pause cancels phrases, uninstall removes the roaming config, learning-off stops ranking."},
     {"date": "2026-10-01", "text": "Released 0.7.1: committed the per-task numbering, the 0.0.x stops and the CLAUDE.md rules; tagged v0.7.1 and pushed."},
     {"date": "2026-10-01", "text": "Gave every task in the 0.1.0 to 0.4.0 and 0.6.0 groups its own patch number counting up from the release before it (0.0.13 to 0.0.29, 0.1.x, 0.2.x, 0.3.x, 0.5.x), added a released patch entry for each shipped task, kept dropped tasks numbered but without a stop, moved M7.9 to 0.4.3, and wrote the numbering rule into CLAUDE.md."},
     {"date": "2026-10-01", "text": "Moved the M1 to M4 tasks onto the 0.0.x release they actually shipped in (0.0.2, 0.0.4 to 0.0.8, 0.0.12), removed the 0.0.5 umbrella task, and let the checker accept a shipped patch earlier than its group's minor."},

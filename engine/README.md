@@ -87,7 +87,7 @@ max_tokens = 40
 temperature = 0.2
 timeout = 4.0
 debounce_ms = 350
-context_before = 8000
+context_before = 6000
 context_after = 2000
 
 [hotkeys]

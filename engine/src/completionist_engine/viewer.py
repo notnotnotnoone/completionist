@@ -35,7 +35,7 @@ MAX_HEADER_BYTES = 16 * 1024
 TIMEOUT = 5.0
 WORD_LIMIT_MAX = 1000
 
-_STATUS = {200: "OK", 400: "Bad Request", 403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed", 413: "Payload Too Large"}
+_STATUS = {200: "OK", 400: "Bad Request", 403: "Forbidden", 404: "Not Found", 500: "Internal Server Error", 405: "Method Not Allowed", 413: "Payload Too Large"}
 
 
 class ViewerServer:
@@ -74,6 +74,9 @@ class ViewerServer:
             status, body, kind = await asyncio.wait_for(self._respond(reader), TIMEOUT)
         except (TimeoutError, asyncio.IncompleteReadError, asyncio.LimitOverrunError, ConnectionError, ValueError):
             status, body, kind = 400, b'{"error": "bad request"}', "application/json"
+        except Exception as err:  # the message can carry a path or text, so only the type is logged
+            logger.warning("viewer request failed: %s", type(err).__name__)
+            status, body, kind = 500, b'{"error": "something went wrong"}', "application/json"
         try:
             head = (
                 f"HTTP/1.1 {status} {_STATUS.get(status, 'Error')}\r\n"

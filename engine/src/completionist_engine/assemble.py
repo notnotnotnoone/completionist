@@ -1,9 +1,11 @@
 """Puts the engine together from the config and whatever data files exist."""
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from completionist_engine.config import Config
+from completionist_engine.counts import NO_COUNTS, Counts
 from completionist_engine.engine import Engine
 from completionist_engine.fuzzy import FuzzyIndex
 from completionist_engine.metrics import Metrics
@@ -64,11 +66,23 @@ def assemble_engine(
         vocabulary = filter_vocabulary(vocabulary, ngrams.unigram_stats(), core_rank=core_rank)
     personal = PersonalStore(config.data_dir / PERSONAL_FILE) if config.learning else None
     fuzzy = FuzzyIndex({word.lower() for word, _ in vocabulary})
-    completer = WordCompleter(vocabulary, ngrams=ngrams, personal=personal, promote_after=config.promote_after, fuzzy=fuzzy)
+    ranking = _WhileLearning(personal, lambda: engine.config.learning) if personal is not None else None
+    completer = WordCompleter(vocabulary, ngrams=ngrams, personal=ranking, promote_after=config.promote_after, fuzzy=fuzzy)
     metrics = Metrics(config.data_dir / METRICS_FILE)
     phrases = _phrase_service(config, metrics)
     engine = Engine(completer, config, personal=personal, phrases=phrases, metrics=metrics)
     return Assembled(engine, personal, ngrams, phrases, metrics)
+
+
+class _WhileLearning:
+    """The personal store as the ranker sees it: it counts for nothing while learning is off in the config."""
+
+    def __init__(self, store: PersonalStore, enabled: Callable[[], bool]) -> None:
+        self._store = store
+        self._enabled = enabled
+
+    def counts(self, context: tuple[str, ...], prefix: str) -> Counts:
+        return self._store.counts(context, prefix) if self._enabled() else NO_COUNTS
 
 
 def _open_ngrams(config: Config) -> NgramTable | None:

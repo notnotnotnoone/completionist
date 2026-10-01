@@ -28,7 +28,7 @@
     temperature = 0.2
     timeout = 4.0               # seconds
     debounce_ms = 350           # pause before an automatic request
-    context_before = 8000       # characters of text before the caret sent to the model
+    context_before = 6000       # characters of text before the caret sent to the model
     context_after = 2000
 
     [hotkeys]
@@ -100,7 +100,7 @@ class PhraseConfig:
     enabled: bool = True
     provider: ProviderSettings = field(default_factory=ProviderSettings)
     debounce: float = 0.35  # seconds
-    context_before: int = 8000
+    context_before: int = 6000  # below what the DLL sends (8000), so the window can anchor
     context_after: int = 2000
 
 
@@ -148,8 +148,8 @@ def load_config(path: Path) -> Config:
     if not path.exists():
         return Config()
     try:
-        data = tomllib.loads(path.read_text(encoding="utf-8"))
-    except (OSError, tomllib.TOMLDecodeError) as err:
+        data = tomllib.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as err:
         raise ConfigError(f"can't read {path}: {err}") from err
     _check_known_keys(data)
 
