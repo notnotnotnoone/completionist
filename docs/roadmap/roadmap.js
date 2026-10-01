@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "1.0.0 is released. M5 (Reply-aware phrases) is active and 1.1.0 is next; the live checks, demo GIF and Spike keyboard removal stay dropped to daily use.",
+  "now": "1.1.0 is released: phrases read the window in front with Windows OCR. M10 (the dashboard and popup redesign) is active and 2.0.0 is next; the live checks, demo GIF and Spike keyboard removal stay dropped to daily use.",
   "highways": [
     {
       "id": "engine",
@@ -1431,7 +1431,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M5",
       "title": "Reply-aware phrases",
-      "status": "active",
+      "status": "done",
       "goal": "Phrase suggestions know what you're replying to.",
       "done_when": "A phrase suggestion in a Discord reply reflects the last few messages in the channel.",
       "tasks": [
@@ -1520,20 +1520,44 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M5.1",
           "version": "1.0.5",
           "title": "Reply-aware context from the surrounding window",
-          "status": "doing",
+          "status": "done",
           "area": "engine",
           "stories": [
             57,
             58
           ],
-          "notes": "Read-only UI Automation, refreshed on window switch. No OCR (a deliberate decision, see decisions) and no AI or vision models. When an app exposes no text the suggestion falls back to caret context, and the engine logs per app whether context was found."
+          "refs": [
+            "reply-aware-context",
+            "engine/src/completionist_engine/screen_context.py",
+            "engine/src/completionist_engine/screen_windows.py",
+            "engine/src/completionist_engine/context.py",
+            "engine/src/completionist_engine/phrases.py",
+            "1.0.5"
+          ],
+          "notes": "Windows OCR of the window in front, read in the background after a window or title has stayed in front for two looks (twice a second), never on the typing path. The text (the last 2000 characters, whole lines) goes first in the prompt as background; lines the person typed are removed. A capture is only handed over if its window is still in front. Skipped for blocked apps, while paused, without an API key, for the engine's own windows and for elevated programs. New [phrase] screen_context switch, on by default. UI Automation was measured and dropped: see decisions."
+        },
+        {
+          "id": "M5.7",
+          "version": "1.0.6",
+          "title": "Show the screenshot and extracted text in the Requests page",
+          "status": "done",
+          "area": "viewer",
+          "stories": [],
+          "refs": [
+            "reply-aware-context",
+            "engine/src/completionist_engine/viewer.py",
+            "engine/src/completionist_engine/viewer.html",
+            "engine/src/completionist_engine/request_log.py",
+            "1.0.6"
+          ],
+          "notes": "A request's side sheet gains Screen it was shown (the JPEG, fetched with the token and shown from an in-memory blob, click for full size), Text read from the screen, and Sent to the model when lines were removed. The screenshot is served by a token-guarded endpoint, the page may show blob images and nothing else, and the pictures live in memory with the log and are cleared with it."
         }
       ]
     },
     {
       "id": "M10",
       "title": "Major UI redesign",
-      "status": "planned",
+      "status": "active",
       "goal": "Give the dashboard first, then the suggestion popup, one deliberate look.",
       "done_when": "The dashboard (the viewer) is rebuilt and reads well in the Evergreen colours, and the popup, with all its row types, reads well at 100% and 200% scaling and on a second monitor, with the rewritten drawing code passing the harness.",
       "tasks": [
@@ -2365,15 +2389,36 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The viewer's Cloud Phrases settings gain an Advanced section (output length, temperature, seconds before asking, timeout, context sizes) and an Instructions section where the model's system prompt can be edited or restored."
     },
     {
+      "version": "1.0.5",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Reading the screen for replies",
+      "highways": [
+        "engine"
+      ],
+      "text": "Completionist now reads the window you are typing in with the text recognition built into Windows, in the background, and sends that text with your own so phrases can fit what you are replying to; a new setting switches it off."
+    },
+    {
+      "version": "1.0.6",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Screenshots in the Requests page",
+      "highways": [
+        "engine"
+      ],
+      "text": "The Requests page now shows the screenshot each request was shown and the text read from it, next to what was sent to the model."
+    },
+    {
       "version": "1.1.0",
-      "status": "next",
+      "status": "released",
+      "date": "2026-10-01",
       "title": "Reply-aware phrases",
       "milestone": "M5",
-      "text": "Phrase suggestions learn what you are replying to. When you switch to a window, Completionist reads the surrounding conversation in the background through UI Automation, falling back to Windows’ built-in text recognition for apps that expose little text. That context travels with each phrase request, so a reply in Discord or Slack can follow the last few messages and an email reply can respond to the message it quotes. Reading the screen involves no AI or vision model. The phrase request remains the only model call."
+      "text": "Phrase suggestions learned what you are replying to. When you switched windows, Completionist read the one in front in the background with the text recognition built into Windows, and sent that text with each phrase request, so a reply in Discord or Slack could follow the last few messages and an email reply could answer the message it quotes. UI Automation was measured first and dropped: its cost grew with each app and ran from about a tenth of a second to nineteen, in C++ as much as in Python, while reading the picture took about a tenth of a second whatever the window. Every request in the viewer now shows the screenshot and text it was given, a setting turns the reading off, nothing is saved to disk, and the phrase request is still the only model call."
     },
     {
       "version": "2.0.0",
-      "status": "planned",
+      "status": "next",
       "title": "A dashboard and popup with a deliberate look",
       "milestone": "M10",
       "essay": [
@@ -2482,7 +2527,15 @@ window.COMPLETIONIST_ROADMAP = {
   "decisions": [
     {
       "date": "2026-10-01",
-      "text": "Reply-aware context (M5.1, 1.0.5) reads the surrounding window with read-only UI Automation only. OCR is deliberately left out: it is a heavy, noisy fallback (it reads menus and sidebars along with the thread) that would only help the few apps that expose no UIA text, and it sits close to the 'no AI or vision for screen tracking' rule. When an app exposes nothing the suggestion falls back to caret context, as today. The engine will log per app whether context was found, so OCR can be reconsidered later as its own task if real misses justify it. Selecting all and copying (Ctrl+A / Ctrl+C) was also ruled out: it would copy the wrong text, overwrite the clipboard and disturb the user's selection."
+      "text": "Reply-aware context reads the screen with Windows OCR, not UI Automation, reversing the same-day decision below after measuring both on the owner's machine. Reading a whole window with UI Automation cost 5 to 10 ms per element (about 100 ms to 19 s per window, the same in C++ and Python, so the language was not the problem), and Chrome and Gmail gave little or no text. OCR of a window-sized picture took about 60 to 150 ms on any app and read ordinary text almost perfectly (99 to 100 percent of characters at 12 px and up, 96 percent in dark mode at 11 px, but only about 32 percent at 10 px). So it runs in Python in the background, never on the typing path, with no C++. It is local, uses no AI or vision model and sends nothing by itself; what reaches OpenRouter is the text, placed in the prompt as background. Screenshots stay in memory with the Requests log."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Reading the screen is on by default but has its own switch, [phrase] screen_context, because it sends other people's messages to the cloud model. It never runs without an API key, while paused, in blocked apps, in Completionist's own windows or in programs running as administrator, and a capture is handed to a request only if its window is still in front. Lines the person typed are removed from it. The setting was added without being asked for, on privacy grounds, and can be dropped."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "(Reversed later the same day: see the entry above.) Reply-aware context (M5.1, 1.0.5) reads the surrounding window with read-only UI Automation only. OCR is deliberately left out: it is a heavy, noisy fallback (it reads menus and sidebars along with the thread) that would only help the few apps that expose no UIA text, and it sits close to the 'no AI or vision for screen tracking' rule. When an app exposes nothing the suggestion falls back to caret context, as today. The engine will log per app whether context was found, so OCR can be reconsidered later as its own task if real misses justify it. Selecting all and copying (Ctrl+A / Ctrl+C) was also ruled out: it would copy the wrong text, overwrite the clipboard and disturb the user's selection."
     },
     {
       "date": "2026-10-01",
@@ -2596,6 +2649,16 @@ window.COMPLETIONIST_ROADMAP = {
   ],
   "risks": [
     {
+      "text": "Reading the screen sends text from the window in front, such as other people's messages or anything else visible, to the cloud model.",
+      "status": "mitigated",
+      "mitigation": "A [phrase] screen_context switch, no reading without a key, while paused, in blocked apps or in elevated programs, only the window in front, text only (the picture never leaves the PC), and screenshots kept in memory and cleared with the Requests log (1.0.5, 1.0.6)."
+    },
+    {
+      "text": "Text on the screen could contain instructions aimed at the model, or OCR could misread a window with tiny or busy text.",
+      "status": "open",
+      "mitigation": "The screen text is framed as background that is not to be continued or obeyed, and the text to continue always comes last. Text under about 11 px is not read reliably; upscaling before reading is untried."
+    },
+    {
       "text": "The OpenRouter key is plain text in config.toml, so anyone who can read the user's profile, a backup or a shared copy of the file can use it.",
       "status": "open",
       "mitigation": "The file lives outside the repo, the key is never logged or printed, and the key on OpenRouter has a spending limit. Revoke and replace it if the file is ever shared."
@@ -2652,6 +2715,9 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {"date": "2026-10-01", "text": "Released 1.1.0: the last task of M5 is done, so the reply-aware phrases group is released and M10 (dashboard and popup redesign) becomes active with 2.0.0 next."},
+    {"date": "2026-10-01", "text": "Released 1.0.6 (new task M5.7): the Requests page shows the screenshot each request was shown, the text read from it and what was sent to the model, served by a token-guarded endpoint and held in memory only."},
+    {"date": "2026-10-01", "text": "Released 1.0.5 (M5.1): phrases read the window in front with Windows OCR in the background and send that text with the typed text; a [phrase] screen_context switch turns it off. Chosen over UI Automation after measuring both."},
     {"date": "2026-10-01", "text": "Picked up M5.1 (1.0.5, now doing) and removed the OCR fallback as a deliberate decision: reply-aware context is read-only UI Automation only, falling back to caret context, with a per-app found/empty log to revisit OCR later if needed."},
     {"date": "2026-10-01", "text": "Replanned: the Chrome extension (M6.1) moves from 1.1.1 to 2.0.1 and becomes the major 3.0.0 release (new essay); the dashboard overhaul is a new first task M10.3 (1.1.1) leading 2.0.0, and the popup tasks shift to 1.1.2 and 1.1.3; the 1.2.0 release is removed."},
     {"date": "2026-10-01", "text": "Released 1.0.4 (new task M5.6): Advanced and Instructions sections in the viewer's Cloud Phrases settings (max output, temperature, seconds before asking, timeout, context sizes, editable system prompt); base_url stays uneditable on purpose; reply-aware context (M5.1) moves to 1.0.5."},

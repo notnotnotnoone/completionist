@@ -7,11 +7,12 @@ from collections.abc import Callable
 
 from completionist_engine.config import PhraseConfig
 from completionist_engine.metrics import Metrics
-from completionist_engine.context import anchored_window, build_prompt, trim_suffix
+from completionist_engine.context import anchored_window, build_prompt, screen_for_prompt, trim_suffix
 from completionist_engine.phrase_provider import Attempt, PhraseProvider, PhraseRequest, ProviderError
 from completionist_engine.phrase_scheduler import Action, Cancel, Mode, PhraseScheduler, Start, Update
 from completionist_engine.protocol import PhraseUpdate, Request
 from completionist_engine.request_log import RequestLog
+from completionist_engine.screen_context import ScreenContext
 
 logger = logging.getLogger("completionist_engine.phrases")
 
@@ -35,11 +36,13 @@ class PhraseService:
         clock: Callable[[], float] = time.monotonic,
         metrics: Metrics | None = None,
         log: RequestLog | None = None,
+        screen: ScreenContext | None = None,
     ) -> None:
         """The API key is `config.provider.api_key`; with none, phrases are off."""
         self.config = config
         self.metrics = metrics
         self.log = log if log is not None else RequestLog()
+        self.screen = screen  # reads the window in front; None where there is no screen (tests, no desktop)
         self.clock = clock
         self._provider = provider
         if provider is None:
@@ -194,7 +197,11 @@ class PhraseSession:
 
     async def _run(self, request: Request) -> None:
         config = self._service.config
-        prompt = build_prompt(request.app, request.title, anchored_window(request.before, config.context_before), config.instructions)
+        shot = self._service.screen.for_request() if self._service.screen is not None and config.screen_context else None
+        screen_sent = screen_for_prompt(shot.text, request.before) if shot is not None else ""
+        prompt = build_prompt(
+            request.app, request.title, anchored_window(request.before, config.context_before), config.instructions, screen_sent
+        )
         phrase_request = PhraseRequest(prompt=prompt, suffix=trim_suffix(request.after, config.context_after))
         task = asyncio.current_task()
         service = self._service
@@ -228,6 +235,8 @@ class PhraseSession:
                 attempts=attempts,
                 ttft_ms=None if first is None else round(first * 1000),
                 total_ms=round((service.clock() - started) * 1000),
+                screen=shot,
+                screen_sent=screen_sent,
             )
             if self._tasks.get(request.id) is task:
                 del self._tasks[request.id]

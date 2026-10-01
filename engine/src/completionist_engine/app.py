@@ -13,6 +13,7 @@ from completionist_engine.config_watch import ConfigWatcher
 from completionist_engine.hotkeys import GlobalHotkey
 from completionist_engine.logsetup import setup_logging
 from completionist_engine.protocol import DEFAULT_PIPE_NAME
+from completionist_engine.screen_context import ScreenContext
 from completionist_engine.server import start_server
 from completionist_engine.viewer import ViewerServer
 from completionist_engine.vocabulary import load_wordfreq_vocabulary
@@ -55,6 +56,17 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def screen_wanted(engine, phrases) -> Callable[[str], bool]:
+    """Whether the window of `app` may be read for screen text right now. It looks at the live settings each time.
+
+    Never without phrases (nothing would be sent), while paused, when switched off, or in an app the person blocked."""
+
+    def wanted(app: str) -> bool:
+        return phrases.available and phrases.config.screen_context and not engine.paused and app.lower() not in engine.config.block
+
+    return wanted
+
+
 async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config) -> None:
     engine = assembled.engine
     loop = asyncio.get_running_loop()
@@ -72,6 +84,14 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
 
     server = await start_server(engine, args.pipe)  # first: if the pipe is taken, nothing else has started
     logger.info("listening on %s", args.pipe)
+
+    screen_task = None
+    if assembled.phrases is not None:
+        from completionist_engine.screen_windows import WindowsOcr, WindowsSource  # Windows only, so imported here
+
+        screen = ScreenContext(WindowsSource(), WindowsOcr(), wanted=screen_wanted(engine, assembled.phrases))
+        assembled.phrases.screen = screen
+        screen_task = asyncio.create_task(screen.run())
 
     def run_on_loop(fn: Callable[[], str]) -> str:
         async def call() -> str:
@@ -115,6 +135,8 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
     finally:
         watch_task.cancel()
         flush_task.cancel()
+        if screen_task is not None:
+            screen_task.cancel()
         if hotkey is not None:
             hotkey.stop()
         if tray is not None:

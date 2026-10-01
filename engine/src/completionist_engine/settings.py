@@ -21,7 +21,7 @@ EDITABLE: dict[str, frozenset[str]] = {
     "learning": frozenset({"enabled", "promote_after"}),
     "phrase": frozenset({
         "enabled", "api_key", "models", "provider_order", "max_tokens", "temperature", "timeout", "debounce",
-        "context_before", "context_after", "fim", "instructions",
+        "context_before", "context_after", "fim", "instructions", "screen_context",
     }),  # fmt: skip
     "apps": frozenset({"block", "allow"}),
     "hotkeys": frozenset({"pause"}),
@@ -47,6 +47,7 @@ def read_settings(path: Path) -> dict[str, dict[str, Any]]:
             "context_before": config.phrase.context_before,
             "context_after": config.phrase.context_after,
             "fim": config.phrase.provider.fim,
+            "screen_context": config.phrase.screen_context,
             "instructions": config.phrase.instructions or INSTRUCTIONS,
             "instructions_default": INSTRUCTIONS,
             "instructions_custom": bool(config.phrase.instructions),

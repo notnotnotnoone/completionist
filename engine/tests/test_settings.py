@@ -173,3 +173,21 @@ def test_saving_the_built_in_text_or_nothing_goes_back_to_the_default(tmp_path):
         apply_settings(path, {"phrase": {"instructions": "Be brief."}})
         apply_settings(path, {"phrase": {"instructions": restore}})
         assert load_config(path).phrase.instructions == "" and read_settings(path)["phrase"]["instructions_custom"] is False
+
+
+def test_reading_the_screen_is_on_by_default_and_can_be_switched_off(tmp_path):
+    path = write(tmp_path, COMMENTED)
+    assert read_settings(path)["phrase"]["screen_context"] is True
+    assert load_config(path).phrase.screen_context is True
+    apply_settings(path, {"phrase": {"screen_context": False}})
+    assert load_config(path).phrase.screen_context is False
+    assert read_settings(path)["phrase"]["screen_context"] is False
+    assert "screen_context = false" in path.read_text(encoding="utf-8")
+
+
+def test_a_bad_screen_context_value_is_refused(tmp_path):
+    path = write(tmp_path, COMMENTED)
+    before = path.read_text(encoding="utf-8")
+    with pytest.raises(ConfigError):
+        apply_settings(path, {"phrase": {"screen_context": "yes"}})
+    assert path.read_text(encoding="utf-8") == before

@@ -1,8 +1,8 @@
 """The viewer: a page, served to this machine only, that shows what Completionist has learned.
 
 It lists the learned words (and lets you remove one), shows the usage stats, edits the settings and lists
-recent phrase requests. Apart from those requests (the in-memory log, which holds the text sent and the
-suggestion that came back), only counts are ever served, never typed text. Because it can change things,
+recent phrase requests. Apart from those requests (the in-memory log, which holds the text sent, the
+suggestion that came back and the screenshot and screen text the request was shown), only counts are ever served, never typed text. Because it can change things,
 it is locked down:
 
 - it listens on 127.0.0.1 only, on a port picked at start;
@@ -85,13 +85,13 @@ class ViewerServer:
         try:
             head = (
                 f"HTTP/1.1 {status} {_STATUS.get(status, 'Error')}\r\n"
-                f"Content-Type: {kind}; charset=utf-8\r\n"
+                f"Content-Type: {kind if kind.startswith('image/') else kind + '; charset=utf-8'}\r\n"
                 f"Content-Length: {len(body)}\r\n"
                 "Cache-Control: no-store\r\n"
                 "X-Content-Type-Options: nosniff\r\n"
                 "Referrer-Policy: no-referrer\r\n"
                 "Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
-                "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'\r\n"
+                "img-src blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'\r\n"
                 "Connection: close\r\n\r\n"
             )
             writer.write(head.encode("ascii") + body)
@@ -176,6 +176,8 @@ class ViewerServer:
             if self._request_log is not None:
                 self._request_log.clear()
             return _json(200, {"cleared": True})
+        if method == "GET" and path.startswith("/api/requests/") and path.endswith("/screenshot"):
+            return self._request_screenshot(path.removeprefix("/api/requests/").removesuffix("/screenshot"))
         if method == "GET" and path.startswith("/api/requests/"):
             return self._request_detail(path.removeprefix("/api/requests/"))
         if (method, path) == ("GET", "/api/settings"):
@@ -251,7 +253,17 @@ class ViewerServer:
         found = self._request_log.get(int(raw_id)) if self._request_log is not None and raw_id.isdigit() else None
         if found is None:
             return _json(404, {"error": "that request is no longer in the log"})
-        return _json(200, {**_request_row(found), "prompt": found.prompt, "attempts": [vars(a) for a in found.attempts]})
+        screen = found.screen
+        shown = None if screen is None else {
+            "app": screen.app, "title": screen.title, "text": screen.text, "sent": found.screen_sent, "has_image": bool(screen.jpeg),
+        }  # fmt: skip
+        return _json(200, {**_request_row(found), "prompt": found.prompt, "attempts": [vars(a) for a in found.attempts], "screen": shown})
+
+    def _request_screenshot(self, raw_id: str) -> tuple[int, bytes, str]:
+        found = self._request_log.get(int(raw_id)) if self._request_log is not None and raw_id.isdigit() else None
+        if found is None or found.screen is None or not found.screen.jpeg:
+            return _json(404, {"error": "no screenshot for that request"})
+        return 200, found.screen.jpeg, "image/jpeg"
 
     def _settings(self) -> tuple[int, bytes, str]:
         try:
@@ -274,7 +286,7 @@ def _json(status: int, payload: dict[str, Any]) -> tuple[int, bytes, str]:
 def _request_row(r: LoggedRequest) -> dict[str, Any]:
     return {
         "id": r.id, "at": r.at, "app": r.app, "outcome": r.outcome, "model": r.answered_by, "reply": r.reply,
-        "ttft_ms": r.ttft_ms, "total_ms": r.total_ms, "tries": len(r.attempts),
+        "ttft_ms": r.ttft_ms, "total_ms": r.total_ms, "tries": len(r.attempts), "has_screen": r.screen is not None,
     }  # fmt: skip
 
 

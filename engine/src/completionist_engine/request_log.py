@@ -1,7 +1,7 @@
 """The requests log: the last few phrase requests, for the viewer's Requests tab.
 
 Unlike everything else Completionist keeps, this holds text: the prompt sent (the words before the caret)
-and the reply that came back. So it lives in memory only, never on disk, and is gone when the engine stops.
+and the reply that came back, and the screenshot and screen text a request was shown. So it lives in memory only, never on disk, and is gone when the engine stops.
 It keeps the newest `capacity` requests; the viewer's Clear button empties it sooner.
 """
 
@@ -11,6 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from completionist_engine.phrase_provider import Attempt
+from completionist_engine.screen_context import Capture
 
 OUTCOMES = ("ok", "failover", "failed", "cancelled")  # cancelled: the user kept typing and the request was dropped
 _PROMPT_KEEP = 2000  # characters; the end is kept, since that is the text nearest the caret
@@ -28,6 +29,8 @@ class LoggedRequest:
     attempts: tuple[Attempt, ...] = field(default=())
     ttft_ms: int | None = None
     total_ms: int | None = None
+    screen: Capture | None = None  # what the screen reader captured for this request: the picture and the text it read
+    screen_sent: str = ""  # the part of that text sent to the model (the lines the person typed are left out)
 
     @property
     def answered_by(self) -> str:
@@ -52,6 +55,8 @@ class RequestLog:
         attempts: list[Attempt],
         ttft_ms: int | None,
         total_ms: int | None,
+        screen: Capture | None = None,
+        screen_sent: str = "",
     ) -> LoggedRequest:
         entry = LoggedRequest(
             id=self._next_id,
@@ -63,6 +68,8 @@ class RequestLog:
             attempts=tuple(attempts),
             ttft_ms=ttft_ms,
             total_ms=total_ms,
+            screen=screen,
+            screen_sent=screen_sent,
         )
         self._next_id += 1
         self._items.append(entry)

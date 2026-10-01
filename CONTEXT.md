@@ -204,7 +204,7 @@ From `roadmap.js` `decisions`:
 - **Build Completionist as a TSF text service.** The spike confirmed the caret rectangle, real context, key capture and insertion in Notepad and in Chromium and Electron apps.
 - **A thin C++ DLL, with all intelligence in one Python engine process**, joined by a named pipe with length-prefixed JSON.
 - **Phrases come from cheap completion models, never premium chat models.** The budget is under $0.50 a day, through anchored context and a daily cap.
-- **No AI or vision for caret or screen tracking.** TSF gives the caret. UI Automation reads context after v1.
+- **No AI or vision for caret or screen tracking.** TSF gives the caret. Since 1.0.5 the window in front is also read for reply context with the OCR built into Windows (local, not an AI model), in the background and switchable with `[phrase] screen_context`; UI Automation was measured and dropped as too slow.
 - **Google Docs and the Google search box are out of scope**: canvas rendering, and Google's own suggestion dropdown.
 - **The n-gram corpus is WikiText-103.** A chat-style corpus could be added later for casual text.
 - **Releases follow semantic versioning**, with writing that matches each release's size.

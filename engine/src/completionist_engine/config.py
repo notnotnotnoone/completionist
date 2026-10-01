@@ -31,6 +31,7 @@
     context_before = 6000       # characters of text before the caret sent to the model
     context_after = 2000
     instructions = ""           # replaces the built-in instructions the model is given ("" keeps them)
+    screen_context = true       # read the window you type in (Windows OCR, on this PC) and send that text with your own
 
     [hotkeys]
     pause = "ctrl+alt+p"        # pause / resume Completionist from anywhere ("" turns the hotkey off)
@@ -74,7 +75,7 @@ DEFAULT_ALLOW = frozenset({"obsidian.exe", "notepad.exe", "winword.exe", "outloo
 
 _PHRASE_KEYS = {
     "enabled", "base_url", "models", "provider_order", "api_key", "fim", "max_tokens", "temperature", "timeout", "debounce_ms",
-    "context_before", "context_after", "instructions",
+    "context_before", "context_after", "instructions", "screen_context",
 }  # fmt: skip
 _SCHEMA = {
     "apps": {"block", "allow"},
@@ -104,6 +105,7 @@ class PhraseConfig:
     context_before: int = 6000  # below what the DLL sends (8000), so the window can anchor
     context_after: int = 2000
     instructions: str = ""  # blank: the built-in instructions in context.py
+    screen_context: bool = True  # send text read from the window in front along with the typed text
 
 
 @dataclass(frozen=True)
@@ -207,6 +209,7 @@ def _phrase(section: dict[str, Any]) -> PhraseConfig:
         context_before=get("context_before", base.context_before, _positive_int),
         context_after=get("context_after", base.context_after, _non_negative_int),
         instructions=get("instructions", base.instructions, _instructions),
+        screen_context=get("screen_context", base.screen_context, _boolean),
     )
 
 

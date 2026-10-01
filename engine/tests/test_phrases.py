@@ -423,3 +423,80 @@ def test_a_request_dropped_because_the_user_kept_typing_is_logged_as_cancelled()
     service = run_one(Script(hang=True), cancel_after=0.2)
     (entry,), _ = service.log.recent()
     assert entry.outcome == "cancelled"
+
+
+# --- screen text ---------------------------------------------------------------------------------
+
+from completionist_engine.screen_context import Capture  # noqa: E402
+
+
+class FakeScreen:
+    def __init__(self, text: str, app: str = "notepad.exe") -> None:
+        self.capture = Capture(7, 0.0, app, "Inbox", (1, "Inbox"), text, b"\xff\xd8jpeg")
+        self.asked = 0
+
+    def for_request(self):
+        self.asked += 1
+        return self.capture
+
+
+def run_with_screen(screen, *, before="Hello wor", enabled=True):
+    async def scenario():
+        async with fake_provider(Script(chunks=["ld"])) as (url, received):
+            config = PhraseConfig(
+                provider=ProviderSettings(base_url=url, models=("m",), timeout=1.0, api_key="k"), debounce=0.05, screen_context=enabled
+            )
+            service = PhraseService(config, screen=screen)
+            pushes: list[PhraseUpdate] = []
+            session = service.open_session(pushes.append)
+            session.on_hotkey(req(1, before, event="hotkey"), "hotkey")
+            await settle(pushes)
+            session.close()
+            await asyncio.sleep(0.05)
+            await service.aclose()
+            return service, received
+
+    return asyncio.run(scenario())
+
+
+def test_screen_text_is_sent_to_the_model_with_the_typed_text():
+    service, received = run_with_screen(FakeScreen("Sam: can you send the invoice?"))
+    prompt = received[0].body["prompt"]
+    assert "Sam: can you send the invoice?" in prompt and prompt.endswith("Hello wor")
+
+
+def test_lines_the_person_typed_are_not_sent_back_as_screen_text():
+    service, received = run_with_screen(FakeScreen("Sam: can you send the invoice?\nHello wor"))
+    assert received[0].body["prompt"].count("Hello wor") == 1
+    (entry,), _ = service.log.recent()
+    assert entry.screen_sent == "Sam: can you send the invoice?"
+
+
+def test_the_log_keeps_the_capture_and_what_was_sent_from_it():
+    screen = FakeScreen("Sam: can you send the invoice?\nHello wor")
+    service, _ = run_with_screen(screen)
+    (entry,), _ = service.log.recent()
+    assert entry.screen is screen.capture  # the picture and everything the reader extracted
+    assert entry.screen.text.endswith("Hello wor")
+
+
+def test_with_screen_context_off_nothing_is_asked_for_or_sent():
+    screen = FakeScreen("Sam: can you send the invoice?")
+    service, received = run_with_screen(screen, enabled=False)
+    assert screen.asked == 0 and "invoice" not in received[0].body["prompt"]
+    (entry,), _ = service.log.recent()
+    assert entry.screen is None and entry.screen_sent == ""
+
+
+def test_a_service_without_a_screen_behaves_as_before():
+    service, received = run_with_screen(None)
+    assert "<screen>" not in received[0].body["prompt"]
+    (entry,), _ = service.log.recent()
+    assert entry.screen is None
+
+
+def test_a_capture_with_no_text_is_logged_but_adds_nothing_to_the_prompt():
+    service, received = run_with_screen(FakeScreen(""))
+    assert "<screen>" not in received[0].body["prompt"]
+    (entry,), _ = service.log.recent()
+    assert entry.screen is not None and entry.screen_sent == ""

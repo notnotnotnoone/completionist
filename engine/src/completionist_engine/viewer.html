@@ -224,6 +224,9 @@ details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32
 .sheet h4 { margin: 20px 0 6px; font-size: .8125rem; font-weight: 600; color: var(--muted); letter-spacing: .02em; text-transform: uppercase; }
 .text { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); font: .8125rem/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40vh; overflow-y: auto; }
 .text.none { color: var(--muted); font-family: var(--font); }
+.shot { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.shotbox { min-height: 48px; }
+.shotnote { margin: 6px 0 0; font-size: .8125rem; color: var(--muted); }
 .tried { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .tried li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
 .tried li:last-child { border-bottom: 0; }
@@ -286,7 +289,7 @@ body.has-savebar .toast { bottom: 96px; }
   </section>
 
   <section class="panel" id="panel-requests" role="tabpanel" aria-labelledby="tab-requests" hidden>
-    <div class="head"><h2>Phrase Requests</h2><p>The latest cloud phrase requests, newest first. Unlike the rest of this viewer, this shows the text that was sent and what came back. It is kept in memory only (never saved to disk), holds the last 200, and is gone when Completionist stops.</p></div>
+    <div class="head"><h2>Phrase Requests</h2><p>The latest cloud phrase requests, newest first. Unlike the rest of this viewer, this shows the text that was sent, what came back, and the screenshot and screen text each request was shown. It is kept in memory only (never saved to disk), holds the last 200, and is gone when Completionist stops.</p></div>
     <div class="toolbar">
       <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input class="field" type="search" id="requests-q" name="q" autocomplete="off" spellcheck="false" placeholder="Search app, text or model…" aria-label="Search requests"></div>
@@ -313,7 +316,7 @@ body.has-savebar .toast { bottom: 96px; }
 <div class="scrim" id="scrim"></div>
 <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" aria-hidden="true">
   <div class="sheet-head">
-    <div><h2 id="sheet-title">Request</h2><p>What was sent, what came back, and which models were tried.</p></div>
+    <div><h2 id="sheet-title">Request</h2><p>What was sent, the screen it was shown, what came back, and which models were tried.</p></div>
     <button class="btn" id="sheet-close" type="button" aria-label="Close request">Close</button>
   </div>
   <div id="sheet-body"></div>
@@ -530,6 +533,32 @@ $("requests-result").addEventListener("change", () => loadRequests(true));
 // The side sheet: slides in from the right after a click; opening it from the keyboard is instant.
 const sheet = $("sheet"), scrim = $("scrim"), behindSheet = [document.querySelector("header.sign"), $("main")];
 function section(title, ...kids) { return el("div", {}, el("h4", { textContent: title }), ...kids); }
+// The screenshot is fetched with the token and shown from an in-memory blob, so the token never goes in an image address.
+let shotUrl = "";
+function forgetShot() { if (shotUrl) URL.revokeObjectURL(shotUrl); shotUrl = ""; }
+async function showShot(id, box) {
+  try {
+    const r = await fetch(`/api/requests/${id}/screenshot`, { headers: { "X-Completionist-Token": token } });
+    if (!r.ok) throw new Error("gone");
+    const url = URL.createObjectURL(await r.blob());
+    if (!box.isConnected) { URL.revokeObjectURL(url); return; }  // the sheet moved on to another request
+    forgetShot(); shotUrl = url;
+    box.replaceChildren(el("a", { href: url, target: "_blank", rel: "noopener", title: "Open full size" }, el("img", { className: "shot", src: url, alt: "The window as it looked when its text was read" })),
+      el("p", { className: "shotnote", textContent: "Click the picture to open it full size." }));
+  } catch (e) { box.replaceChildren(el("p", { className: "text none", textContent: "The screenshot is no longer available." })); }
+}
+function screenSections(r) {
+  const s = r.screen;
+  if (!s) return [section("Screen", el("p", { className: "text none", textContent: "No screen text was used for this request: reading the screen was off, or nothing had been read from this window yet." }))];
+  const box = el("div", { className: "shotbox" }, el("p", { className: "text none", textContent: s.has_image ? "Loading the screenshot…" : "No screenshot was kept." }));
+  if (s.has_image) showShot(r.id, box);
+  const out = [
+    section("Screen it was shown", el("p", { className: "shotnote", textContent: `${s.app}${s.title ? " · " + s.title : ""}` }), box),
+    section("Text read from the screen", s.text ? el("pre", { className: "text", textContent: s.text }) : el("p", { className: "text none", textContent: "The reader found no text in the picture." })),
+  ];
+  if (s.sent !== s.text) out.push(section("Sent to the model", s.sent ? el("pre", { className: "text", textContent: s.sent }) : el("p", { className: "text none", textContent: "Nothing: every line was text you had typed yourself." })));
+  return out;
+}
 async function openRequest(id, opener, animate) {
   let r;
   try { r = await api("/api/requests/" + id); } catch (e) { if (!e.shown) { toast(e.message); loadRequests(true); } return; }
@@ -543,6 +572,7 @@ async function openRequest(id, opener, animate) {
     el("div", { className: "line" }, outcome(r.outcome), el("b", { textContent: r.app }), el("span", { textContent: at })),
     el("div", { className: "line" }, el("span", { textContent: `First text ${ms(r.ttft_ms)} · took ${ms(r.total_ms)}` })),
     section("You (text before the caret)", el("pre", { className: "text", textContent: r.prompt })),
+    ...screenSections(r),
     section("Suggestion", r.reply ? el("pre", { className: "text", textContent: r.reply }) : el("p", { className: "text none", textContent: r.outcome === "cancelled" ? "Nothing arrived before the request was dropped." : "Nothing came back." })),
     section(r.attempts.length > 1 ? "Models tried" : "Model tried", tried));
   reqs.opener = opener;
@@ -557,6 +587,7 @@ function closeRequest() {
   if (!sheet.classList.contains("show")) return;
   sheet.classList.remove("show"); scrim.classList.remove("show");
   sheet.setAttribute("aria-hidden", "true");
+  forgetShot();
   for (const n of behindSheet) n.inert = false;
   if (reqs.opener && reqs.opener.isConnected) reqs.opener.focus({ preventScroll: true });
 }
@@ -630,6 +661,7 @@ const GROUPS = [
     ["api_key", "key", "OpenRouter Key", "Saved into your settings file. The page can write it but never shows it back."],
     ["models", "list", "Models", "One per line. Tried in order; the next only if the one before fails."],
     ["provider_order", "list", "Preferred Providers", "One per line, like Groq. OpenRouter tries these first for the model; others stay as fallbacks. Leave empty to let OpenRouter choose."],
+    ["screen_context", "bool", "Read the Screen for Context", "Reads the text of the window you are typing in, on this PC with Windows' own OCR, and sends it to the model with your text so suggestions can fit what you are replying to. The pictures are kept in memory only. Turn off to send only what you type."],
     ["max_tokens", "number", "Max Output Length", "The longest suggestion, counted in tokens (a token is about four characters). Lower is faster and cheaper.", { min: 1, step: 1, fold: "Advanced" }],
     ["temperature", "number", "Temperature", "0 is the most predictable and higher is more varied. Around 0.2 suits autocomplete.", { min: 0, max: 2, step: 0.05, inputmode: "decimal", fold: "Advanced" }],
     ["debounce", "number", "Seconds Before Asking", "How long you pause typing before a request is sent automatically. Ctrl+Space never waits.", { min: 0, step: 0.05, inputmode: "decimal", fold: "Advanced" }],

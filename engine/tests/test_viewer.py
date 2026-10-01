@@ -9,6 +9,7 @@ from completionist_engine.metrics import Metrics
 from completionist_engine.personal import PersonalStore
 from completionist_engine.phrase_provider import Attempt
 from completionist_engine.request_log import RequestLog
+from completionist_engine.screen_context import Capture
 from completionist_engine.viewer import TOKEN_HEADER, ViewerServer
 
 TOKEN = "test-token-abc"
@@ -37,8 +38,8 @@ async def running(tmp_path, personal=None, metrics=None, config_text="[words]\nl
         server.close()
 
 
-async def http(server, method, path, headers=None, body=None, host=None, raw=None):
-    """Send one request and return (status, headers, body text)."""
+async def http(server, method, path, headers=None, body=None, host=None, raw=None, binary=False):
+    """Send one request and return (status, headers, body text), or the body as bytes with `binary`."""
     sent = {"Host": host or f"127.0.0.1:{server.port}", **(headers or {})}
     payload = b"" if body is None else json.dumps(body).encode()
     if body is not None:
@@ -55,15 +56,15 @@ async def http(server, method, path, headers=None, body=None, host=None, raw=Non
     writer.close()
     head, _, text = data.partition(b"\r\n\r\n")
     lines = head.decode().split("\r\n")
-    return int(lines[0].split()[1]), {k.lower(): v for k, v in (line.split(": ", 1) for line in lines[1:])}, text.decode()
+    return int(lines[0].split()[1]), {k.lower(): v for k, v in (line.split(": ", 1) for line in lines[1:])}, (text if binary else text.decode())
 
 
-def api(server, method, path, body=None, **extra):
+def api(server, method, path, body=None, binary=False, **extra):
     headers = {TOKEN_HEADER: TOKEN}
     if method == "POST":
         headers["Origin"] = f"http://127.0.0.1:{server.port}"
     headers.update(extra)
-    return http(server, method, path, headers, body)
+    return http(server, method, path, headers, body, binary=binary)
 
 
 def run(coro):
@@ -393,5 +394,69 @@ def test_without_a_log_the_requests_list_is_empty(tmp_path):
         async with running(tmp_path) as server:
             data = json.loads((await api(server, "GET", "/api/requests"))[2])
             assert data["available"] is False and data["requests"] == []
+
+    run(go())
+
+
+# --- screenshots and screen text in the requests log ------------------------------------------------
+
+JPEG = bytes([0xFF, 0xD8, 0xFF, 0xE0]) + b"fake-jpeg-bytes" + bytes([0xFF, 0xD9])
+
+
+def logged_with_screen() -> RequestLog:
+    log = RequestLog()
+    shot = Capture(3, 0.0, "chrome.exe", "Inbox - Mail", (1, "Inbox - Mail"), "Sam: can you send the invoice?\nHello wor", JPEG)
+    log.add(app="notepad.exe", prompt="Hello wor", reply="ld", outcome="ok", attempts=[], ttft_ms=1, total_ms=2)
+    log.add(
+        app="chrome.exe", prompt="Hello wor", reply="ld", outcome="ok", attempts=[], ttft_ms=1, total_ms=2,
+        screen=shot, screen_sent="Sam: can you send the invoice?",
+    )  # fmt: skip
+    return log
+
+
+def test_a_request_detail_carries_what_the_screen_reader_extracted_and_what_was_sent(tmp_path):
+    async def go():
+        async with running(tmp_path, request_log=logged_with_screen()) as server:
+            detail = json.loads((await api(server, "GET", "/api/requests/2"))[2])
+            assert detail["screen"] == {
+                "app": "chrome.exe", "title": "Inbox - Mail", "has_image": True,
+                "text": "Sam: can you send the invoice?\nHello wor", "sent": "Sam: can you send the invoice?",
+            }  # fmt: skip
+            assert json.loads((await api(server, "GET", "/api/requests/1"))[2])["screen"] is None
+            rows = json.loads((await api(server, "GET", "/api/requests"))[2])["requests"]
+            assert [r["has_screen"] for r in rows] == [True, False]
+
+    run(go())
+
+
+def test_the_screenshot_is_served_as_a_jpeg_and_needs_the_token(tmp_path):
+    async def go():
+        async with running(tmp_path, request_log=logged_with_screen()) as server:
+            status, headers, body = await api(server, "GET", "/api/requests/2/screenshot", binary=True)
+            assert status == 200 and body == JPEG
+            assert headers["content-type"] == "image/jpeg" and headers["cache-control"] == "no-store"
+            assert (await http(server, "GET", "/api/requests/2/screenshot"))[0] == 403
+            assert (await api(server, "GET", "/api/requests/1/screenshot"))[0] == 404  # that request had no screen
+            assert (await api(server, "GET", "/api/requests/99/screenshot"))[0] == 404
+
+    run(go())
+
+
+def test_clearing_the_log_removes_the_screenshots_too(tmp_path):
+    async def go():
+        async with running(tmp_path, request_log=logged_with_screen()) as server:
+            assert (await api(server, "GET", "/api/requests/2/screenshot", binary=True))[0] == 200
+            await api(server, "POST", "/api/requests/clear", {})
+            assert (await api(server, "GET", "/api/requests/2/screenshot"))[0] == 404
+
+    run(go())
+
+
+def test_the_page_may_show_images_it_made_itself_and_nothing_else(tmp_path):
+    async def go():
+        async with running(tmp_path) as server:
+            _, headers, _ = await http(server, "GET", f"/?t={TOKEN}")
+            policy = headers["content-security-policy"]
+            assert "img-src blob:" in policy and "default-src 'none'" in policy
 
     run(go())
