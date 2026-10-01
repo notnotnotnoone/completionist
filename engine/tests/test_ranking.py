@@ -162,6 +162,23 @@ def test_a_typo_still_offers_the_right_word_after_exact_matches():
     assert "mountain" in completer.complete("moutian").words
 
 
+def test_a_typo_marks_the_guessed_letters_of_each_correction():
+    completer = WordCompleter([("mountain", 6.0), ("motion", 5.0)], fuzzy=FuzzyIndex({"mountain", "motion"}))
+    completion = completer.complete("moutian")
+    marks = dict(zip(completion.words, completion.marks))
+    assert marks["mountain"] != ()
+    assert all(position < len("mountain") for position in marks["mountain"])
+
+
+def test_exact_matches_carry_no_marks():
+    completer = WordCompleter(
+        [("recieve", 6.0), ("receive", 5.0)], fuzzy=FuzzyIndex({"recieve", "receive"})
+    )
+    completion = completer.complete("recie")
+    assert dict(zip(completion.words, completion.marks))["recieve"] == ()
+    assert dict(zip(completion.words, completion.marks))["receive"] != ()
+
+
 def test_exact_prefix_matches_always_come_first():
     completer = WordCompleter(
         [("recieve", 6.0), ("recieved", 5.5), ("receive", 5.0), ("relieve", 4.0)],

@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); 0.6.3 and 0.6.4 are done on branch m9-fuzzy, and 0.6.5 is doing.",
+  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); 0.6.3 to 0.6.5 are done on branch m9-fuzzy, and 0.6.6 is doing.",
   "highways": [
     {
       "id": "engine",
@@ -1256,10 +1256,18 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M9.3",
           "version": "0.6.5",
           "title": "Protocol marks the guessed letters of each suggestion",
-          "status": "todo",
+          "status": "done",
           "area": "engine",
           "stories": [
             72
+          ],
+          "refs": [
+            "m9-fuzzy",
+            "engine/src/completionist_engine/protocol.py",
+            "engine/src/completionist_engine/words.py",
+            "engine/src/completionist_engine/engine.py",
+            "tip/src/protocol.cpp",
+            "0.6.5"
           ],
           "notes": "Each item carries the positions it corrected. Tests on both sides. Builds on the suggestion kind from 0.4.2."
         },
@@ -1884,6 +1892,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "0.6.5 done on branch m9-fuzzy: replies carry guessed-letter marks per suggestion, parsed on both sides; M9.4 is doing."
+    },
     {
       "date": "2026-10-01",
       "text": "0.6.3 and 0.6.4 done on branch m9-fuzzy: rapidfuzz fuzzy index (SymSpell tried and dropped, see the decision) and corrections filling rows after exact matches; M9.3 is doing."

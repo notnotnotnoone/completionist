@@ -131,6 +131,13 @@ def test_a_reply_names_the_kind_of_each_suggestion_only_when_some_are_not_plain_
     assert upcoming.to_message()["kinds"] == ["next", "next"]
 
 
+def test_a_reply_marks_the_guessed_letters_only_when_some_word_has_any():
+    marked = WordReply(id=1, replace=7, words=("motion", "mountain"), marks=((), (3, 5)))
+    assert marked.to_message()["marks"] == [[], [3, 5]]
+    assert "marks" not in WordReply(id=1, replace=3, words=("work", "world")).to_message()
+    assert "marks" not in WordReply(id=1, replace=3, words=("work",), marks=((),)).to_message()
+
+
 @pytest.mark.parametrize("kind", ["word", "chunk", "next", "phrase", "phrase_word"])
 def test_an_accept_event_may_name_any_suggestion_kind(kind):
     request = parse_request({"id": 1, "event": "accept", "accepted": "x", "kind": kind})

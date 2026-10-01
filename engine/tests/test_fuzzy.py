@@ -1,6 +1,6 @@
 import pytest
 
-from completionist_engine.fuzzy import FuzzyIndex, max_distance
+from completionist_engine.fuzzy import FuzzyIndex, guessed_positions, max_distance
 
 VOCAB = {"mountain", "motion", "receive", "definitely", "the", "know", "knowledge", "recipe", "think"}
 
@@ -43,3 +43,18 @@ def test_a_word_far_from_everything_gives_nothing():
 def test_lookup_only_tries_words_starting_with_the_same_letter():
     index = FuzzyIndex(VOCAB)
     assert all(word.startswith("d") for _, word in index.candidates("definately"))
+
+
+def test_guessed_positions_mark_the_letters_the_fragment_did_not_earn():
+    assert guessed_positions("moutian", "mountain") == (3, 5)
+    assert guessed_positions("recieve", "receive") == (3,)
+    assert guessed_positions("definately", "definitely") == (5,)
+
+
+def test_guessed_positions_stay_inside_the_word():
+    marks = guessed_positions("moutia", "mountain")
+    assert marks and max(marks) < len("mountain")
+
+
+def test_an_exact_prefix_marks_nothing():
+    assert guessed_positions("mount", "mountain") == ()

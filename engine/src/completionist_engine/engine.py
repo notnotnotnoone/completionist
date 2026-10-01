@@ -117,15 +117,18 @@ class Session:
         config = engine._config
         completion = engine._completer.complete(request.before, limit=config.word_limit)
         words, kinds = completion.words, ("word",) * len(completion.words)
+        marks: tuple[tuple[int, ...], ...] = completion.marks
         if config.next_words and not words:
             completion = engine._completer.next_words(
                 request.before, limit=config.word_limit, threshold=config.next_threshold
             )
             words, kinds = completion.words, ("next",) * len(completion.words)
+            marks = ()
         elif config.chunks and words:
             chunks = engine._completer.chunks(request.before).words
             words = (*chunks, *words)[: config.word_limit]
             kinds = (*("chunk",) * len(chunks), *("word",) * len(completion.words))[: config.word_limit]
+            marks = (*(() for _ in chunks), *completion.marks)[: config.word_limit]
         if engine._metrics is not None and words and not request.quiet and not self._words_open:
             engine._metrics.record_shown(self._app, "word")
         self._words_open = bool(words) and not request.quiet
@@ -142,6 +145,7 @@ class Session:
             replace=completion.replace,
             words=words,
             kinds=kinds if any(kind != "word" for kind in kinds) else (),
+            marks=marks if any(marks) else (),
             phrase=phrase,
             phrase_done=phrase_done,
             phrase_mode=phrase_mode,

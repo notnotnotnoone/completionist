@@ -8,6 +8,8 @@ matches leave rows unfilled, and only for fragments of 3 or more letters: shorte
 match everything, and names and learned words are never corrected.
 """
 
+import difflib
+
 from rapidfuzz.distance import OSA
 
 _MAX_SHORT = 4  # fragments shorter than this get distance 1
@@ -17,6 +19,26 @@ _MIN_LENGTH = 3  # shorter fragments match everything, so they are never correct
 
 Hit = tuple[int, str]
 """A fuzzy hit: (edit distance, word). Lower distance is a closer guess."""
+
+
+def guessed_positions(fragment: str, word: str) -> tuple[int, ...]:
+    """Which letter positions of `word` the fragment did not earn.
+
+    Lines the word up against the fragment's start (the fragment is a half-typed word,
+    so only the first `len(fragment) + a little` letters count) and marks every word
+    letter outside the longest matching runs: inserted letters the writer skipped, and
+    substituted ones they got wrong. Deleted letters (typed but not in the word) mark
+    nothing, since there is no word letter to point at.
+    """
+    prefix = word[: len(fragment) + max_distance(fragment)] if len(word) > len(fragment) + max_distance(fragment) else word
+    marks: set[int] = set()
+    for tag, _, _, low, high in difflib.SequenceMatcher(None, fragment, prefix, autojunk=False).get_opcodes():
+        if tag == "equal":
+            continue
+        if tag == "insert" and high == len(prefix) and low >= len(fragment):
+            continue  # the word's untyped tail: not a guess, just not typed yet
+        marks.update(range(low, high))
+    return tuple(sorted(marks))
 
 
 def max_distance(fragment: str) -> int:
