@@ -15,6 +15,7 @@ namespace completionist {
 struct PopupContent {
     std::vector<std::wstring> words;
     int typedChars = 0;        // the first typedChars characters of each word are drawn as already typed
+    std::vector<std::vector<int>> marks;  // one per word: letter positions the typed fragment did not earn (guessed letters)
     std::wstring phrase;       // continuation shown as the top row (empty: no phrase row)
     std::wstring phraseLead;   // what's already typed of the current word, drawn before the phrase
 };

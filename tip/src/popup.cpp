@@ -19,7 +19,11 @@ constexpr COLORREF kHighlight = RGB(38, 79, 176);
 constexpr COLORREF kHighlightText = RGB(255, 255, 255);
 constexpr COLORREF kHighlightTyped = RGB(190, 214, 255);
 constexpr COLORREF kHighlightGhost = RGB(214, 224, 244);
+constexpr COLORREF kGuessed = RGB(255, 203, 107);  // amber: guessed letters of a typo correction
+constexpr COLORREF kHighlightGuessed = RGB(255, 225, 160);  // amber on the highlighted row
 constexpr int kMaxPhraseWidth = 520;  // at 96 DPI
+
+const std::vector<int> kNoMarks;  // empty default when a reply carries no marks
 
 int Scale(int value, UINT dpi) { return MulDiv(value, static_cast<int>(dpi), 96); }
 
@@ -210,12 +214,43 @@ void Popup::Paint() {
 
         const std::wstring& word = content_.words[wordIndex];
         int typed = std::min(static_cast<int>(word.size()), content_.typedChars);
-        SIZE size = {};
-        SetTextColor(dc, selected ? kHighlightTyped : kTyped);
-        TextOutW(dc, x, y, word.c_str(), typed);
-        GetTextExtentPoint32W(dc, word.c_str(), typed, &size);
-        SetTextColor(dc, selected ? kHighlightText : kText);
-        TextOutW(dc, x + size.cx, y, word.c_str() + typed, static_cast<int>(word.size()) - typed);
+        const std::vector<int>& marked =
+            wordIndex < static_cast<int>(content_.marks.size()) ? content_.marks[wordIndex] : kNoMarks;
+        // Typed letters in blue, guessed letters in amber, the rest in plain text. Each run is
+        // drawn separately so the colours meet exactly at the letter boundaries.
+        int cursor = 0;
+        auto flush = [&](int end, COLORREF normal, COLORREF selectedColour) {
+            if (end <= cursor) return;
+            SetTextColor(dc, selected ? selectedColour : normal);
+            TextOutW(dc, x, y, word.c_str() + cursor, end - cursor);
+            SIZE advance = {};
+            GetTextExtentPoint32W(dc, word.c_str() + cursor, end - cursor, &advance);
+            x += advance.cx;
+            cursor = end;
+        };
+        std::size_t m = 0;
+        while (m < marked.size() && marked[m] < typed) {
+            int pos = marked[m];
+            if (pos < cursor) {
+                ++m;
+                continue;
+            }
+            flush(pos, kTyped, kHighlightTyped);
+            flush(pos + 1, kGuessed, kHighlightGuessed);
+            ++m;
+        }
+        flush(typed, kTyped, kHighlightTyped);
+        while (m < marked.size()) {
+            int pos = marked[m];
+            if (pos < cursor || pos >= static_cast<int>(word.size())) {
+                ++m;
+                continue;
+            }
+            flush(pos, kText, kHighlightText);
+            flush(pos + 1, kGuessed, kHighlightGuessed);
+            ++m;
+        }
+        flush(static_cast<int>(word.size()), kText, kHighlightText);
     }
 
     BitBlt(screen, 0, 0, width, height, dc, 0, 0, SRCCOPY);

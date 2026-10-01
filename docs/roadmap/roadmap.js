@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); 0.6.3 to 0.6.5 are done on branch m9-fuzzy, and 0.6.6 is doing.",
+  "now": "0.6.2 is released. Next is 0.7.0 (Typo-tolerant words); 0.6.3 to 0.6.6 are done on branch m9-fuzzy, and 0.6.7 is doing.",
   "highways": [
     {
       "id": "engine",
@@ -1275,12 +1275,19 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M9.4",
           "version": "0.6.6",
           "title": "Popup draws guessed letters in a third colour",
-          "status": "todo",
+          "status": "done",
           "area": "dll",
           "stories": [
             72
           ],
-          "notes": "New colour token, validated as CONTEXT.md describes. Checked in the TSF harness with a screenshot."
+          "refs": [
+            "m9-fuzzy",
+            "tip/src/popup.cpp",
+            "tip/src/popup.h",
+            "tip/src/tsf_service.cpp",
+            "0.6.6"
+          ],
+          "notes": "Guessed letters draw in amber (validated: 10.6 on the popup background, 5.0 on the highlight row). Native tests pass and the DLL builds; the TSF harness screenshot runs when you say you are away."
         },
         {
           "id": "M9.5",
@@ -1892,6 +1899,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "0.6.6 done on branch m9-fuzzy: the popup draws guessed letters in amber (validated contrast) from the reply marks; native tests pass and the DLL builds; M9.5 is doing."
+    },
     {
       "date": "2026-10-01",
       "text": "0.6.5 done on branch m9-fuzzy: replies carry guessed-letter marks per suggestion, parsed on both sides; M9.4 is doing."
