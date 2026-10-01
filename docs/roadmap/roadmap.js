@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "0.7.0 is released. M5 (Reply-aware phrases) is active and 1.1.0 is next; the 0.7.0 live check, demo GIF and Spike keyboard removal are dropped to daily use.",
+  "now": "1.0.0 is released. M5 (Reply-aware phrases) is active and 1.1.0 is next; the live checks, demo GIF and Spike keyboard removal stay dropped to daily use.",
   "highways": [
     {
       "id": "engine",
@@ -2234,19 +2234,26 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "version": "1.0.0",
-      "status": "next",
+      "status": "released",
+      "date": "2026-10-01",
       "title": "Autocomplete for everything you type",
+      "highways": [
+        "engine",
+        "tsf",
+        "tooling",
+        "browser"
+      ],
       "essay": [
-        "Completionist 1.0 puts the suggestions of a code editor into every place you write English on Windows. Type a few letters in Discord, a browser text box or an email and a short list of completions appears just under the caret, ranked by the words before it and by the words you actually use. Tab takes the top one. In apps you choose, and on Ctrl+Space everywhere else, a greyed phrase appears above the list, a continuation of your sentence that you take whole with Tab or one word at a time with Ctrl+Right. Enter is never touched, and nothing in a password field is read or sent.",
-        "The unusual decision is that Completionist is a Text Services Framework text service, the mechanism Windows uses for input methods, and not a keyboard hook with a screen-scraping overlay. That choice cost a milestone of throwaway spiking and a C++ DLL that lives inside every app, but it is why the caret position, the surrounding text, the key handling and the insertion of accepted text all come from Windows itself and work the same in Notepad, Chrome, Edge, Discord and Teams. The DLL stays deliberately thin: it draws the popup, decides which keys it consumes, and talks over a named pipe to a Python engine, reconnecting quietly if the engine is gone. The key router is pure logic with native tests, and the whole DLL is exercised through real TSF against a simulated text field, including the engine being killed and restarted mid-typing.",
-        "Word ranking is local and instant. A 146,000-word frequency list gives the base order, bigram and trigram counts built from WikiText-103 re-rank by context, and a personal store of word and word-pair counts, never text, boosts what you use and adds names and slang after a few uses. The same tables predict the next word after a space and offer two- and three-word chunks, all in the one popup box, and a typo still finds its word, with the guessed letters drawn in a different colour. A viewer opened from the tray shows the personal dictionary and the stats. Lookups take about a millisecond at the 95th percentile. Phrases are the only thing that leaves the machine, and they are built to be cheap: a plain completion request through OpenRouter to a low-cost model you choose from a list in the config, seeing only the text before the caret and held back when other text follows it on the same line, with the context cut at paragraph boundaries so the provider's prefix cache does the work, a debounce so it asks once per pause, and no spend counting of its own: you cap the key in OpenRouter, and when the cap is hit phrases quietly fall back to words. The key is typed into the config file by the user and is never logged or shown in errors.",
-        "It is not finished in every way, and this release is honest about that. The automated tests pass, but the checks that need a person at a real desktop are still open: registering the DLL and using it in real apps, a live phrase request with a real key, the tray icon and pause hotkey, and starting at logon after a reboot. Which OpenRouter models accept plain completions, and cleanly, is untested, so the default model is a starting guess to be swapped after real use. The n-gram corpus is encyclopedic, which suits formal writing more than chat. The harness that tests the real DLL needs the foreground window, so it only runs when nobody is using the machine.",
-        "What 1.0 leaves out is as deliberate as what it includes. It does not read the conversation you are replying to, so a Discord phrase knows your sentence but not the message above it; that is the next release. It has no browser extension, no macOS or Linux, no languages other than English, and no cloud account, sync or telemetry: the only network traffic is the phrase request you configured, and the only record of your typing is a set of counts on your own disk. Those limits keep the promise small enough to keep, which is that Completionist starts with Windows, stays out of the way, and shows you the numbers on whether it is paying for itself."
+        "Completionist 1.0 put the suggestions of a code editor into the places you write English on Windows. Type a few letters in Discord, a browser text box or an email and a short list of completions appears just under the caret, ranked by the words before it and by the words you actually use. Tab takes the top one. In apps you choose, and on Ctrl+Space everywhere else, a greyed phrase appears above the list, a continuation of your sentence that you take whole with Tab or one word at a time with Ctrl+Right. Enter is never touched, and nothing in a password field is read or sent. It starts with Windows, lives in the tray, and can be paused with Ctrl+Alt+P.",
+        "The unusual decision was that Completionist is a Text Services Framework text service, the mechanism Windows uses for input methods, and not a keyboard hook with a screen-scraping overlay. That choice cost a milestone of throwaway spiking and a C++ DLL that lives inside every app, but it is why the caret position, the surrounding text, the key handling and the insertion of accepted text all come from Windows itself and work the same across apps. The DLL stayed deliberately thin: it draws the popup, decides which keys it consumes, and talks over a named pipe to a Python engine, reconnecting quietly if the engine is gone. The key router is pure logic with native tests, and the DLL was exercised through real TSF against a simulated text field, including the engine being killed and restarted mid-typing. Before the tag, a full code review produced fifteen fixes in the last patch, among them keeping the service alive for queued edit sessions and keeping Esc and phrase suppression correct as the text window slides along a long field.",
+        "Word ranking is local and instant. A 146,000-word frequency list gives the base order, bigram and trigram counts built from WikiText-103 re-rank by context, and a personal store of word and word-pair counts, never text, boosts what you use and adds names and slang after a few uses. The same tables predict the next word after a space and offer two- and three-word chunks in the one popup box, and a typo still finds its word, with the guessed letters drawn in a different colour and exact prefix matches always ranked first. A viewer opened from the tray shows the personal dictionary and the stats, lets you forget a word, and edits the settings. Lookups took about a millisecond at the 95th percentile over the real pipe. Phrases are the only thing that leaves the machine, and they were built to be cheap: a plain completion request through OpenRouter to a low-cost model chosen from a list in the config, seeing only the text before the caret, with the context cut at paragraph boundaries so the provider's prefix cache does the work, a debounce so it asks once per pause, and no spend counting of its own. You cap the key in OpenRouter, and when the cap is hit phrases quietly fall back to words. The key is typed into the config file by the user and is never logged or shown in errors.",
+        "The release was judged the way a personal tool should be: by using it. The scripted live checks, a manual matrix of apps, a real-key phrase check, an install and logon check, were dropped from the gates in favour of daily use, and after daily use in real apps the verdict was that it works well. That is a weaker kind of evidence than a written matrix, and this essay says so. The default phrase model is still a starting guess to be swapped after more use, and which OpenRouter models accept plain completions cleanly was never surveyed. The n-gram corpus is encyclopedic, which suits formal writing more than chat. The API key sits in plain text in a file outside the repository, protected only by the account and by the spending limit on the key. The harness that tests the real DLL needs the foreground window, so it only runs when nobody is using the machine, and the old Spike keyboard is still registered until the user removes it.",
+        "What 1.0 leaves out is as deliberate as what it includes. It does not read the conversation you are replying to, so a Discord phrase knows your sentence but not the message above it; that is the next release. It has no browser extension, no popup redesign, no macOS or Linux, no languages other than English, and no cloud account, sync or telemetry: the only network traffic is the phrase request you configured, and the only record of your typing is a set of counts on your own disk. Those limits keep the promise small enough to keep, which is that Completionist starts with Windows, stays out of the way, and shows you the numbers on whether it is paying for itself."
       ]
     },
     {
       "version": "1.1.0",
-      "status": "planned",
+      "status": "next",
       "title": "Reply-aware phrases",
       "milestone": "M5",
       "text": "Phrase suggestions learn what you are replying to. When you switch to a window, Completionist reads the surrounding conversation in the background through UI Automation, falling back to Windows’ built-in text recognition for apps that expose little text. That context travels with each phrase request, so a reply in Discord or Slack can follow the last few messages and an email reply can respond to the message it quotes. Reading the screen involves no AI or vision model. The phrase request remains the only model call."
@@ -2444,7 +2451,8 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "date": "2026-09-30",
       "text": "The viewer is started only with the tray (not with --no-tray), on a random port, with its token in memory only; trigram listing is left for later because the store has no per-trigram list or remove."
-    }
+    },
+    {"date": "2026-10-01", "text": "1.0.0 shipped without the scripted live checks: the user used it daily in real apps and judged that it works great, and the 1.0.0 essay records that as weaker evidence than a written matrix."}
   ],
   "risks": [
     {
@@ -2504,6 +2512,7 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {"date": "2026-10-01", "text": "Released 1.0.0: rewrote the planned essay as a retrospective, marked it released on all four highways and made 1.1.0 the next release; the live checks stay dropped because daily use was the test and it works well."},
     {"date": "2026-10-01", "text": "Released 0.7.2, 15 code-review fixes (new task M5.2): phrase and Esc suppression survive the sliding 8000-character window, tray stats run on the engine loop, personal-word promotion and chunk seeds, config encoding, DLL edit sessions hold the service, viewer 500s, pause cancels phrases, uninstall removes the roaming config, learning-off stops ranking."},
     {"date": "2026-10-01", "text": "Released 0.7.1: committed the per-task numbering, the 0.0.x stops and the CLAUDE.md rules; tagged v0.7.1 and pushed."},
     {"date": "2026-10-01", "text": "Gave every task in the 0.1.0 to 0.4.0 and 0.6.0 groups its own patch number counting up from the release before it (0.0.13 to 0.0.29, 0.1.x, 0.2.x, 0.3.x, 0.5.x), added a released patch entry for each shipped task, kept dropped tasks numbered but without a stop, moved M7.9 to 0.4.3, and wrote the numbering rule into CLAUDE.md."},
