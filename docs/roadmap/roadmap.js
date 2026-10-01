@@ -1626,6 +1626,46 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The roadmap pages now show every task by the version it ships in instead of an M-number, and the checker enforces it, so each patch counts up to the next release."
     },
     {
+      "version": "0.6.3",
+      "status": "released",
+      "title": "Fuzzy index over the vocabulary",
+      "highways": [
+        "engine"
+      ],
+      "date": "2026-10-01",
+      "text": "The engine builds a typo-tolerant index over the vocabulary and your personal words, ready for lookups."
+    },
+    {
+      "version": "0.6.4",
+      "status": "released",
+      "title": "Typo-tolerant ranking",
+      "highways": [
+        "engine"
+      ],
+      "date": "2026-10-01",
+      "text": "Typo corrections now fill the rows left after exact prefix matches, so a real word is never pushed aside by a guess."
+    },
+    {
+      "version": "0.6.5",
+      "status": "released",
+      "title": "Guessed letters marked in replies",
+      "highways": [
+        "engine"
+      ],
+      "date": "2026-10-01",
+      "text": "Each suggestion in the engine's reply now says which of its letters were guessed, parsed on both sides of the pipe."
+    },
+    {
+      "version": "0.6.6",
+      "status": "released",
+      "title": "Guessed letters drawn in amber",
+      "highways": [
+        "tsf"
+      ],
+      "date": "2026-10-01",
+      "text": "The popup draws the guessed letters of a suggestion in amber so you can see what was corrected."
+    },
+    {
       "version": "0.6.7",
       "status": "released",
       "title": "Latency check with the fuzzy index on",
@@ -1917,7 +1957,7 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-01",
-      "text": "Pushed main and tagged v0.7.0, plus v0.6.3 to v0.6.7 (0.6.3 and 0.6.4 share one commit); all are on origin."
+      "text": "Pushed main and tagged v0.7.0, plus v0.6.3 to v0.6.7 (0.6.3 and 0.6.4 share one commit); all are on origin. Added the missing 0.6.3 to 0.6.6 release entries so they show on the highway map."
     },
     {
       "date": "2026-10-01",
