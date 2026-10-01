@@ -208,17 +208,18 @@ class WordCompleter:
             candidates.update(dict.fromkeys(w for w in counts.words if w in self._index))
         for counts in (personal_uni, personal_bi):
             candidates.update(dict.fromkeys(w for w in counts.words if self._usable_personal(w, counts, personal_uni)))
-        fuzzy_hits: list[tuple[int, str]] = []
-        if self._fuzzy is not None:
-            fuzzy_hits = [(d, w) for d, w in self._fuzzy.candidates(key) if w in self._index and w != key]
-            candidates.update(dict.fromkeys(w for _, w in fuzzy_hits))
         candidates.pop(key, None)  # never suggest the word already typed
 
         scored = [(self._score(w, ngram_counts, personal_uni, personal_bi), w) for w in candidates]
         scored.sort(key=lambda pair: (-pair[0], pair[1]))
-        fuzzy_set = {w for _, w in fuzzy_hits}
-        exact = [w for _, w in scored if w.startswith(key) or w not in fuzzy_set][:limit]
-        words = exact if len(exact) >= limit or not fuzzy_hits else [*exact, *[w for _, w in fuzzy_hits if w not in exact][: limit - len(exact)]]
+        exact = [w for _, w in scored if w.startswith(key)][:limit]
+        if len(exact) >= limit or self._fuzzy is None:
+            words = exact
+            fuzzy_set: set[str] = set()
+        else:
+            fuzzy_hits = [(d, w) for d, w in self._fuzzy.candidates(key) if w in self._index and w != key and w not in exact]
+            fuzzy_set = {w for _, w in fuzzy_hits}
+            words = [*exact, *[w for _, w in fuzzy_hits][: limit - len(exact)]]
         marks = tuple(guessed_positions(key, w) if w in fuzzy_set else () for w in words)
         return tuple(words), marks
 

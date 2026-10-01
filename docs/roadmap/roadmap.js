@@ -1303,7 +1303,7 @@ window.COMPLETIONIST_ROADMAP = {
             "engine/tests/test_server.py",
             "0.6.7"
           ],
-          "notes": "Lookup p95 stays under 10 ms over the real pipe (6.7 ms with typos typed)."
+          "notes": "Lookup p95 stays under 10 ms over the real pipe (5 ms with typos typed; the fuzzy scan only runs when rows are unfilled)."
         },
         {
           "id": "M9.6",

@@ -146,17 +146,22 @@ def test_round_trip_with_the_fuzzy_index_on_is_under_10ms_at_p95(tmp_path):
                 for n in range(1, len(text) + 1):
                     request_id += 1
                     start = time.perf_counter()
-                    await client.request(keystroke(request_id, text[:n]))
-                    timings.append(time.perf_counter() - start)
+                    reply = await client.request(keystroke(request_id, text[:n]))
+                    timings.append((time.perf_counter() - start, request_id, reply.get("words", [])))
+                    assert reply["id"] == request_id
             await client.close()
         return timings
 
     try:
-        timings = sorted(asyncio.run(scenario()))
+        timed = asyncio.run(scenario())
     finally:
         assembled.close()
+    timings = sorted(dt for dt, _, _ in timed)
     p95 = timings[int(len(timings) * 0.95)]
-    assert p95 < 0.010, f"p95 round trip with fuzzy took {p95 * 1000:.2f} ms"
+    if p95 >= 0.010:
+        slowest = sorted(timed, reverse=True)[:5]
+        detail = ", ".join(f"#{i} {w} {dt * 1000:.1f}ms" for dt, i, w in slowest)
+        raise AssertionError(f"p95 round trip with fuzzy took {p95 * 1000:.2f} ms (slowest: {detail})")
 
 
 @pytest.fixture
