@@ -6,9 +6,10 @@ from completionist_engine.config_watch import ConfigWatcher
 
 
 def write(path, text):
+    previous_mtime = path.stat().st_mtime_ns if path.exists() else 0
     path.write_text(text, encoding="utf-8")
     stat = path.stat()
-    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 5_000_000_000))  # make the change visible to mtime checks
+    os.utime(path, ns=(stat.st_atime_ns, max(stat.st_mtime_ns, previous_mtime) + 5_000_000_000))
 
 
 def watcher(tmp_path, initial=None):

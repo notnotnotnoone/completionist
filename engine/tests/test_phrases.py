@@ -403,8 +403,10 @@ def test_a_finished_request_is_logged_with_its_text_and_timings():
     assert entry.settings["models"] == ("m",)
     assert "api_key" not in entry.settings
     assert [event["kind"] for event in entry.events] == [
-        "started", "context", "model_started", "first_text", "text_chunk", "text_chunk", "model_finished", "finished"
+        "started", "context", "model_started", "request_sent", "response_started",
+        "first_text", "text_chunk", "text_chunk", "model_finished", "finished"
     ]
+    assert entry.events[3]["body"]["prompt"] == entry.prompt
     assert entry.events[-1]["outcome"] == "ok"
 
 

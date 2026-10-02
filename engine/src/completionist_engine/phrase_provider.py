@@ -72,7 +72,7 @@ class PhraseProvider:
             if on_event is not None:
                 on_event("model_started", model=model)
             try:
-                async for event in self._stream_one(model, request):
+                async for event in self._stream_one(model, request, on_event=on_event):
                     produced = True
                     yield event
                 if attempts is not None:
@@ -94,7 +94,8 @@ class PhraseProvider:
                 raise
         raise last_error or ProviderError("no phrase model configured")
 
-    async def _stream_one(self, model: str, request: PhraseRequest) -> AsyncIterator[str]:
+    async def _stream_one(self, model: str, request: PhraseRequest,
+                          on_event: Callable[..., None] | None = None) -> AsyncIterator[str]:
         s = self._settings
         payload: dict = {
             "model": model,
@@ -126,10 +127,14 @@ class PhraseProvider:
             payload["suffix"] = request.suffix
         url = s.base_url.rstrip("/") + "/completions"
         headers = {"Authorization": f"Bearer {self._api_key}", "Content-Type": "application/json"}
+        if on_event is not None:
+            on_event("request_sent", url=url, body=payload)
         try:
             async with self._client.stream(
                 "POST", url, json=payload, headers=headers, timeout=httpx.Timeout(s.timeout)
             ) as response:
+                if on_event is not None:
+                    on_event("response_started", status_code=response.status_code)
                 if response.status_code >= 400:
                     await response.aread()
                     raise ProviderError(f"provider answered HTTP {response.status_code}")

@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "The viewer icon, personal word log and Requests detail fixes are complete through 1.1.4; the dashboard overhaul is next in the active M10 group, leading to 2.0.0, while live popup and provider checks remain part of daily use.",
+  "now": "The viewer icon, personal word log and Requests detail fixes are complete through 1.1.5; the dashboard overhaul is next in the active M10 group, leading to 2.0.0.",
   "highways": [
     {
       "id": "engine",
@@ -1620,8 +1620,23 @@ window.COMPLETIONIST_ROADMAP = {
           "notes": "Keep full prompts and replies in memory and show the suffix, non-secret request settings and an event timeline beside the existing context, screenshot, outcome, timings and model attempts. Timings-only mode scrubs the added detail."
         },
         {
-          "id": "M10.3",
+          "id": "M10.8",
           "version": "1.1.5",
+          "title": "Show exact outgoing request and HTTP status",
+          "status": "done",
+          "area": "viewer",
+          "stories": [],
+          "refs": [
+            "engine/src/completionist_engine/phrase_provider.py",
+            "engine/tests/test_phrases.py",
+            "engine/tests/test_config_watch.py",
+            "AGENTS.MD"
+          ],
+          "notes": "The in-memory event timeline shows the exact outgoing JSON without the authorization header, followed by the HTTP status; the config watcher test uses monotonic file times, and the repository has a small AGENTS.MD pointer to CLAUDE.md."
+        },
+        {
+          "id": "M10.3",
+          "version": "1.1.6",
           "title": "Overhaul the dashboard (the viewer)",
           "status": "next",
           "area": "viewer",
@@ -1630,7 +1645,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M10.1",
-          "version": "1.1.6",
+          "version": "1.1.7",
           "title": "Scope the popup redesign: audit the popup in real apps and decide what else is included",
           "status": "todo",
           "area": "dll",
@@ -1639,14 +1654,14 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M10.2",
-          "version": "1.1.7",
+          "version": "1.1.8",
           "title": "Redesign and rewrite the popup drawing",
           "status": "todo",
           "area": "dll",
           "stories": [
             74
           ],
-          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.5 is done. A bad popup must fall back to the current look, never crash the host app."
+          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.6 is done. A bad popup must fall back to the current look, never crash the host app."
         }
       ]
     },
@@ -2516,6 +2531,14 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The Requests detail panel now shows complete in-memory prompts and replies, sent suffixes, non-secret settings and an ordered event history."
     },
     {
+      "version": "1.1.5",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Exact request events",
+      "highways": ["engine", "tooling"],
+      "text": "The Requests event timeline now includes outgoing JSON and HTTP status, the config watcher test is stable, and the repo has an agent-guide pointer."
+    },
+    {
       "version": "2.0.0",
       "status": "next",
       "title": "A dashboard and popup with a deliberate look",
@@ -2817,6 +2840,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.1.5: Requests shows outgoing JSON and HTTP status without the authorization header, the config watcher test uses monotonic file times, and the agent-guide pointer is tracked."
+    },
     {
       "date": "2026-10-01",
       "text": "Prepared the approved push to main: expanded settings remains done, and releases 1.1.1 through 1.1.4 include the completed viewer icon, personal-learning and request-detail fixes; dashboard overhaul remains next."
