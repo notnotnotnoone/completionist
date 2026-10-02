@@ -106,7 +106,7 @@ class WordCompleter:
     def set_promote_after(self, promote_after: int) -> None:
         self._promote_after = promote_after
 
-    def complete(self, before: str, limit: int = 5) -> Completion:
+    def complete(self, before: str, limit: int = 5, *, typo_correction: bool = True) -> Completion:
         prefix = current_word(before)
         if not prefix:
             return Completion(replace=0, words=())
@@ -115,7 +115,7 @@ class WordCompleter:
             words = self._ranked(key, limit)  # frequency alone
             cased = tuple(dict.fromkeys(_match_case(word, prefix) for word in words))
             return Completion(replace=len(prefix), words=cased)
-        words, marks = self._rerank(key, previous_words(before, 2), limit)
+        words, marks = self._rerank(key, previous_words(before, 2), limit, typo_correction=typo_correction)
         seen: dict[str, tuple[int, ...]] = {}
         for word, mark in zip(words, marks):
             seen.setdefault(_match_case(word, prefix), mark)
@@ -191,7 +191,7 @@ class WordCompleter:
                         scores[word] = scores.get(word, 0.0) + n / (counts.total + _PERSONAL_BIGRAM_SMOOTHING)
         return scores
 
-    def _rerank(self, key: str, context: tuple[str, ...], limit: int) -> tuple[tuple[str, ...], tuple[tuple[int, ...], ...]]:
+    def _rerank(self, key: str, context: tuple[str, ...], limit: int, *, typo_correction: bool = True) -> tuple[tuple[str, ...], tuple[tuple[int, ...], ...]]:
         # Evidence from the n-gram tables: a bigram (last word) and a trigram (last two words).
         ngram_counts = [NO_COUNTS, NO_COUNTS]
         if self._ngrams is not None:
@@ -217,7 +217,7 @@ class WordCompleter:
         scored = [(self._score(w, ngram_counts, personal_uni, personal_bi), w) for w in candidates]
         scored.sort(key=lambda pair: (-pair[0], pair[1]))
         exact = [w for _, w in scored if w.startswith(key)][:limit]
-        if len(exact) >= limit or self._fuzzy is None:
+        if len(exact) >= limit or self._fuzzy is None or not typo_correction:
             words = exact
             fuzzy_set: set[str] = set()
         else:

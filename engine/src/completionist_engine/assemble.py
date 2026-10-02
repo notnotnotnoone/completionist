@@ -64,7 +64,8 @@ def assemble_engine(
     ngrams = _open_ngrams(config)
     if ngrams is not None:
         vocabulary = filter_vocabulary(vocabulary, ngrams.unigram_stats(), core_rank=core_rank)
-    personal = PersonalStore(config.data_dir / PERSONAL_FILE) if config.learning else None
+    learning_enabled = config.learning or any(profile.learning is True for profile in config.app_profiles)
+    personal = PersonalStore(config.data_dir / PERSONAL_FILE) if learning_enabled else None
     fuzzy = FuzzyIndex({word.lower() for word, _ in vocabulary})
     ranking = _WhileLearning(personal, lambda: engine.config.learning) if personal is not None else None
     completer = WordCompleter(vocabulary, ngrams=ngrams, personal=ranking, promote_after=config.promote_after, fuzzy=fuzzy)

@@ -8,7 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from completionist_engine.assemble import Assembled, assemble_engine
-from completionist_engine.config import Config, ConfigError, default_config_path, load_config, migrate_legacy_dirs
+from completionist_engine.config import Config, ConfigError, default_config_path, effective_config, load_config, migrate_legacy_dirs
 from completionist_engine.config_watch import ConfigWatcher
 from completionist_engine.hotkeys import GlobalHotkey
 from completionist_engine.logsetup import setup_logging
@@ -56,13 +56,16 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def screen_wanted(engine, phrases) -> Callable[[str], bool]:
+def screen_wanted(engine, phrases, source: str = "ocr") -> Callable[[str], bool]:
     """Whether the window of `app` may be read for screen text right now. It looks at the live settings each time.
 
     Never without phrases (nothing would be sent), while paused, when switched off, or in an app the person blocked."""
 
     def wanted(app: str) -> bool:
-        return phrases.available and phrases.config.screen_context and not engine.paused and app.lower() not in engine.config.block
+        local = effective_config(engine.config, app).phrase
+        return (phrases.available and local.screen_context and local.context_source == source
+                and not engine.paused and not engine.private_mode and app.lower() not in engine.config.block
+                and (not local.context_apps or app.lower() in local.context_apps))
 
     return wanted
 
@@ -73,6 +76,7 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
     stop = asyncio.Event()
     tray = None
     hotkey = None
+    registered_pause_hotkey = config.pause_hotkey
     viewer = None
 
     def toggle_pause() -> bool:
@@ -86,12 +90,17 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
     logger.info("listening on %s", args.pipe)
 
     screen_task = None
+    accessible_task = None
     if assembled.phrases is not None:
         from completionist_engine.screen_windows import WindowsOcr, WindowsSource  # Windows only, so imported here
 
         screen = ScreenContext(WindowsSource(), WindowsOcr(), wanted=screen_wanted(engine, assembled.phrases))
         assembled.phrases.screen = screen
         screen_task = asyncio.create_task(screen.run())
+        from completionist_engine.accessible_context import AccessibleContext, read_accessible_window
+        accessible = AccessibleContext(WindowsSource(), read_accessible_window, wanted=screen_wanted(engine, assembled.phrases, "accessible"))
+        assembled.phrases.accessible = accessible
+        accessible_task = asyncio.create_task(accessible.run())
 
     def run_on_loop(fn: Callable[[], str]) -> str:
         async def call() -> str:
@@ -103,7 +112,8 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
         from completionist_engine.tray import Tray  # imported here: it needs a desktop, which the tests don't have
 
         viewer = ViewerServer(
-            assembled.personal, assembled.metrics, args.config, request_log=assembled.phrases.log if assembled.phrases else None
+            assembled.personal, assembled.metrics, args.config, request_log=assembled.phrases.log if assembled.phrases else None,
+            engine=engine,
         )
         await viewer.start()
         tray = Tray(
@@ -118,10 +128,22 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
         )
         tray.start()
         if config.pause_hotkey:
-            hotkey = GlobalHotkey(config.pause_hotkey, toggle_pause)
+            hotkey = GlobalHotkey(config.pause_hotkey, lambda: loop.call_soon_threadsafe(toggle_pause))
             hotkey.start()
 
-    watcher = ConfigWatcher(args.config, config, engine.set_config)
+    def reconfigure(updated: Config) -> None:
+        nonlocal hotkey, registered_pause_hotkey
+        engine.set_config(updated)
+        if registered_pause_hotkey != updated.pause_hotkey and not args.no_tray:
+            if hotkey is not None:
+                hotkey.stop()
+                hotkey = None
+            if updated.pause_hotkey:
+                hotkey = GlobalHotkey(updated.pause_hotkey, lambda: loop.call_soon_threadsafe(toggle_pause))
+                hotkey.start()
+            registered_pause_hotkey = updated.pause_hotkey
+
+    watcher = ConfigWatcher(args.config, config, reconfigure)
     watch_task = asyncio.create_task(watcher.run())
     async def flush_regularly() -> None:
         while True:
@@ -137,6 +159,8 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
         flush_task.cancel()
         if screen_task is not None:
             screen_task.cancel()
+        if accessible_task is not None:
+            accessible_task.cancel()
         if hotkey is not None:
             hotkey.stop()
         if tray is not None:

@@ -80,10 +80,15 @@ void Popup::Destroy() {
 void Popup::EnsureFont(UINT dpi) {
     if (font_ && fontDpi_ == dpi) return;
     if (font_) DeleteObject(font_);
-    font_ = CreateFontW(-MulDiv(9, static_cast<int>(dpi), 72), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+    font_ = CreateFontW(-MulDiv(settings_.font_size, static_cast<int>(dpi), 72), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
                         OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
                         L"Segoe UI");
     fontDpi_ = dpi;
+}
+
+void Popup::SetSettings(const PopupSettings& settings) {
+    if (settings_.font_size != settings.font_size) fontDpi_ = 0;  // rebuild the font on the next Show
+    settings_ = settings;
 }
 
 int Popup::RowHeight(HDC dc) const {
@@ -125,12 +130,13 @@ void Popup::Show(const PopupContent& content, int selection, const RECT& caret) 
     ReleaseDC(hwnd_, dc);
 
     int rows = static_cast<int>(content_.words.size()) + (content_.phrase.empty() ? 0 : 1);
-    int width = std::max(widest + Scale(24, dpi_), Scale(120, dpi_));
+    int width = static_cast<int>(std::max(widest + Scale(24, dpi_), Scale(120, dpi_)) * settings_.width_scale);
     int height = rowHeight * rows + 2;  // +2 for the border
 
     RECT work = {0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
     MONITORINFO monitor = {sizeof(monitor)};
     if (GetMonitorInfoW(MonitorFromRect(&caret, MONITOR_DEFAULTTONEAREST), &monitor)) work = monitor.rcWork;
+    width = std::min(width, static_cast<int>(work.right - work.left));
 
     int x = caret.left;
     int y = caret.bottom + Scale(2, dpi_);

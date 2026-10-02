@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include "popup_settings.h"
 
 namespace completionist::protocol {
 
@@ -37,6 +38,7 @@ enum class ReplyKind { Words, Phrase };
 
 // Either a reply to a keystroke request (Words), or a phrase update pushed as text streams in (Phrase).
 struct WordReply {
+    PopupSettings popup;
     ReplyKind kind = ReplyKind::Words;
     std::uint32_t id = 0;
     int replace = 0;  // characters before the caret that a chosen word replaces

@@ -147,3 +147,11 @@ def test_an_accept_event_may_name_any_suggestion_kind(kind):
 def test_an_unknown_accept_kind_is_rejected():
     with pytest.raises(ProtocolError):
         parse_request({"id": 1, "event": "accept", "accepted": "x", "kind": "sentence"})
+
+
+def test_popup_settings_are_optional_and_round_trip():
+    popup = {"font_size": 14, "width_scale": 1.5, "partial_accept": "alt+right", "dismiss": "ctrl+backspace"}
+    reply = WordReply(id=3, replace=0, words=("hello",), popup=popup)
+    assert FrameDecoder().feed(encode(reply.to_message()))[0]["popup"] == popup
+    assert "popup" not in WordReply(id=3, replace=0, words=()).to_message()
+    assert WordReply(id=3, replace=0, words=(), popup={}).to_message()["popup"] == {}

@@ -6,6 +6,7 @@ once the engine's own config loader accepts the result, so the file can't be lef
 """
 
 import json
+from dataclasses import asdict
 import math
 import os
 import re
@@ -13,19 +14,23 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from completionist_engine.config import ConfigError, load_config
+from completionist_engine.config import ConfigError, load_config, _PHRASE_CHECKS, _PROVIDER_CHECKS, _finite_number
 from completionist_engine.context import INSTRUCTIONS
 
 EDITABLE: dict[str, frozenset[str]] = {
-    "words": frozenset({"limit", "next", "chunks", "next_threshold"}),
+    "words": frozenset({"limit", "next", "chunks", "next_threshold", "typo_correction"}),
     "learning": frozenset({"enabled", "promote_after"}),
     "phrase": frozenset({
         "enabled", "api_key", "models", "provider_order", "max_tokens", "temperature", "timeout", "debounce",
         "context_before", "context_after", "fim", "instructions", "screen_context",
     }),  # fmt: skip
-    "apps": frozenset({"block", "allow"}),
-    "hotkeys": frozenset({"pause"}),
+    "apps": frozenset({"block", "allow", "profiles"}),
+    "hotkeys": frozenset({"pause", "partial_accept", "dismiss"}),
+    "popup": frozenset({"font_size", "width_scale"}),
+    "privacy": frozenset({"private_mode", "pause_minutes"}),
 }
+
+EDITABLE["phrase"] = EDITABLE["phrase"] | frozenset(_PHRASE_CHECKS) | frozenset(_PROVIDER_CHECKS)
 
 _HEADER = re.compile(r"^\s*\[([^\[\]]+)\]\s*(#.*)?$")
 
@@ -33,7 +38,7 @@ _HEADER = re.compile(r"^\s*\[([^\[\]]+)\]\s*(#.*)?$")
 def read_settings(path: Path) -> dict[str, dict[str, Any]]:
     """The editable settings as they stand in the file (defaults for anything left out). Never the api key."""
     config = load_config(path)
-    return {
+    result = {
         "words": {"limit": config.word_limit, "next": config.next_words, "chunks": config.chunks, "next_threshold": config.next_threshold},
         "learning": {"enabled": config.learning, "promote_after": config.promote_after},
         "phrase": {
@@ -56,6 +61,19 @@ def read_settings(path: Path) -> dict[str, dict[str, Any]]:
         "apps": {"block": sorted(config.block), "allow": sorted(config.allow)},
         "hotkeys": {"pause": config.pause_hotkey},
     }  # fmt: skip
+    result["words"]["typo_correction"] = config.typo_correction
+    result["popup"] = asdict(config.popup)
+    result["privacy"] = {"private_mode": config.private_mode, "pause_minutes": config.pause_minutes}
+    result["hotkeys"].update(partial_accept=config.partial_accept_hotkey, dismiss=config.dismiss_hotkey)
+    result["apps"]["profiles"] = [{key: value for key, value in asdict(profile).items() if value is not None}
+                                   for profile in config.app_profiles]
+    for key in _PHRASE_CHECKS:
+        value = getattr(config.phrase, key)
+        result["phrase"][key] = sorted(value) if isinstance(value, frozenset) else list(value) if isinstance(value, tuple) else value
+    for key in _PROVIDER_CHECKS:
+        value = getattr(config.phrase.provider, key)
+        result["phrase"][key] = list(value) if isinstance(value, tuple) else value
+    return result
 
 
 def apply_settings(path: Path, changes: dict[str, dict[str, Any]]) -> None:
@@ -102,7 +120,7 @@ def _as_stored(section: str, key: str, value: Any) -> tuple[str, Any]:
     The wait is seconds on the page and milliseconds in the file. Instructions that are blank or the built-in text
     are stored as blank, so a later improvement to the built-in text still applies."""
     if (section, key) == ("phrase", "debounce"):
-        if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value) or value < 0:
+        if not _finite_number(value) or not 0 <= value <= 86400:
             raise ConfigError("phrase.debounce must be a number of seconds, 0 or more")
         return "debounce_ms", round(value * 1000)
     if (section, key) == ("phrase", "instructions") and isinstance(value, str):
@@ -120,8 +138,16 @@ def _toml(value: Any, name: str) -> str:
         return repr(value)
     if isinstance(value, str):
         return json.dumps(value)  # a JSON string is also a valid TOML one
-    if isinstance(value, list) and all(isinstance(v, str) for v in value):
-        return "[" + ", ".join(json.dumps(v) for v in value) + "]"
+    if isinstance(value, list):
+        if all(isinstance(v, str) for v in value):
+            return "[" + ", ".join(json.dumps(v) for v in value) + "]"
+        if name == "apps.profiles" and all(isinstance(v, dict) for v in value):
+            rows = []
+            for row in value:
+                if not all(isinstance(key, str) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key) for key in row):
+                    raise ConfigError("apps.profiles has an invalid field name")
+                rows.append("{ " + ", ".join(f"{key} = {_toml(item, name + '.' + key)}" for key, item in row.items()) + " }")
+            return "[" + ", ".join(rows) + "]"
     raise ConfigError(f"{name} has a value of the wrong kind")
 
 
@@ -148,7 +174,7 @@ def _set(text: str, section: str, key: str, value: str) -> str:
             while depth > 0 and last + 1 < end:  # a list spread over several lines
                 last += 1
                 depth += _open_brackets(lines[last])
-            comment = (match.group(3) or "") if last == i else ""
+            comment = _trailing_comment(lines[i].rstrip("\r\n")) if last == i else ""
             lines[i : last + 1] = [f"{match.group(1)}{value}{comment}{newline}"]
             return "".join(lines)
         i += 1
@@ -167,18 +193,37 @@ def _header(line: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
-def _open_brackets(text: str) -> int:
-    """How many `[` are still open on a value's lines, ignoring brackets inside strings and comments."""
-    depth, quote = 0, ""
-    for char in text:
+def _scan_value(text: str) -> tuple[int, int | None]:
+    """Scan a TOML value, respecting escapes and literal/basic quoted strings."""
+    depth, quote, escaped = 0, "", False
+    for index, char in enumerate(text):
         if quote:
-            quote = "" if char == quote else quote
+            if escaped:
+                escaped = False
+            elif char == "\\" and quote == '"':
+                escaped = True
+            elif char == quote:
+                quote = ""
         elif char in "\"'":
             quote = char
         elif char == "#":
-            break
-        elif char == "[":
+            return depth, index
+        elif char in "[{":
             depth += 1
-        elif char == "]":
+        elif char in "]}":
             depth -= 1
-    return depth
+    return depth, None
+
+
+def _open_brackets(text: str) -> int:
+    return _scan_value(text)[0]
+
+
+def _trailing_comment(text: str) -> str:
+    _, index = _scan_value(text)
+    if index is None:
+        return ""
+    start = index
+    while start and text[start - 1].isspace():
+        start -= 1
+    return text[start:]

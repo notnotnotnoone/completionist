@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "1.1.0 is released: phrases read the window in front with Windows OCR. M10 (the dashboard and popup redesign) is active and 2.0.0 is next; the live checks, demo GIF and Spike keyboard removal stay dropped to daily use.",
+  "now": "The viewer icon, personal word log and Requests detail fixes are complete through 1.1.4; the dashboard overhaul is next in the active M10 group, leading to 2.0.0, while live popup and provider checks remain part of daily use.",
   "highways": [
     {
       "id": "engine",
@@ -1562,17 +1562,75 @@ window.COMPLETIONIST_ROADMAP = {
       "done_when": "The dashboard (the viewer) is rebuilt and reads well in the Evergreen colours, and the popup, with all its row types, reads well at 100% and 200% scaling and on a second monitor, with the rewritten drawing code passing the harness.",
       "tasks": [
         {
-          "id": "M10.3",
+          "id": "M10.4",
           "version": "1.1.1",
+          "title": "Expanded settings and collapsible Advanced tiles",
+          "status": "done",
+          "area": "viewer",
+          "stories": [],
+          "notes": "All 30 approved controls: routing, timing, writing, context/privacy, app profiles, popup and keys; defaults retained and behavior tested. Verified with 626 passing Python tests (one skip), 77 native tests, four settings-form tests and a clean x64 DLL build; live popup and provider checks remain manual.",
+          "refs": [
+            "main",
+            "codex/expanded-settings",
+            "1.1.1",
+            "docs/settings.md",
+            "engine/src/completionist_engine/settings.py",
+            "engine/src/completionist_engine/viewer.html",
+            "tip/src/popup_settings.h"
+          ]
+        },
+        {
+          "id": "M10.5",
+          "version": "1.1.2",
+          "title": "Use the current C icon in the viewer header",
+          "status": "done",
+          "area": "viewer",
+          "stories": [],
+          "refs": [
+            "engine/src/completionist_engine/viewer.html"
+          ],
+          "notes": "Replace the leftover Typer T header SVG with the Evergreen C and pink caret used by the tray and keyboard icons."
+        },
+        {
+          "id": "M10.6",
+          "version": "1.1.3",
+          "title": "Keep single-letter words out of personal learning",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "refs": [
+            "engine/src/completionist_engine/personal.py",
+            "engine/tests/test_personal.py"
+          ],
+          "notes": "Typed or accepted single-letter words are not learned; old single-letter entries are removed on open. Word suggestions still start at the first letter."
+        },
+        {
+          "id": "M10.7",
+          "version": "1.1.4",
+          "title": "Show full phrase request details and events",
+          "status": "done",
+          "area": "viewer",
+          "stories": [],
+          "refs": [
+            "engine/src/completionist_engine/request_log.py",
+            "engine/src/completionist_engine/phrases.py",
+            "engine/src/completionist_engine/viewer.py",
+            "engine/src/completionist_engine/viewer.html"
+          ],
+          "notes": "Keep full prompts and replies in memory and show the suffix, non-secret request settings and an event timeline beside the existing context, screenshot, outcome, timings and model attempts. Timings-only mode scrubs the added detail."
+        },
+        {
+          "id": "M10.3",
+          "version": "1.1.5",
           "title": "Overhaul the dashboard (the viewer)",
-          "status": "todo",
+          "status": "next",
           "area": "viewer",
           "stories": [],
           "notes": "Prioritised ahead of the popup redesign (2026-10-01). Scope first, in plain English with mockups: what the dashboard shows, how Words, Stats, Requests and Settings are laid out, in the Evergreen tokens. Split into tasks once scoped."
         },
         {
           "id": "M10.1",
-          "version": "1.1.2",
+          "version": "1.1.6",
           "title": "Scope the popup redesign: audit the popup in real apps and decide what else is included",
           "status": "todo",
           "area": "dll",
@@ -1581,14 +1639,14 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M10.2",
-          "version": "1.1.3",
+          "version": "1.1.7",
           "title": "Redesign and rewrite the popup drawing",
           "status": "todo",
           "area": "dll",
           "stories": [
             74
           ],
-          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.2 is done. A bad popup must fall back to the current look, never crash the host app."
+          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.5 is done. A bad popup must fall back to the current look, never crash the host app."
         }
       ]
     },
@@ -2417,6 +2475,47 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "Phrase suggestions learned what you are replying to. When you switched windows, Completionist read the one in front in the background with the text recognition built into Windows, and sent that text with each phrase request, so a reply in Discord or Slack could follow the last few messages and an email reply could answer the message it quotes. UI Automation was measured first and dropped: its cost grew with each app and ran from about a tenth of a second to nineteen, in C++ as much as in Python, while reading the picture took about a tenth of a second whatever the window. Every request in the viewer now shows the screenshot and text it was given, a setting turns the reading off, nothing is saved to disk, and the phrase request is still the only model call."
     },
     {
+      "version": "1.1.1",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Expanded settings",
+      "highways": [
+        "engine",
+        "tsf"
+      ],
+      "text": "Added all 30 approved settings, including latency routing, writing preferences, privacy controls, app profiles and popup shortcuts, with niche controls grouped in collapsible Advanced tiles."
+    },
+    {
+      "version": "1.1.2",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Current viewer icon",
+      "highways": [
+        "engine"
+      ],
+      "text": "Replaced the viewer's leftover T-shaped mark with the Evergreen C and caret used by the app icon."
+    },
+    {
+      "version": "1.1.3",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Clean personal words",
+      "highways": [
+        "engine"
+      ],
+      "text": "Personal learning now skips one-letter words and removes old one-letter entries while first-letter suggestions continue to work."
+    },
+    {
+      "version": "1.1.4",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Full request details",
+      "highways": [
+        "engine"
+      ],
+      "text": "The Requests detail panel now shows complete in-memory prompts and replies, sent suffixes, non-secret settings and an ordered event history."
+    },
+    {
       "version": "2.0.0",
       "status": "next",
       "title": "A dashboard and popup with a deliberate look",
@@ -2645,7 +2744,10 @@ window.COMPLETIONIST_ROADMAP = {
       "date": "2026-09-30",
       "text": "The viewer is started only with the tray (not with --no-tray), on a random port, with its token in memory only; trigram listing is left for later because the store has no per-trigram list or remove."
     },
-    {"date": "2026-10-01", "text": "1.0.0 shipped without the scripted live checks: the user used it daily in real apps and judged that it works great, and the 1.0.0 essay records that as weaker evidence than a written matrix."}
+    {
+      "date": "2026-10-01",
+      "text": "1.0.0 shipped without the scripted live checks: the user used it daily in real apps and judged that it works great, and the 1.0.0 essay records that as weaker evidence than a written matrix."
+    }
   ],
   "risks": [
     {
@@ -2715,24 +2817,90 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
-    {"date": "2026-10-01", "text": "Released 1.1.0: the last task of M5 is done, so the reply-aware phrases group is released and M10 (dashboard and popup redesign) becomes active with 2.0.0 next."},
-    {"date": "2026-10-01", "text": "Released 1.0.6 (new task M5.7): the Requests page shows the screenshot each request was shown, the text read from it and what was sent to the model, served by a token-guarded endpoint and held in memory only."},
-    {"date": "2026-10-01", "text": "Released 1.0.5 (M5.1): phrases read the window in front with Windows OCR in the background and send that text with the typed text; a [phrase] screen_context switch turns it off. Chosen over UI Automation after measuring both."},
-    {"date": "2026-10-01", "text": "Picked up M5.1 (1.0.5, now doing) and removed the OCR fallback as a deliberate decision: reply-aware context is read-only UI Automation only, falling back to caret context, with a per-app found/empty log to revisit OCR later if needed."},
-    {"date": "2026-10-01", "text": "Replanned: the Chrome extension (M6.1) moves from 1.1.1 to 2.0.1 and becomes the major 3.0.0 release (new essay); the dashboard overhaul is a new first task M10.3 (1.1.1) leading 2.0.0, and the popup tasks shift to 1.1.2 and 1.1.3; the 1.2.0 release is removed."},
-    {"date": "2026-10-01", "text": "Released 1.0.4 (new task M5.6): Advanced and Instructions sections in the viewer's Cloud Phrases settings (max output, temperature, seconds before asking, timeout, context sizes, editable system prompt); base_url stays uneditable on purpose; reply-aware context (M5.1) moves to 1.0.5."},
-    {"date": "2026-10-01", "text": "Released 1.0.3 (new task M5.5): Requests tab in the viewer, modelled on the flexrouter request log, with a live table, a detail sheet and Clear Log; the text is in memory only; reply-aware context (M5.1) moves to 1.0.4."},
-    {"date": "2026-10-01", "text": "Released 1.0.2 (new task M5.4): Preferred Providers (provider_order) option in the viewer's Cloud Phrases settings; reply-aware context (M5.1) moves to 1.0.3."},
+    {
+      "date": "2026-10-01",
+      "text": "Prepared the approved push to main: expanded settings remains done, and releases 1.1.1 through 1.1.4 include the completed viewer icon, personal-learning and request-detail fixes; dashboard overhaul remains next."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Completed patch fixes 1.1.2 to 1.1.4: the viewer mark matches the app icon, personal learning excludes one-letter words, and Requests shows full detail with an event timeline."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Completed expanded settings (M10.4, 1.1.1): all 30 controls wired through configuration, runtime and popup; 626 Python, 77 native and four settings-form tests pass, with live Windows/provider checks documented for daily use."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Added three small fixes after expanded settings: the viewer uses the current C icon, personal learning excludes one-letter words, and Requests shows full in-memory detail with an event history. Dashboard and popup versions move three patches later."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Started expanded settings (M10.4, 1.1.1) after approval of all brainstormed controls and grouped collapsible Advanced tiles; dashboard and popup tasks move one patch later."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Investigated the requested latency routing setting: Cloud Phrases currently sends provider.order but not provider.sort; awaiting clarification of classifier scope before implementation."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.1.0: the last task of M5 is done, so the reply-aware phrases group is released and M10 (dashboard and popup redesign) becomes active with 2.0.0 next."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.0.6 (new task M5.7): the Requests page shows the screenshot each request was shown, the text read from it and what was sent to the model, served by a token-guarded endpoint and held in memory only."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.0.5 (M5.1): phrases read the window in front with Windows OCR in the background and send that text with the typed text; a [phrase] screen_context switch turns it off. Chosen over UI Automation after measuring both."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Picked up M5.1 (1.0.5, now doing) and removed the OCR fallback as a deliberate decision: reply-aware context is read-only UI Automation only, falling back to caret context, with a per-app found/empty log to revisit OCR later if needed."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Replanned: the Chrome extension (M6.1) moves from 1.1.1 to 2.0.1 and becomes the major 3.0.0 release (new essay); the dashboard overhaul is a new first task M10.3 (1.1.1) leading 2.0.0, and the popup tasks shift to 1.1.2 and 1.1.3; the 1.2.0 release is removed."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.0.4 (new task M5.6): Advanced and Instructions sections in the viewer's Cloud Phrases settings (max output, temperature, seconds before asking, timeout, context sizes, editable system prompt); base_url stays uneditable on purpose; reply-aware context (M5.1) moves to 1.0.5."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.0.3 (new task M5.5): Requests tab in the viewer, modelled on the flexrouter request log, with a live table, a detail sheet and Clear Log; the text is in memory only; reply-aware context (M5.1) moves to 1.0.4."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.0.2 (new task M5.4): Preferred Providers (provider_order) option in the viewer's Cloud Phrases settings; reply-aware context (M5.1) moves to 1.0.3."
+    },
     {
       "date": "2026-10-01",
       "text": "Released 1.0.1 (new task M5.3): new tray and keyboard icon in the Evergreen colours with a C instead of the Typer T; reply-aware context (M5.1) moves to 1.0.2."
     },
-    {"date": "2026-10-01", "text": "Released 1.0.0: rewrote the planned essay as a retrospective, marked it released on all four highways and made 1.1.0 the next release; the live checks stay dropped because daily use was the test and it works well."},
-    {"date": "2026-10-01", "text": "Released 0.7.2, 15 code-review fixes (new task M5.2): phrase and Esc suppression survive the sliding 8000-character window, tray stats run on the engine loop, personal-word promotion and chunk seeds, config encoding, DLL edit sessions hold the service, viewer 500s, pause cancels phrases, uninstall removes the roaming config, learning-off stops ranking."},
-    {"date": "2026-10-01", "text": "Released 0.7.1: committed the per-task numbering, the 0.0.x stops and the CLAUDE.md rules; tagged v0.7.1 and pushed."},
-    {"date": "2026-10-01", "text": "Gave every task in the 0.1.0 to 0.4.0 and 0.6.0 groups its own patch number counting up from the release before it (0.0.13 to 0.0.29, 0.1.x, 0.2.x, 0.3.x, 0.5.x), added a released patch entry for each shipped task, kept dropped tasks numbered but without a stop, moved M7.9 to 0.4.3, and wrote the numbering rule into CLAUDE.md."},
-    {"date": "2026-10-01", "text": "Moved the M1 to M4 tasks onto the 0.0.x release they actually shipped in (0.0.2, 0.0.4 to 0.0.8, 0.0.12), removed the 0.0.5 umbrella task, and let the checker accept a shipped patch earlier than its group's minor."},
-    {"date": "2026-10-01", "text": "Added a done task for every 0.0.x release that had none (0.0.1, 0.0.2, 0.0.4 to 0.0.12) to the first group, so each stop on the map has work on the task board; renamed that group Foundations and TSF spike."},
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.0.0: rewrote the planned essay as a retrospective, marked it released on all four highways and made 1.1.0 the next release; the live checks stay dropped because daily use was the test and it works well."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Released 0.7.2, 15 code-review fixes (new task M5.2): phrase and Esc suppression survive the sliding 8000-character window, tray stats run on the engine loop, personal-word promotion and chunk seeds, config encoding, DLL edit sessions hold the service, viewer 500s, pause cancels phrases, uninstall removes the roaming config, learning-off stops ranking."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Released 0.7.1: committed the per-task numbering, the 0.0.x stops and the CLAUDE.md rules; tagged v0.7.1 and pushed."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Gave every task in the 0.1.0 to 0.4.0 and 0.6.0 groups its own patch number counting up from the release before it (0.0.13 to 0.0.29, 0.1.x, 0.2.x, 0.3.x, 0.5.x), added a released patch entry for each shipped task, kept dropped tasks numbered but without a stop, moved M7.9 to 0.4.3, and wrote the numbering rule into CLAUDE.md."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Moved the M1 to M4 tasks onto the 0.0.x release they actually shipped in (0.0.2, 0.0.4 to 0.0.8, 0.0.12), removed the 0.0.5 umbrella task, and let the checker accept a shipped patch earlier than its group's minor."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Added a done task for every 0.0.x release that had none (0.0.1, 0.0.2, 0.0.4 to 0.0.12) to the first group, so each stop on the map has work on the task board; renamed that group Foundations and TSF spike."
+    },
     {
       "date": "2026-10-01",
       "text": "Pushed main and tagged v0.7.0, plus v0.6.3 to v0.6.7 (0.6.3 and 0.6.4 share one commit); all are on origin. Added the missing 0.6.3 to 0.6.6 release entries so they show on the highway map."

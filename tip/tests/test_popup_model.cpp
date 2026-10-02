@@ -11,7 +11,7 @@ constexpr Modifiers kNone{};
 constexpr Modifiers kCtrl{true, false, false};
 constexpr Modifiers kAlt{false, true, false};
 constexpr Modifiers kShift{false, false, true};
-constexpr Key kAllKeys[] = {Key::Tab, Key::Up, Key::Down, Key::Left, Key::Right, Key::Space, Key::Escape, Key::Enter, Key::Other};
+constexpr Key kAllKeys[] = {Key::Tab, Key::Up, Key::Down, Key::Left, Key::Right, Key::Space, Key::Escape, Key::Enter, Key::Backspace, Key::Other};
 constexpr auto kPhrase = PopupModel::kPhraseRow;
 
 PopupModel OpenWith(std::size_t count) {
@@ -458,4 +458,64 @@ TEST(peek_and_onkey_agree_for_next_words_with_and_without_a_phrase) {
             }
         }
     }
+}
+
+TEST(alternate_partial_shortcuts_preserve_normal_tab_and_hotkey) {
+    for (auto shortcut : {completionist::PartialAccept::AltRight, completionist::PartialAccept::CtrlTab}) {
+        auto model = WithPhrase(2);
+        completionist::PopupSettings settings;
+        settings.partial_accept = shortcut;
+        model.SetSettings(settings);
+        const Key key = shortcut == completionist::PartialAccept::AltRight ? Key::Right : Key::Tab;
+        const Modifiers mods = shortcut == completionist::PartialAccept::AltRight ? kAlt : kCtrl;
+        CHECK_EQ(model.Peek(key, mods, 200).action, Action::AcceptPhraseWord);
+        CHECK(!model.Peek(Key::Right, kCtrl, 200).consume);
+        CHECK(!model.Peek(key, {mods.ctrl, mods.alt, true}, 200).consume);
+        CHECK_EQ(model.Peek(Key::Tab, kNone, 200).action, Action::AcceptPhrase);
+        model.MarkStale();
+        CHECK(!model.Peek(key, mods, 200).consume);
+        model.Close();
+        CHECK(!model.Peek(key, mods, 200).consume);
+        model.SetPhraseAvailable(true);
+        CHECK_EQ(model.Peek(Key::Space, kCtrl).action, Action::RequestPhrase);
+        model.Open(2);
+        CHECK(!model.Peek(key, mods).consume);
+    }
+}
+
+TEST(alternate_dismiss_shortcuts_only_dismiss_live_popup) {
+    for (auto shortcut : {completionist::DismissShortcut::CtrlBackspace, completionist::DismissShortcut::AltBackspace}) {
+        auto model = OpenWith(2);
+        completionist::PopupSettings settings;
+        settings.dismiss = shortcut;
+        model.SetSettings(settings);
+        const Modifiers mods = shortcut == completionist::DismissShortcut::CtrlBackspace ? kCtrl : kAlt;
+        CHECK(!model.Peek(Key::Escape, kNone).consume);
+        CHECK(!model.Peek(Key::Backspace, kNone).consume);
+        CHECK(!model.Peek(Key::Backspace, {mods.ctrl, mods.alt, true}).consume);
+        model.MarkStale();
+        CHECK(!model.Peek(Key::Backspace, mods).consume);
+        model.Open(2);
+        CHECK_EQ(model.OnKey(Key::Backspace, mods).action, Action::Dismiss);
+        CHECK(!model.visible());
+        CHECK(!model.Peek(Key::Backspace, mods).consume);
+    }
+}
+
+TEST(shortcut_preferences_survive_close_and_can_reset_to_defaults) {
+    auto model = WithPhrase(2);
+    completionist::PopupSettings settings;
+    settings.partial_accept = completionist::PartialAccept::AltRight;
+    settings.dismiss = completionist::DismissShortcut::CtrlBackspace;
+    model.SetSettings(settings);
+    model.Close();
+    model.Open(2);
+    model.SetPhrase(true, 0);
+    CHECK_EQ(model.Peek(Key::Right, kAlt).action, Action::AcceptPhraseWord);
+    CHECK_EQ(model.Peek(Key::Backspace, kCtrl).action, Action::Dismiss);
+    model.SetSettings({});
+    CHECK(!model.Peek(Key::Right, kAlt).consume);
+    CHECK(!model.Peek(Key::Backspace, kCtrl).consume);
+    CHECK_EQ(model.Peek(Key::Right, kCtrl).action, Action::AcceptPhraseWord);
+    CHECK_EQ(model.Peek(Key::Escape, kNone).action, Action::Dismiss);
 }

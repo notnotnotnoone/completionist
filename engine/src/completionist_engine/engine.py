@@ -1,9 +1,11 @@
 """Turns requests from the text service into replies, and learns from what the writer types."""
 
 import logging
+import time
+import weakref
 from collections.abc import Callable
 
-from completionist_engine.config import Config
+from completionist_engine.config import Config, effective_config
 from completionist_engine.learning import TypingLearner
 from completionist_engine.metrics import Metrics
 from completionist_engine.personal import PersonalStore
@@ -23,14 +25,54 @@ class Engine:
         personal: PersonalStore | None = None,
         phrases: PhraseService | None = None,
         metrics: Metrics | None = None,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._completer = completer
         self._config = config
         self._store = personal
         self._phrases = phrases
         self._metrics = metrics
-        self.paused = False
-        """While paused the engine answers every request with nothing, so the text service goes quiet."""
+        self._clock = clock
+        self._paused = False
+        self._paused_until: float | None = None
+        self._private_mode = config.private_mode
+        self._sessions: weakref.WeakSet[Session] = weakref.WeakSet()
+        if self._phrases is not None and config.private_mode:
+            self._phrases.set_private(True)
+
+    @property
+    def paused(self) -> bool:
+        if self._paused_until is not None and self._clock() >= self._paused_until:
+            self._paused = False
+            self._paused_until = None
+        return self._paused
+
+    @paused.setter
+    def paused(self, value: bool) -> None:
+        self.set_paused(value)
+
+    def set_paused(self, value: bool, *, minutes: float | None = None) -> None:
+        self._paused = value
+        duration = self._config.pause_minutes if minutes is None else minutes
+        self._paused_until = self._clock() + duration * 60 if value and duration else None
+        if value:
+            self._suspend_sessions()
+
+    @property
+    def private_mode(self) -> bool:
+        return self._private_mode
+
+    def set_private_mode(self, enabled: bool) -> None:
+        self._private_mode = enabled
+        self._suspend_sessions()
+        if self._phrases is not None:
+            self._phrases.set_private(enabled)
+
+    def _suspend_sessions(self) -> None:
+        for session in self._sessions:
+            session._learner.reset()
+            if session._phrase is not None:
+                session._phrase.suspend()
 
     @property
     def config(self) -> Config:
@@ -38,23 +80,30 @@ class Engine:
 
     @property
     def _personal(self) -> PersonalStore | None:
-        return self._store if self._config.learning else None
+        return self._store if not self.private_mode else None
 
     def set_config(self, config: Config) -> None:
         """Apply a changed config to running sessions (app lists, word limit, phrase settings, learning)."""
         if config.learning and self._store is None:
             logger.warning("learning was turned on, but it starts only after the engine restarts")
         self._config = config
+        self._suspend_sessions()
         self._completer.set_promote_after(config.promote_after)
         if self._phrases is not None:
+            for context in (self._phrases.screen, self._phrases.accessible):
+                if context is not None and hasattr(context, "clear"):
+                    context.clear()
             self._phrases.reconfigure(config.phrase)
+        self.set_private_mode(config.private_mode)
 
     def open_session(self, push: Callable[[PhraseUpdate], None] | None = None) -> "Session":
         """State for one connection (one app's text service): it follows that app's typing.
 
         `push` delivers streamed phrase updates; without it there are no phrases.
         """
-        return Session(self, push)
+        session = Session(self, push)
+        self._sessions.add(session)
+        return session
 
     def handle(self, request: Request) -> WordReply | None:
         """Handle a request with no memory of earlier ones on the same connection."""
@@ -93,12 +142,15 @@ class Session:
         engine = self._engine
         self._app = request.app.lower()
         mode = decide(request.app, request.input_scope, engine._config)
+        config = effective_config(engine._config, request.app)
+        if engine.private_mode:
+            mode = type(mode)(words=mode.words, phrase="off")
         if request.event == "accept":
             self._accept(request, mode.words)
             return None
         if request.event == "hotkey":
-            if self._phrase is not None and mode.words and not engine.paused:
-                self._phrase.on_hotkey(request, mode.phrase)
+            if self._phrase is not None and mode.words and not engine.paused and not engine.private_mode:
+                self._phrase.on_hotkey(request, mode.phrase, config=config.phrase)
             return None
         if request.event == "dismiss":
             if self._phrase is not None:
@@ -115,13 +167,14 @@ class Session:
             if self._phrase is not None:
                 self._phrase.on_dismiss()  # cancel a phrase still showing or streaming
             return WordReply(id=request.id, replace=0, words=())
-        if engine._personal is not None:
+        if engine._personal is not None and config.learning:
             finished = self._learner.observe(request.before)
             if finished is not None:
                 word, context = finished
                 engine._personal.record_typed(word, context)
-        config = engine._config
-        completion = engine._completer.complete(request.before, limit=config.word_limit)
+        else:
+            self._learner.reset()
+        completion = engine._completer.complete(request.before, limit=config.word_limit, typo_correction=config.typo_correction)
         words, kinds = completion.words, ("word",) * len(completion.words)
         marks: tuple[tuple[int, ...], ...] = completion.marks
         if config.next_words and not words:
@@ -141,11 +194,11 @@ class Session:
         phrase, phrase_done, phrase_mode = "", True, "off"
         if self._phrase is not None:
             # A quiet request (the popup is held back after Esc) keeps learning but asks for no phrase.
-            update = self._phrase.on_request(request, "off" if request.quiet else mode.phrase)
+            update = self._phrase.on_request(request, "off" if request.quiet else mode.phrase, config=config.phrase)
             phrase, phrase_done = update.phrase, update.done
             self._note_phrase(phrase)
             if engine._phrases is not None and engine._phrases.available:
-                phrase_mode = mode.phrase
+                phrase_mode = "hotkey" if config.phrase.preview_context and mode.phrase != "off" else mode.phrase
         return WordReply(
             id=request.id,
             replace=completion.replace,
@@ -155,17 +208,28 @@ class Session:
             phrase=phrase,
             phrase_done=phrase_done,
             phrase_mode=phrase_mode,
+            popup=self._popup_settings(),
         )
+
+    def _popup_settings(self) -> dict | None:
+        config = self._engine.config
+        defaults = Config()
+        if (config.popup, config.partial_accept_hotkey, config.dismiss_hotkey) == (
+            defaults.popup, defaults.partial_accept_hotkey, defaults.dismiss_hotkey
+        ):
+            return None
+        return {"font_size": config.popup.font_size, "width_scale": config.popup.width_scale,
+                "partial_accept": config.partial_accept_hotkey, "dismiss": config.dismiss_hotkey}
 
     def _accept(self, request: Request, words_allowed: bool) -> None:
         engine = self._engine
-        if not words_allowed or not request.accepted:
+        if not words_allowed or not request.accepted or engine.paused:
             return
         if request.kind in ("word", "chunk", "next"):
             typed = len(current_word(request.before))
             if engine._metrics is not None:
                 engine._metrics.record_accept(self._app, "word", max(len(request.accepted) - typed, 0))
-            if engine._personal is not None:
+            if engine._personal is not None and effective_config(engine.config, request.app).learning:
                 context = previous_words(request.before, 2)
                 for word in request.accepted.split():  # a chunk teaches each of its words in turn
                     engine._personal.record_accepted(word, context)

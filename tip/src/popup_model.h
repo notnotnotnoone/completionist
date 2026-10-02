@@ -7,8 +7,9 @@
 //     pressed can't steal it: that Tab still takes the word that was highlighted before.
 //   * Next-word rows (offered after a space) open with nothing highlighted, so Tab passes through to the
 //     app until Up or Down highlights a row. Enter is never consumed either way.
-//   * Up/Down move the highlight through the rows, wrapping. Esc dismisses. Ctrl+Right takes the next
-//     word of the phrase. Ctrl+Space asks for a phrase.
+//   * Up/Down move the highlight through the rows, wrapping. The configured dismiss shortcut closes
+//     the popup (Esc by default). Partial accept takes the next phrase word (Ctrl+Right by default).
+//     Ctrl+Space asks for a phrase.
 //   * Enter is never consumed, so it still sends messages and inserts newlines.
 //   * Every other key with Ctrl/Alt/Shift held belongs to the app.
 //   * A popup whose words were computed for text that has since changed is "stale" and consumes nothing.
@@ -16,10 +17,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "popup_settings.h"
 
 namespace completionist {
 
-enum class Key { Tab, Up, Down, Left, Right, Space, Escape, Enter, Other };
+enum class Key { Tab, Up, Down, Left, Right, Space, Escape, Enter, Backspace, Other };
 
 struct Modifiers {
     bool ctrl = false;
@@ -27,6 +29,7 @@ struct Modifiers {
     bool shift = false;
     bool any() const { return ctrl || alt || shift; }
     bool only_ctrl() const { return ctrl && !alt && !shift; }
+    bool only_alt() const { return alt && !ctrl && !shift; }
 };
 
 enum class Action { None, Accept, AcceptPhrase, AcceptPhraseWord, RequestPhrase, Dismiss, MoveHighlight };
@@ -70,6 +73,7 @@ public:
 
     // Whether Ctrl+Space should be handled: phrases are switched on in this field.
     void SetPhraseAvailable(bool available) { available_ = available; }
+    void SetSettings(const PopupSettings& settings) { settings_ = settings; }
 
     // The text changed since the words were computed. Keys pass through until the next Open().
     void MarkStale() { stale_ = true; }
@@ -102,8 +106,18 @@ public:
             return available_ ? KeyDecision{true, Action::RequestPhrase, 0} : KeyDecision{};
         }
         if (!visible() || stale_) return {};
-        if (key == Key::Right && mods.only_ctrl()) {
+        bool partial = settings_.partial_accept == PartialAccept::CtrlRight ? key == Key::Right && mods.only_ctrl()
+                     : settings_.partial_accept == PartialAccept::AltRight ? key == Key::Right && mods.only_alt()
+                     : key == Key::Tab && mods.only_ctrl();
+        if (partial) {
             return phrase_ ? KeyDecision{true, Action::AcceptPhraseWord, 0} : KeyDecision{};
+        }
+        bool dismiss = settings_.dismiss == DismissShortcut::Escape ? key == Key::Escape && !mods.any()
+                     : settings_.dismiss == DismissShortcut::CtrlBackspace ? key == Key::Backspace && mods.only_ctrl()
+                     : key == Key::Backspace && mods.only_alt();
+        if (dismiss) {
+            Close();
+            return {true, Action::Dismiss, 0};
         }
         if (mods.any()) return {};
         switch (key) {
@@ -121,9 +135,6 @@ public:
             case Key::Up:
                 Move(-1, nowMs);
                 return {true, Action::MoveHighlight, 0};
-            case Key::Escape:
-                Close();
-                return {true, Action::Dismiss, 0};
             default:
                 return {};
         }
@@ -142,6 +153,7 @@ private:
     }
 
     std::size_t count_ = 0;
+    PopupSettings settings_;
     int selection_ = 0;
     bool moved_ = false;
     bool stale_ = false;

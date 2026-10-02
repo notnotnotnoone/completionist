@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+#include "popup_settings.h"
 
 namespace completionist {
 
@@ -36,6 +37,7 @@ public:
     // phrase row, otherwise a word index. Flips above the caret or slides left to stay on its monitor.
     void Show(const PopupContent& content, int selection, const RECT& caret);
     void SetSelection(int selection);
+    void SetSettings(const PopupSettings& settings);
     void Hide();
 
 private:
@@ -52,6 +54,7 @@ private:
     int selection_ = 0;
     HFONT font_ = nullptr;
     UINT fontDpi_ = 0;
+    PopupSettings settings_;
     UINT dpi_ = 96;
     bool shown_ = false;
 };

@@ -191,6 +191,17 @@ details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32
 .set.wide { grid-template-columns: minmax(0, 1fr) auto; }
 .set.wide .wide-field { grid-column: 1 / -1; }
 .field.prompt { min-height: 280px; font: .8125rem/1.5 var(--mono); }
+.advanced > summary { font-size: 1.125rem; }
+.tile > summary { padding: 12px 0; }
+.tile > p, .profile-note { color: var(--muted); font-size: .8125rem; }
+.profiles { grid-column: 1 / -1; }
+.profile { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 12px 0; }
+.profile-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.profile-fields label { display: grid; gap: 4px; font-size: .875rem; }
+.profile-fields .field { width: 100%; min-width: 0; }
+.runtime { margin-bottom: 16px; }
+.runtime .toolbar { margin-top: 12px; }
+.preview-prompt { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow: auto; padding: 12px; background: var(--paper-2); border-radius: 10px; font: .8125rem/1.5 var(--mono); }
 
 /* ---- requests log */
 .toolbar .live { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: var(--muted); font-size: .8125rem; }
@@ -249,7 +260,7 @@ body.has-savebar .toast { bottom: 96px; }
 <header class="sign">
   <div class="sign-in">
     <div class="brand">
-      <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="8" fill="#fff" fill-opacity=".16"/><rect x="9" y="9" width="18" height="5" fill="#fff"/><rect x="15.5" y="9" width="5" height="19" fill="#fff"/><rect x="25" y="18" width="2.5" height="10" fill="#fff"/></svg>
+      <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="8" fill="#0A5A3D"/><path d="M23.6 11.1a10 10 0 1 0 0 13.8" fill="none" stroke="#fff" stroke-width="5.4"/><path d="M26.9 11v14" stroke="#FF9ED2" stroke-width="2.2"/></svg>
       <div><h1>Completionist</h1><p>Viewer</p></div>
       <span class="local"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>On this computer only</span>
     </div>
@@ -572,9 +583,16 @@ async function openRequest(id, opener, animate) {
     el("div", { className: "line" }, outcome(r.outcome), el("b", { textContent: r.app }), el("span", { textContent: at })),
     el("div", { className: "line" }, el("span", { textContent: `First text ${ms(r.ttft_ms)} · took ${ms(r.total_ms)}` })),
     section("You (text before the caret)", el("pre", { className: "text", textContent: r.prompt })),
+    ...(r.suffix ? [section("Text after the caret sent to the model", el("pre", { className: "text", textContent: r.suffix }))] : []),
     ...screenSections(r),
     section("Suggestion", r.reply ? el("pre", { className: "text", textContent: r.reply }) : el("p", { className: "text none", textContent: r.outcome === "cancelled" ? "Nothing arrived before the request was dropped." : "Nothing came back." })),
-    section(r.attempts.length > 1 ? "Models tried" : "Model tried", tried));
+    section(r.attempts.length > 1 ? "Models tried" : "Model tried", tried),
+    section("Request settings (without API key)", el("pre", { className: "text", textContent: JSON.stringify(r.settings || {}, null, 2) })),
+    section("What happened", r.events && r.events.length
+      ? el("ul", { className: "tried" }, ...r.events.map((event) => el("li", {},
+          el("span", { className: "mono", textContent: `+${event.ms} ms · ${event.kind}` }),
+          el("pre", { className: "text", textContent: JSON.stringify(Object.fromEntries(Object.entries(event).filter(([key]) => key !== "ms" && key !== "kind")), null, 2) }))))
+      : el("p", { className: "text none", textContent: "No event history was kept for this request." })));
   reqs.opener = opener;
   for (const n of [sheet, scrim]) n.classList.toggle("instant", !animate || reduced.matches);
   sheet.setAttribute("aria-hidden", "false");
@@ -645,37 +663,93 @@ async function loadStats() {
 }
 
 // ---- settings
+const OPTIONS = {
+  mode: [["apps", "Follow app list"], ["auto", "Automatic everywhere allowed"], ["hotkey", "Hotkey only"]],
+  provider_sort: [["", "Default / preferred providers"], ["latency", "Lowest latency"], ["throughput", "Highest throughput"], ["price", "Lowest price"]],
+  completion_length: [["default", "Default"], ["short", "A few words"], ["sentence", "One sentence"], ["long", "Longer continuation"]],
+  writing_style: [["match", "Match nearby text"], ["neutral", "Neutral"], ["casual", "Casual"], ["professional", "Professional"]],
+  spelling: [["auto", "Match nearby text"], ["canadian", "Canadian English"], ["american", "American English"], ["british", "British English"]],
+  context_source: [["ocr", "Window OCR"], ["caret", "Caret text only"], ["accessible", "Accessible window text"]],
+  trigger: [["pause", "After a typing pause"], ["sentence", "After punctuation or a new line"]],
+  log_mode: [["full", "Full text (memory only)"], ["timings", "Timings only"], ["off", "Off"]],
+  partial_accept: [["ctrl+right", "Ctrl+Right"], ["alt+right", "Alt+Right"], ["ctrl+tab", "Ctrl+Tab"]],
+  dismiss: [["escape", "Escape"], ["ctrl+backspace", "Ctrl+Backspace"], ["alt+backspace", "Alt+Backspace"]],
+};
+const choice = key => ({ options: OPTIONS[key] });
+const number = (min = 0, step = 1, max) => ({ min, step, max, inputmode: step < 1 ? "decimal" : "numeric" });
 const GROUPS = [
-  ["words", "Suggestions", "What shows up in the popup while you type.", [
-    ["limit", "number", "Words Shown", "How many words the popup lists.", { min: 1, step: 1 }],
-    ["next", "bool", "Next Words", "Offer likely next words after you type a space."],
-    ["chunks", "bool", "Phrase Chunks", "Offer two- or three-word chunks while you type."],
-    ["next_threshold", "number", "Next-Word Confidence", "From 0 to 1. Higher is quieter; 0 shows the best few whatever the odds.", { min: 0, max: 1, step: 0.01, inputmode: "decimal" }],
+  ["everyday", "Cloud Phrases", "The controls you are most likely to use.", [
+    ["phrase.enabled", "bool", "Suggest Phrases", "Cloud continuations from your configured model."],
+    ["phrase.api_key", "key", "OpenRouter Key", "Write-only: the saved key is never returned to this page."],
+    ["phrase.models", "list", "Models", "One per line; the next is tried only if the previous model fails."],
+    ["phrase.mode", "select", "When to Suggest", "Automatic phrases can follow your app list or be available everywhere allowed.", choice("mode")],
+    ["phrase.provider_sort", "select", "Routing Priority", "Sorting overrides the saved preferred-provider order until you choose Default again.", choice("provider_sort")],
+    ["phrase.completion_length", "select", "Completion Length", "Short stops at eight words; sentence stops at the first sentence ending.", choice("completion_length")],
+    ["phrase.spelling", "select", "Spelling Preference", "Tells the model which English spelling to use.", choice("spelling")],
+    ["phrase.context_source", "select", "Context Source", "Caret text is always included; window text is added only when permitted.", choice("context_source")],
+    ["privacy.private_mode", "bool", "Private Mode", "Keep local words; disable cloud requests and learning, and clear captures and request logs."],
   ]],
-  ["learning", "Learning", "How Completionist learns your words.", [
-    ["enabled", "bool", "Learn From My Typing", "Counts only. It never stores what you wrote."],
-    ["promote_after", "number", "Uses Before Suggesting", "How many times a new word must be typed before it is suggested.", { min: 1, step: 1 }],
+  ["local", "Local Suggestions & Popup", "Local word suggestions and readability.", [
+    ["words.limit", "number", "Words Shown", "How many choices the popup lists.", number(1)],
+    ["words.next", "bool", "Next Words", "Offer likely words after a space."],
+    ["words.chunks", "bool", "Phrase Chunks", "Offer two- or three-word chunks while typing."],
+    ["learning.enabled", "bool", "Learn From My Typing", "Counts only; never stores sentences."],
+    ["popup.font_size", "number", "Popup Text Size", "Font size in whole points, from 7 to 24.", number(7, 1, 24)],
+    ["popup.width_scale", "number", "Popup Width", "0.5 to 2 times the normal width.", number(0.5, 0.1, 2)],
   ]],
-  ["phrase", "Cloud Phrases", "Longer suggestions from a model on OpenRouter.", [
-    ["enabled", "bool", "Suggest Phrases", "Turn cloud phrases on or off."],
-    ["api_key", "key", "OpenRouter Key", "Saved into your settings file. The page can write it but never shows it back."],
-    ["models", "list", "Models", "One per line. Tried in order; the next only if the one before fails."],
-    ["provider_order", "list", "Preferred Providers", "One per line, like Groq. OpenRouter tries these first for the model; others stay as fallbacks. Leave empty to let OpenRouter choose."],
-    ["screen_context", "bool", "Read the Screen for Context", "Reads the text of the window you are typing in, on this PC with Windows' own OCR, and sends it to the model with your text so suggestions can fit what you are replying to. The pictures are kept in memory only. Turn off to send only what you type."],
-    ["max_tokens", "number", "Max Output Length", "The longest suggestion, counted in tokens (a token is about four characters). Lower is faster and cheaper.", { min: 1, step: 1, fold: "Advanced" }],
-    ["temperature", "number", "Temperature", "0 is the most predictable and higher is more varied. Around 0.2 suits autocomplete.", { min: 0, max: 2, step: 0.05, inputmode: "decimal", fold: "Advanced" }],
-    ["debounce", "number", "Seconds Before Asking", "How long you pause typing before a request is sent automatically. Ctrl+Space never waits.", { min: 0, step: 0.05, inputmode: "decimal", fold: "Advanced" }],
-    ["timeout", "number", "Give Up After (Seconds)", "How long to wait on a model before trying the next one.", { min: 0.5, step: 0.5, inputmode: "decimal", fold: "Advanced" }],
-    ["context_before", "number", "Text Before the Caret", "How many characters before the caret the model sees. More is smarter but slower.", { min: 1, step: 100, fold: "Advanced" }],
-    ["fim", "bool", "Send Text After the Caret", "Also show the model what comes after the caret. Leave off unless your models support fill-in-the-middle; OpenRouter's do not.", { fold: "Advanced" }],
-    ["context_after", "number", "Text After the Caret", "How many characters after the caret to send when the option above is on.", { min: 0, step: 100, fold: "Advanced" }],
-    ["instructions", "prompt", "Instructions to the Model", "What the model is told before your text. It must end by leading into the text to continue.", { fold: "Instructions (System Prompt)" }],
+  ["routing", "Routing", "Provider preferences and limits.", [
+    ["phrase.provider_order", "list", "Preferred Providers", "One per line, like Groq; used when routing priority is Default."],
+    ["phrase.allow_fallbacks", "bool", "Allow Provider Fallbacks", "Try other providers if your preferred hosts are unavailable."],
+    ["phrase.provider_ignore", "list", "Excluded Providers", "Never route to these providers; one per line."],
+    ["phrase.max_price_input", "number", "Maximum Input Price", "Dollars per million input tokens; 0 means no ceiling.", number(0, 0.01)],
+    ["phrase.max_price_output", "number", "Maximum Output Price", "Dollars per million output tokens; 0 means no ceiling.", number(0, 0.01)],
+    ["phrase.require_parameters", "bool", "Require Supported Parameters", "Use only providers supporting the requested parameters."],
+    ["phrase.zdr", "bool", "Zero Data Retention", "Ask OpenRouter to use only eligible zero-retention endpoints."],
   ]],
-  ["apps", "Apps", "Where Completionist speaks up.", [
-    ["block", "list", "Stay Silent In", "One program name per line, like code.exe."],
-    ["allow", "list", "Show Phrases Automatically In", "One program name per line. Ctrl+Space works everywhere else."],
+  ["timing", "Timing", "When automatic requests start and how failures back off.", [
+    ["phrase.debounce", "number", "Seconds Before Asking", "Wait after typing; the manual hotkey does not wait.", number(0, 0.05, 86400)],
+    ["phrase.min_chars", "number", "Minimum Text for Automatic Requests", "Manual requests can use shorter text.", number()],
+    ["phrase.trigger", "select", "Automatic Trigger", "Choose a typing pause or a sentence boundary.", choice("trigger")],
+    ["phrase.dismiss_cooldown", "number", "Cooldown After Dismissal", "Seconds before automatic requests start again; manual requests bypass it.", number(0, 0.5)],
+    ["phrase.timeout", "number", "Give Up After (Seconds)", "Maximum wait for connection or the next streamed chunk.", number(0.1, 0.1)],
+    ["phrase.failure_limit", "number", "Failures Before Pausing", "Consecutive failures before backing off.", number(1)],
+    ["phrase.failure_pause", "number", "Failure Pause (Seconds)", "How long to stop requesting after repeated failures.", number()],
+    ["privacy.pause_minutes", "number", "Pause Duration (Minutes)", "Tray, hotkey and Pause Now use this duration; 0 means until resumed.", number(0, 1, 1440)],
   ]],
-  ["hotkeys", "Hotkey", "", [["pause", "text", "Pause and Resume", "For example ctrl+alt+p. Leave empty for no hotkey.", { placeholder: "ctrl+alt+p" }]]],
+  ["writing", "Writing", "Fine-tune continuations and local corrections.", [
+    ["phrase.writing_style", "select", "Writing Style", "Tells the model how to phrase its continuation.", choice("writing_style")],
+    ["phrase.preserve_casing", "bool", "Preserve Your Casing", "Ask the model to follow intentional casing, including lowercase messages."],
+    ["words.typo_correction", "bool", "Typo Correction", "Include fuzzy word matches; off keeps exact prefix matches."],
+    ["phrase.multiline", "bool", "Multiline Completions", "Allow line breaks in phrase continuations."],
+    ["phrase.avoid_phrases", "list", "Avoid These Phrases", "One per line. Matching replies are suppressed; replies are buffered before showing."],
+    ["phrase.max_tokens", "number", "Maximum Output Tokens", "Short limits this cap; Longer allows at least 120 tokens.", number(1)],
+    ["phrase.temperature", "number", "Temperature", "Lower is more predictable; around 0.2 suits autocomplete.", number(0, 0.05, 2)],
+    ["words.next_threshold", "number", "Next-Word Confidence", "Higher shows fewer next words; 0 shows the best few.", number(0, 0.01, 1)],
+    ["learning.promote_after", "number", "Uses Before Suggesting New Words", "How often you must type a new word before it is suggested.", number(1)],
+  ]],
+  ["context", "Context & Privacy", "Control what leaves the computer and what stays in memory.", [
+    ["phrase.screen_context", "bool", "Allow Window Context", "Master permission for OCR and accessible text; off sends caret text only."],
+    ["phrase.context_apps", "list", "Apps Allowed to Share Window Context", "One process name per line; empty allows all unblocked apps."],
+    ["phrase.context_before", "number", "Text Before the Caret", "Maximum characters included before the caret.", number(1, 100)],
+    ["phrase.fim", "bool", "Send Text After the Caret", "Only for models supporting fill-in-the-middle."],
+    ["phrase.context_after", "number", "Text After the Caret", "Maximum characters after the caret with fill-in-the-middle.", number(0, 100)],
+    ["phrase.preview_context", "bool", "Preview Before Sending", "Disables automatic requests. Use Ctrl+Space, then refresh the preview and press Send above."],
+    ["phrase.log_mode", "select", "Request Log Recording", "Timings or off removes previously recorded text and pictures.", choice("log_mode")],
+    ["phrase.log_retention_minutes", "number", "Request Log Retention (Minutes)", "0 keeps entries until exit; entries remain in memory only.", number()],
+  ]],
+  ["profiles", "App Profiles", "Override global preferences for specific programs.", [
+    ["apps.block", "list", "Stay Silent In", "One process name per line, such as code.exe."],
+    ["apps.allow", "list", "Automatic Phrase App List", "Used when When to Suggest is Follow app list; manual phrases work elsewhere."],
+    ["apps.profiles", "profiles", "Per-App Overrides", "Choose a program and override selected settings. Inherit follows global values."],
+  ]],
+  ["keys", "Popup & Keys", "Shortcuts used while suggestions are available.", [
+    ["hotkeys.partial_accept", "select", "Accept the Next Phrase Word", "Choose the shortcut for partial phrase acceptance.", choice("partial_accept")],
+    ["hotkeys.dismiss", "select", "Dismiss Suggestions", "Choose the shortcut that closes the popup.", choice("dismiss")],
+    ["hotkeys.pause", "text", "Pause and Resume", "For example ctrl+alt+p; empty disables the global hotkey.", { placeholder: "ctrl+alt+p" }],
+  ]],
+  ["instructions", "Instructions", "The full prompt given to the model.", [
+    ["phrase.instructions", "prompt", "Instructions to the Model", "Replaces built-in instructions; writing preferences are added before these."],
+  ]],
 ];
 let loaded = null;
 const openFolds = new Set();  // which expandable sections are open, kept across saves
@@ -685,35 +759,47 @@ async function loadSettings() {
   if (loaded && dirty()) return;  // keep what the user is typing
   try { loaded = await api("/api/settings"); } catch (e) { if (!e.shown) { form.replaceChildren(); banner(e.message); } return; }
   renderSettings();
+  loadRuntime();
+}
+function disclosure(id, title, className = "fold") {
+  const d = el("details", { className, open: openFolds.has(id) }, el("summary", { textContent: title }));
+  d.addEventListener("toggle", () => { if (d.isConnected) { if (d.open) openFolds.add(id); else openFolds.delete(id); } });
+  d.dataset.fold = id;
+  return d;
 }
 function renderSettings() {
-  form.replaceChildren(...GROUPS.map(([sec, title, about, rows]) => {
-    const g = el("fieldset", { className: "group" }, el("legend", { className: "sr", textContent: title }),
-      el("header", {}, el("h3", { textContent: title }), about ? el("p", { textContent: about }) : ""));
-    const folds = {};
-    for (const [key, kind, label, hint, opt = {}] of rows) {
-      let into = g;
-      if (opt.fold) {
-        const id = `${sec}/${opt.fold}`;
-        if (!folds[id]) {
-          const d = el("details", { className: "fold", open: openFolds.has(id) }, el("summary", {}, opt.fold));
-          d.addEventListener("toggle", () => { if (d.open) openFolds.add(id); else openFolds.delete(id); });
-          folds[id] = d; g.append(d);
-        }
-        into = folds[id];
-      }
-      into.append(setting(sec, key, kind, label, hint, opt));
+  for (const d of form.querySelectorAll("details[data-fold]")) {
+    if (d.open) openFolds.add(d.dataset.fold); else openFolds.delete(d.dataset.fold);
+  }
+  const advanced = disclosure("advanced", "Advanced", "fold advanced");
+  const groups = GROUPS.map(([id, title, about, rows], index) => {
+    const g = index < 2
+      ? el("fieldset", { className: "group" }, el("legend", { className: "sr", textContent: title }), el("header", {}, el("h3", { textContent: title }), el("p", { textContent: about })))
+      : disclosure(id, title, "fold group tile");
+    if (index >= 2) g.append(el("p", { textContent: about }));
+    for (const [path, kind, label, hint, opt = {}] of rows) {
+      const [sec, key] = path.split(".");
+      g.append(setting(sec, key, kind, label, hint, opt));
     }
     return g;
-  }));
+  });
+  advanced.append(...groups.slice(2));
+  const runtime = el("div", { id: "runtime", className: "group runtime", "aria-live": "polite" });
+  form.replaceChildren(runtime, ...groups.slice(0, 2), advanced);
+  renderRuntime();
   updateBar();
 }
 function setting(sec, key, kind, label, hint, opt) {
-  const id = `f-${sec}-${key}`, value = loaded[sec][key];
+  const id = `f-${sec}-${key}`, value = loaded[sec]?.[key];
+  if (kind === "profiles") return profileEditor(value || [], label, hint);
   let input;
   if (kind === "bool") input = el("input", { type: "checkbox", id, className: "switch", checked: !!value });
   else if (kind === "number") input = el("input", { type: "number", id, className: "field", value, min: opt.min, max: opt.max, step: opt.step, inputMode: opt.inputmode || "numeric" });
-  else if (kind === "list") { input = el("textarea", { id, className: "field", value: value.join("\n"), spellcheck: false }); }
+  else if (kind === "list") { input = el("textarea", { id, className: "field", value: (value || []).join("\n"), spellcheck: false }); }
+  else if (kind === "select") {
+    input = el("select", { id, className: "field" }, ...opt.options.map(([v, text]) => el("option", { value: v, textContent: text, selected: v === value })));
+    input.value = value;
+  }
   else if (kind === "prompt") input = el("textarea", { id, className: "field prompt", value, spellcheck: false, rows: 14 });
   else if (kind === "key") input = el("input", { type: "password", id, className: "field", autocomplete: "off", spellcheck: false, placeholder: loaded.phrase.api_key_set ? "Paste a new key to replace it…" : "Paste your key…" });
   else input = el("input", { type: "text", id, className: "field", value, spellcheck: false, autocomplete: "off", placeholder: opt.placeholder || "" });
@@ -740,6 +826,107 @@ function setting(sec, key, kind, label, hint, opt) {
   }
   return el("div", { className: "set" }, t, ctl);
 }
+const PROFILE_FIELDS = [
+  ["phrase_mode", "Phrase Mode", OPTIONS.mode], ["completion_length", "Completion Length", OPTIONS.completion_length],
+  ["writing_style", "Writing Style", OPTIONS.writing_style], ["spelling", "Spelling", OPTIONS.spelling],
+  ["context_source", "Context Source", OPTIONS.context_source], ["learning", "Learning", [["true", "On"], ["false", "Off"]]],
+  ["word_limit", "Words Shown", null],
+];
+let profileSerial = 0;
+function profileEditor(profiles, label, hint) {
+  const box = el("div", { className: "profiles", id: "f-apps-profiles" });
+  box.setAttribute("tabindex", "-1"); box.setAttribute("aria-label", label);
+  const rows = el("div", { id: "profile-rows" });
+  const add = el("button", { type: "button", className: "btn", textContent: "Add App Profile" });
+  const append = (profile, focus = false) => {
+    const serial = ++profileSerial, fields = el("div", { className: "profile-fields" });
+    const app = el("input", { id: `profile-${serial}-app`, type: "text", className: "field", value: profile.app || "", placeholder: "notepad.exe", spellcheck: false, autocomplete: "off" });
+    app.dataset.profileKey = "app";
+    fields.append(el("label", { htmlFor: app.id }, "Program Name", app));
+    for (const [key, title, options] of PROFILE_FIELDS) {
+      const id = `profile-${serial}-${key}`;
+      const input = options
+        ? el("select", { id, className: "field" }, el("option", { value: "", textContent: "Use global setting" }), ...options.map(([value, text]) => el("option", { value, textContent: text })))
+        : el("input", { id, type: "number", className: "field", min: 1, max: 20, step: 1, placeholder: "Use global setting" });
+      input.value = profile[key] === undefined ? "" : String(profile[key]);
+      input.dataset.profileKey = key;
+      fields.append(el("label", { htmlFor: id }, title, input));
+    }
+    const remove = el("button", { type: "button", className: "btn quiet", textContent: "Remove Profile", "aria-label": "Remove app profile" });
+    const row = el("div", { className: "profile", role: "group", "aria-label": "App profile" }, fields, remove);
+    remove.addEventListener("click", () => { row.remove(); updateBar(); add.focus(); });
+    rows.append(row);
+    if (focus) { app.focus(); updateBar(); }
+  };
+  add.addEventListener("click", () => append({}, true));
+  profiles.forEach((p) => append(p));
+  box.append(el("h3", { textContent: label }), el("p", { className: "profile-note", textContent: hint }), rows, add);
+  return box;
+}
+function readProfiles() {
+  return [...form.querySelectorAll(".profile")].map((row) => {
+    const profile = {};
+    for (const input of row.querySelectorAll("[data-profile-key]")) {
+      const key = input.dataset.profileKey, value = input.value.trim();
+      if (key === "app") profile.app = value;
+      else if (value !== "") profile[key] = key === "learning" ? value === "true" : key === "word_limit" ? Number(value) : value;
+    }
+    return profile;
+  });
+}
+let runtimeState = null, contextState = null, runtimeBusy = false;
+async function loadRuntime() {
+  try {
+    [runtimeState, contextState] = await Promise.all([api("/api/runtime"), api("/api/context")]);
+    renderRuntime();
+  } catch (e) { if (!e.shown) toast(e.message); }
+}
+async function runtimeAction(action) {
+  if (runtimeBusy) return;
+  runtimeBusy = true; renderRuntime();
+  try {
+    const minutes = Number(form.querySelector('[name="privacy.pause_minutes"]')?.value || 0);
+    await api("/api/runtime", action === "pause" ? { action, minutes } : { action });
+    await loadRuntime();
+    const settings = await api("/api/settings");
+    // The private-mode action persists immediately. Retain unrelated pending edits.
+    loaded.privacy.private_mode = settings.privacy.private_mode;
+    const input = form.querySelector('[name="privacy.private_mode"]');
+    if (input) input.checked = settings.privacy.private_mode;
+    updateBar();
+  } catch (e) { if (!e.shown) toast(e.message); }
+  finally { runtimeBusy = false; renderRuntime(); }
+}
+async function contextAction(action, id) {
+  if (runtimeBusy) return;
+  runtimeBusy = true; renderRuntime();
+  try { await api("/api/context", { action, id }); await loadRuntime(); toast(action === "send" ? "Context sent." : "Preview cancelled."); }
+  catch (e) { if (!e.shown) toast(e.message); await loadRuntime(); }
+  finally { runtimeBusy = false; renderRuntime(); }
+}
+function renderRuntime() {
+  const box = $("runtime"); if (!box) return;
+  const refresh = el("button", { type: "button", className: "btn quiet", textContent: "Refresh Status & Preview", disabled: runtimeBusy });
+  refresh.addEventListener("click", loadRuntime);
+  const buttons = el("div", { className: "toolbar" }, refresh);
+  if (runtimeState) {
+    const pause = el("button", { type: "button", className: "btn", textContent: runtimeState.paused ? "Resume Now" : "Pause Now", disabled: runtimeBusy });
+    pause.addEventListener("click", () => runtimeAction(runtimeState.paused ? "resume" : "pause"));
+    const privacy = el("button", { type: "button", className: "btn", textContent: runtimeState.private_mode ? "Turn Private Mode Off" : "Turn Private Mode On", disabled: runtimeBusy });
+    privacy.addEventListener("click", () => runtimeAction(runtimeState.private_mode ? "private_off" : "private_on"));
+    buttons.prepend(pause, privacy);
+  }
+  box.replaceChildren(el("header", {}, el("h3", { textContent: "Current Session" }), el("p", { textContent: runtimeState ? `${runtimeState.paused ? "Paused" : "Running"} · Private mode ${runtimeState.private_mode ? "on" : "off"}. Actions apply immediately. Pause uses the duration below.` : "Refresh to load session status." })), buttons);
+  const preview = contextState?.preview;
+  if (preview) {
+    const send = el("button", { type: "button", className: "btn primary", textContent: "Send", disabled: runtimeBusy || runtimeState?.private_mode || runtimeState?.paused });
+    const cancel = el("button", { type: "button", className: "btn quiet", textContent: "Cancel", disabled: runtimeBusy });
+    send.addEventListener("click", () => contextAction("send", preview.id));
+    cancel.addEventListener("click", () => contextAction("cancel", preview.id));
+    box.append(el("h3", { textContent: "Exact Context Preview" }), el("p", { textContent: `${preview.app}${preview.title ? " · " + preview.title : ""}` }), el("pre", { className: "preview-prompt", textContent: preview.prompt }), el("div", { className: "toolbar" }, send, cancel));
+    if (preview.suffix) box.append(el("h3", { textContent: "Text After the Caret" }), el("pre", { className: "preview-prompt", textContent: preview.suffix }));
+  } else box.append(el("p", { className: "profile-note", textContent: "No context is waiting to send. With preview enabled, request a phrase in your app and refresh here. Typing or changing settings invalidates the preview." }));
+}
 function readForm() {
   const out = {};
   for (const i of form.querySelectorAll("[data-key]")) {
@@ -753,6 +940,9 @@ function readForm() {
     if (kind !== "key" && JSON.stringify(v) === JSON.stringify(kind === "prompt" ? loaded[sec][key].trim() : loaded[sec][key])) continue;  // send only what changed
     (out[sec] = out[sec] || {})[key] = v;
   }
+  const profiles = readProfiles();
+  const fingerprint = rows => JSON.stringify(rows.map(row => Object.fromEntries(Object.entries(row).sort(([a], [b]) => a.localeCompare(b)))));
+  if (fingerprint(profiles) !== fingerprint(loaded.apps.profiles || [])) (out.apps = out.apps || {}).profiles = profiles;
   return out;
 }
 function updateBar(message, bad) {
@@ -772,15 +962,20 @@ $("save").addEventListener("click", saveForm);
 async function saveForm() { const changes = readForm(); if (Object.keys(changes).length) save(changes, "Settings saved. They apply within a couple of seconds."); }
 async function save(changes, done) {
   const btn = $("save"); btn.disabled = true; btn.textContent = "Saving…";
-  try { loaded = await api("/api/settings", changes); renderSettings(); toast(done); }
+  try { loaded = await api("/api/settings", changes); renderSettings(); await loadRuntime(); toast(done); }
   catch (e) {
     if (!e.shown) {
       toast(e.message); updateBar(e.message, true);
-      const changed = Object.entries(readForm()).flatMap(([sec, keys]) => Object.keys(keys).map((k) => form.querySelector(`[name="${sec}.${k}"]`))).filter(Boolean);
-      for (const c of changed) { const d = c.closest("details"); if (d) d.open = true; }  // show the field that may be wrong
+      const changed = Object.entries(readForm()).flatMap(([sec, keys]) => Object.keys(keys).map((k) => form.querySelector(`[name="${sec}.${k}"]`) || $("f-" + sec + "-" + k))).filter(Boolean);
+      for (const c of changed) revealAncestors(c);
       const first = changed[0] || form.querySelector("[data-key]"); if (first) first.focus({ preventScroll: true });
     }
   } finally { btn.disabled = false; btn.textContent = "Save Settings"; }
+}
+function revealAncestors(control) {
+  for (let node = control.parentElement; node; node = node.parentElement) {
+    if (node.tagName === "DETAILS") { node.open = true; if (node.dataset.fold) openFolds.add(node.dataset.fold); }
+  }
 }
 addEventListener("beforeunload", (ev) => { if (dirty()) { ev.preventDefault(); ev.returnValue = ""; } });
 addEventListener("hashchange", () => { const n = location.hash.slice(1); if (NAMES.includes(n) && n !== current) show(n, false); });

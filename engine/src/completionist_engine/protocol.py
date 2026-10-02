@@ -116,6 +116,8 @@ class WordReply:
     """False while more phrase text may still be pushed."""
     phrase_mode: str = "off"
     """"auto", "hotkey" or "off": whether phrases are available in this field."""
+    popup: dict[str, Any] | None = None
+    """Optional native popup appearance and shortcut preferences; older clients ignore this."""
 
     def to_message(self) -> dict[str, Any]:
         message: dict[str, Any] = {"id": self.id, "type": "words", "replace": self.replace, "words": list(self.words)}
@@ -128,6 +130,8 @@ class WordReply:
         if self.phrase or not self.phrase_done:
             message["phrase"] = self.phrase
             message["phrase_done"] = self.phrase_done
+        if self.popup is not None:
+            message["popup"] = self.popup
         return message
 
 

@@ -3,7 +3,7 @@
 import asyncio
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 
 import httpx
@@ -34,6 +34,13 @@ class ProviderSettings:
     temperature: float = 0.2
     timeout: float = 4.0  # seconds to wait for the connection, and between chunks
     stop: tuple[str, ...] = ("\n",)
+    provider_sort: str = ""
+    allow_fallbacks: bool = True
+    provider_ignore: tuple[str, ...] = ()
+    max_price_input: float = 0
+    max_price_output: float = 0
+    require_parameters: bool = False
+    zdr: bool = False
 
 
 @dataclass(frozen=True)
@@ -51,7 +58,8 @@ class PhraseProvider:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def stream(self, request: PhraseRequest, attempts: list[Attempt] | None = None) -> AsyncIterator[str]:
+    async def stream(self, request: PhraseRequest, attempts: list[Attempt] | None = None,
+                     on_event: Callable[..., None] | None = None) -> AsyncIterator[str]:
         """Yields text chunks as they arrive.
 
         Tries each configured model in turn; a model that fails before producing any text hands over to
@@ -61,19 +69,29 @@ class PhraseProvider:
         for model in self._settings.models:
             produced = False
             began = time.monotonic()
+            if on_event is not None:
+                on_event("model_started", model=model)
             try:
                 async for event in self._stream_one(model, request):
                     produced = True
                     yield event
                 if attempts is not None:
                     attempts.append(Attempt(model, True, "", round((time.monotonic() - began) * 1000)))
+                if on_event is not None:
+                    on_event("model_finished", model=model, duration_ms=round((time.monotonic() - began) * 1000))
                 return
             except ProviderError as err:
                 if attempts is not None:
                     attempts.append(Attempt(model, False, str(err), round((time.monotonic() - began) * 1000)))
+                if on_event is not None:
+                    on_event("model_failed", model=model, error=str(err), duration_ms=round((time.monotonic() - began) * 1000))
                 if produced:
                     raise
                 last_error = err
+            except asyncio.CancelledError:
+                if on_event is not None:
+                    on_event("model_cancelled", model=model, duration_ms=round((time.monotonic() - began) * 1000))
+                raise
         raise last_error or ProviderError("no phrase model configured")
 
     async def _stream_one(self, model: str, request: PhraseRequest) -> AsyncIterator[str]:
@@ -86,8 +104,24 @@ class PhraseProvider:
             "stream": True,
             "stop": list(s.stop),
         }
-        if s.provider_order:
-            payload["provider"] = {"order": list(s.provider_order)}
+        routing: dict = {}
+        if s.provider_sort:
+            routing["sort"] = s.provider_sort
+        elif s.provider_order:
+            routing["order"] = list(s.provider_order)
+        if not s.allow_fallbacks:
+            routing["allow_fallbacks"] = False
+        if s.provider_ignore:
+            routing["ignore"] = list(s.provider_ignore)
+        caps = {key: value for key, value in (("input", s.max_price_input), ("output", s.max_price_output)) if value > 0}
+        if caps:
+            routing["max_price"] = caps
+        if s.require_parameters:
+            routing["require_parameters"] = True
+        if s.zdr:
+            routing["zdr"] = True
+        if routing:
+            payload["provider"] = routing
         if s.fim and request.suffix:
             payload["suffix"] = request.suffix
         url = s.base_url.rstrip("/") + "/completions"

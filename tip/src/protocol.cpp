@@ -1,6 +1,7 @@
 #include "protocol.h"
 
 #include <cstdio>
+#include <cmath>
 #include <cstdlib>
 #include <utility>
 
@@ -359,6 +360,26 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
         return reply;
     }
     if (type->string != "words") return std::nullopt;
+
+    // Optional preferences must never discard useful suggestions. Each bad field independently
+    // keeps its default; an old engine with no popup object resets to the original behavior.
+    if (const Json* popup = document->Find("popup"); popup && popup->type == Json::Type::Object) {
+        if (const Json* font = popup->Find("font_size"); font && font->type == Json::Type::Number &&
+            std::isfinite(font->number) && font->number >= 7 && font->number <= 24 &&
+            std::floor(font->number) == font->number)
+            reply.popup.font_size = static_cast<int>(font->number);
+        if (const Json* width = popup->Find("width_scale"); width && width->type == Json::Type::Number &&
+            std::isfinite(width->number) && width->number >= 0.5 && width->number <= 2)
+            reply.popup.width_scale = width->number;
+        if (const Json* partial = popup->Find("partial_accept"); partial && partial->type == Json::Type::String) {
+            if (partial->string == "alt+right") reply.popup.partial_accept = PartialAccept::AltRight;
+            else if (partial->string == "ctrl+tab") reply.popup.partial_accept = PartialAccept::CtrlTab;
+        }
+        if (const Json* dismiss = popup->Find("dismiss"); dismiss && dismiss->type == Json::Type::String) {
+            if (dismiss->string == "ctrl+backspace") reply.popup.dismiss = DismissShortcut::CtrlBackspace;
+            else if (dismiss->string == "alt+backspace") reply.popup.dismiss = DismissShortcut::AltBackspace;
+        }
+    }
 
     const Json* replace = document->Find("replace");
     const Json* words = document->Find("words");

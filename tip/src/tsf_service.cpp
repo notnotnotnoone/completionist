@@ -128,6 +128,7 @@ completionist::Key ToKey(WPARAM vk) {
         case VK_SPACE: return completionist::Key::Space;
         case VK_ESCAPE: return completionist::Key::Escape;
         case VK_RETURN: return completionist::Key::Enter;
+        case VK_BACK: return completionist::Key::Backspace;
         default: return completionist::Key::Other;
     }
 }
@@ -694,6 +695,8 @@ private:
             return;
         }
         model_.SetPhraseAvailable(reply.phrase_mode != "off");
+        model_.SetSettings(reply.popup);
+        popup_.SetSettings(reply.popup);
         // Next words belong only where no word is being typed, and completions only where one is.
         bool allNext = !reply.kinds.empty();
         bool anyNext = false;

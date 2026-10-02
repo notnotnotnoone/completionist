@@ -18,12 +18,15 @@ import asyncio
 import hmac
 import json
 import logging
+import math
 import secrets
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from completionist_engine.config import ConfigError
+from completionist_engine.config import load_config
+from completionist_engine.engine import Engine
 from completionist_engine.metrics import Metrics
 from completionist_engine.personal import PersonalStore
 from completionist_engine.request_log import LoggedRequest, RequestLog
@@ -49,8 +52,10 @@ class ViewerServer:
         config_path: Path,
         token: str | None = None,
         request_log: RequestLog | None = None,
+        engine: Engine | None = None,
     ) -> None:
         self._request_log = request_log
+        self._engine = engine
         self._personal = personal
         self._metrics = metrics
         self._config_path = config_path
@@ -160,6 +165,23 @@ class ViewerServer:
     # -- the JSON interface ----------------------------------------------------------------------
 
     def _route(self, method: str, path: str, query: dict[str, list[str]], body: Any) -> tuple[int, bytes, str]:
+        if (method, path) == ("GET", "/api/runtime"):
+            return _json(200, self._runtime())
+        if (method, path) == ("POST", "/api/runtime"):
+            return self._change_runtime(body)
+        if (method, path) == ("GET", "/api/context"):
+            service = self._engine._phrases if self._engine else None
+            return _json(200, {"available": bool(service and service.available),
+                               "preview": service.context_preview() if service else None})
+        if (method, path) == ("POST", "/api/context"):
+            service = self._engine._phrases if self._engine else None
+            if not isinstance(body, dict) or isinstance(body.get("id"), bool) or not isinstance(body.get("id"), int):
+                return _json(400, {"error": "Choose a current context preview."})
+            if service and body.get("action") == "send" and service.send_preview(body["id"]):
+                return _json(200, {"sent": True})
+            if service and body.get("action") == "cancel" and service.cancel_preview(preview_id=body["id"]):
+                return _json(200, {"cancelled": True})
+            return _json(400, {"error": "That context preview expired. Request a new one."})
         if (method, path) == ("GET", "/api/words"):
             return _json(200, self._words(query))
         if (method, path) == ("POST", "/api/forget"):
@@ -185,6 +207,36 @@ class ViewerServer:
         if (method, path) == ("POST", "/api/settings"):
             return self._change_settings(body)
         return _json(404, {"error": "not found"})
+
+    def _runtime(self) -> dict:
+        engine = self._engine
+        return {"available": engine is not None, "paused": engine.paused if engine else False,
+                "private_mode": engine.private_mode if engine else False,
+                "preview": bool(engine and engine._phrases and engine._phrases.context_preview())}
+
+    def _change_runtime(self, body: Any) -> tuple[int, bytes, str]:
+        if self._engine is None:
+            return _json(400, {"error": "Runtime controls are unavailable."})
+        if not isinstance(body, dict):
+            return _json(400, {"error": "Choose a runtime action."})
+        action = body.get("action")
+        if action == "pause":
+            minutes = body.get("minutes", self._engine.config.pause_minutes)
+            if isinstance(minutes, bool) or not isinstance(minutes, int | float) or not math.isfinite(minutes) or not 0 <= minutes <= 1440:
+                return _json(400, {"error": "Pause duration must be 0 to 1440 minutes."})
+            self._engine.set_paused(True, minutes=minutes)
+        elif action == "resume":
+            self._engine.set_paused(False)
+        elif action in ("private_on", "private_off"):
+            enabled = action == "private_on"
+            try:
+                apply_settings(self._config_path, {"privacy": {"private_mode": enabled}})
+                self._engine.set_config(load_config(self._config_path))
+            except ConfigError as err:
+                return _json(400, {"error": str(err)})
+        else:
+            return _json(400, {"error": "Unknown runtime action."})
+        return _json(200, self._runtime())
 
     def _words(self, query: dict[str, list[str]]) -> dict[str, Any]:
         search = query.get("q", [""])[0]
@@ -257,7 +309,9 @@ class ViewerServer:
         shown = None if screen is None else {
             "app": screen.app, "title": screen.title, "text": screen.text, "sent": found.screen_sent, "has_image": bool(screen.jpeg),
         }  # fmt: skip
-        return _json(200, {**_request_row(found), "prompt": found.prompt, "attempts": [vars(a) for a in found.attempts], "screen": shown})
+        return _json(200, {**_request_row(found), "prompt": found.prompt, "suffix": found.suffix,
+                           "settings": found.settings, "events": found.events,
+                           "attempts": [vars(a) for a in found.attempts], "screen": shown})
 
     def _request_screenshot(self, raw_id: str) -> tuple[int, bytes, str]:
         found = self._request_log.get(int(raw_id)) if self._request_log is not None and raw_id.isdigit() else None
@@ -274,6 +328,8 @@ class ViewerServer:
     def _change_settings(self, body: Any) -> tuple[int, bytes, str]:
         try:
             apply_settings(self._config_path, body)
+            if self._engine is not None:
+                self._engine.set_config(load_config(self._config_path))
             return _json(200, read_settings(self._config_path))
         except ConfigError as err:
             return _json(400, {"error": str(err)})

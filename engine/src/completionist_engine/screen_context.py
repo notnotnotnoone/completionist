@@ -14,6 +14,7 @@ import asyncio
 import io
 import logging
 import time
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
@@ -90,6 +91,16 @@ class ScreenContext:
         self._refresh = False
         self._current: Capture | None = None
         self._next_id = 1
+        self._generation = 0
+        self._capture_lock = threading.Lock()
+
+    def clear(self) -> None:
+        """Discard text and pictures, including reads already underway when privacy changes."""
+        with self._capture_lock:
+            self._generation += 1
+            self._current = None
+            self._seen = self._tried = None
+            self._refresh = False
 
     def poll(self) -> None:
         """One look at the window in front; reads it if it has stayed there since the look before."""
@@ -128,6 +139,7 @@ class ScreenContext:
                 logger.warning("screen watcher: %s", type(err).__name__)
 
     def _read(self, fg: Foreground) -> None:
+        generation = self._generation
         image = self._source.grab(fg.hwnd)
         if image is None:
             return  # nothing to read yet (minimised, or too small); the next look tries again
@@ -139,8 +151,12 @@ class ScreenContext:
             logger.warning("screen text could not be read in %s: %s", fg.app, type(err).__name__)
             return
         text = _tail(text.strip(), self._cap)
-        self._current = Capture(self._next_id, self._clock(), fg.app, fg.title, fg.key, text, _jpeg(image))
-        self._next_id += 1
+        jpeg = _jpeg(image)
+        with self._capture_lock:
+            if generation != self._generation or not self._wanted(fg.app):
+                return
+            self._current = Capture(self._next_id, self._clock(), fg.app, fg.title, fg.key, text, jpeg)
+            self._next_id += 1
         logger.info("screen read in %s: %s (%.0f ms)", fg.app, f"{len(text)} chars" if text else "no text found", (self._clock() - started) * 1000)
 
 

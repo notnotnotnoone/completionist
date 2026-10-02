@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
 
-from completionist_engine.config import Config
+from completionist_engine.config import Config, effective_config
 
 # TSF input scopes where suggestions would leak secrets or get in the way of structured input.
 SILENT_SCOPES = frozenset(
@@ -36,4 +36,8 @@ def decide(app: str, input_scope: Iterable[str], config: Config) -> Mode:
     app = app.lower()
     if app in config.block or not SILENT_SCOPES.isdisjoint(input_scope):
         return _OFF
-    return Mode(words=True, phrase="auto" if app in config.allow else "hotkey")
+    local = effective_config(config, app)
+    if config.private_mode:
+        return Mode(words=True, phrase="off")
+    preference = local.phrase.mode
+    return Mode(words=True, phrase=("auto" if app in config.allow else "hotkey") if preference == "apps" else preference)

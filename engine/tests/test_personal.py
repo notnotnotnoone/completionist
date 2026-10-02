@@ -65,6 +65,27 @@ def test_only_plain_english_words_are_recorded(store, junk):
     assert store.counts((), "").total == 0
 
 
+def test_single_letter_words_are_not_learned(store):
+    store.record_typed("I", ())
+    store.record_accepted("a", ())
+    store.record_typed("hello", ("I",))
+    assert store.words() == [("hello", 1)]
+    assert store.counts((), "").total == 1
+
+
+def test_existing_single_letter_words_are_removed_on_open(tmp_path):
+    path = tmp_path / "personal.sqlite"
+    store = PersonalStore(path)
+    store.close()
+    with sqlite3.connect(path) as db:
+        db.execute("INSERT INTO words (word, n) VALUES ('i', 3)")
+    reopened = PersonalStore(path)
+    assert reopened.words() == []
+    reopened.close()
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT COUNT(*) FROM words WHERE word = 'i'").fetchone()[0] == 0
+
+
 def test_words_with_inner_apostrophes_are_kept(store):
     store.record_typed("don't", ())
     assert "don't" in store.counts((), "don").words

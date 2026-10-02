@@ -8,16 +8,12 @@ It keeps the newest `capacity` requests; the viewer's Clear button empties it so
 import time
 from collections import deque
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from completionist_engine.phrase_provider import Attempt
 from completionist_engine.screen_context import Capture
 
 OUTCOMES = ("ok", "failover", "failed", "cancelled")  # cancelled: the user kept typing and the request was dropped
-_PROMPT_KEEP = 2000  # characters; the end is kept, since that is the text nearest the caret
-_REPLY_KEEP = 1000
-
-
 @dataclass(frozen=True)
 class LoggedRequest:
     id: int
@@ -31,6 +27,9 @@ class LoggedRequest:
     total_ms: int | None = None
     screen: Capture | None = None  # what the screen reader captured for this request: the picture and the text it read
     screen_sent: str = ""  # the part of that text sent to the model (the lines the person typed are left out)
+    suffix: str = ""
+    settings: dict = field(default_factory=dict)  # request settings, never credentials
+    events: tuple[dict, ...] = field(default=())
 
     @property
     def answered_by(self) -> str:
@@ -44,6 +43,27 @@ class RequestLog:
         self._items: deque[LoggedRequest] = deque(maxlen=capacity)
         self._clock = clock
         self._next_id = 1
+        self._mode = "full"
+        self._retention = 0.0
+
+    def configure(self, mode: str, retention_minutes: float) -> None:
+        """Privacy changes apply to entries already held, as well as future requests."""
+        self._mode = mode
+        self._retention = retention_minutes * 60
+        if mode == "off":
+            self.clear()
+        elif mode == "timings":
+            self._items = deque(
+                (replace(r, prompt="", reply="", screen=None, screen_sent="", suffix="", settings={}, events=()) for r in self._items),
+                maxlen=self._items.maxlen,
+            )
+        self._expire()
+
+    def _expire(self) -> None:
+        if self._retention:
+            cutoff = self._clock() - self._retention
+            while self._items and self._items[0].at <= cutoff:
+                self._items.popleft()
 
     def add(
         self,
@@ -57,26 +77,37 @@ class RequestLog:
         total_ms: int | None,
         screen: Capture | None = None,
         screen_sent: str = "",
+        suffix: str = "",
+        settings: dict | None = None,
+        events: list[dict] | None = None,
     ) -> LoggedRequest:
+        self._expire()
+        if self._mode != "full":
+            prompt, reply, screen, screen_sent, suffix, settings, events = "", "", None, "", "", None, None
         entry = LoggedRequest(
             id=self._next_id,
             at=self._clock(),
             app=app,
-            prompt=prompt[-_PROMPT_KEEP:],
-            reply=reply[:_REPLY_KEEP],
+            prompt=prompt,
+            reply=reply,
             outcome=outcome,
             attempts=tuple(attempts),
             ttft_ms=ttft_ms,
             total_ms=total_ms,
             screen=screen,
             screen_sent=screen_sent,
+            suffix=suffix,
+            settings=dict(settings or {}),
+            events=tuple(events or ()),
         )
         self._next_id += 1
-        self._items.append(entry)
+        if self._mode != "off":
+            self._items.append(entry)
         return entry
 
     def recent(self, *, result: str = "", q: str = "", limit: int = 50) -> tuple[list[LoggedRequest], int]:
         """Matching requests, newest first (at most `limit`), and how many matched in all."""
+        self._expire()
         q = q.strip().lower()
         matched = [
             r
@@ -86,6 +117,7 @@ class RequestLog:
         return matched[:limit], len(matched)
 
     def get(self, request_id: int) -> LoggedRequest | None:
+        self._expire()
         return next((r for r in self._items if r.id == request_id), None)
 
     def clear(self) -> None:

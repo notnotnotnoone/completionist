@@ -400,6 +400,12 @@ def test_a_finished_request_is_logged_with_its_text_and_timings():
     assert (entry.outcome, entry.app, entry.reply) == ("ok", "notepad.exe", "ld is big")
     assert "Hello wor" in entry.prompt and entry.total_ms is not None and entry.ttft_ms is not None
     assert [(a.model, a.ok) for a in entry.attempts] == [("m", True)]
+    assert entry.settings["models"] == ("m",)
+    assert "api_key" not in entry.settings
+    assert [event["kind"] for event in entry.events] == [
+        "started", "context", "model_started", "first_text", "text_chunk", "text_chunk", "model_finished", "finished"
+    ]
+    assert entry.events[-1]["outcome"] == "ok"
 
 
 def test_a_request_that_fell_back_to_the_next_model_is_a_failover():
@@ -432,7 +438,7 @@ from completionist_engine.screen_context import Capture  # noqa: E402
 
 class FakeScreen:
     def __init__(self, text: str, app: str = "notepad.exe") -> None:
-        self.capture = Capture(7, 0.0, app, "Inbox", (1, "Inbox"), text, b"\xff\xd8jpeg")
+        self.capture = Capture(7, 0.0, app, "Notes", (1, "Notes"), text, b"\xff\xd8jpeg")
         self.asked = 0
 
     def for_request(self):

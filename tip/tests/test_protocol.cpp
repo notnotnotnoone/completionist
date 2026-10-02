@@ -280,3 +280,44 @@ TEST(an_accept_request_can_name_a_chunk_or_next_word) {
         CHECK(BodyOf(EncodeRequest(request)).find(std::string("\"kind\":\"") + kind + "\"") != std::string::npos);
     }
 }
+
+TEST(popup_settings_parse_and_legacy_defaults) {
+    auto legacy = ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":[]})");
+    CHECK(legacy.has_value());
+    CHECK_EQ(legacy->popup.font_size, 9);
+    CHECK_EQ(legacy->popup.width_scale, 1.0);
+    auto reply = ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":[],"popup":{"font_size":24,"width_scale":0.5,"partial_accept":"ctrl+tab","dismiss":"alt+backspace"}})");
+    CHECK(reply.has_value());
+    CHECK_EQ(reply->popup.font_size, 24);
+    CHECK_EQ(reply->popup.width_scale, 0.5);
+    CHECK_EQ(reply->popup.partial_accept, completionist::PartialAccept::CtrlTab);
+    CHECK_EQ(reply->popup.dismiss, completionist::DismissShortcut::AltBackspace);
+    auto lower = ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":[],"popup":{"font_size":7,"width_scale":2,"partial_accept":"ctrl+right","dismiss":"escape"}})");
+    CHECK(lower.has_value());
+    CHECK_EQ(lower->popup.font_size, 7);
+    CHECK_EQ(lower->popup.width_scale, 2.0);
+    CHECK_EQ(lower->popup.partial_accept, completionist::PartialAccept::CtrlRight);
+    CHECK_EQ(lower->popup.dismiss, completionist::DismissShortcut::Escape);
+}
+
+TEST(malformed_popup_fields_keep_safe_defaults_independently) {
+    for (const std::string& popup : {std::string("null"), std::string("[]"), std::string("false"),
+        std::string(R"({"font_size":true,"width_scale":false,"partial_accept":1,"dismiss":"unknown"})"),
+        std::string(R"({"font_size":25,"width_scale":0.49})"),
+        std::string(R"({"font_size":6,"width_scale":2.1})"),
+        std::string(R"({"font_size":1e999,"width_scale":-1e999})"),
+        std::string(R"({"font_size":9.5,"width_scale":"1.5"})")}) {
+        auto reply = ParseWordReply("{\"id\":1,\"type\":\"words\",\"replace\":0,\"words\":[],\"popup\":" + popup + "}");
+        CHECK(reply.has_value());
+        CHECK_EQ(reply->popup.font_size, 9);
+        CHECK_EQ(reply->popup.width_scale, 1.0);
+        CHECK_EQ(reply->popup.partial_accept, completionist::PartialAccept::CtrlRight);
+        CHECK_EQ(reply->popup.dismiss, completionist::DismissShortcut::Escape);
+    }
+    auto mixed = ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":[],"popup":{"font_size":"bad","width_scale":2,"partial_accept":"alt+right","dismiss":"ctrl+backspace"}})");
+    CHECK(mixed.has_value());
+    CHECK_EQ(mixed->popup.font_size, 9);
+    CHECK_EQ(mixed->popup.width_scale, 2.0);
+    CHECK_EQ(mixed->popup.partial_accept, completionist::PartialAccept::AltRight);
+    CHECK_EQ(mixed->popup.dismiss, completionist::DismissShortcut::CtrlBackspace);
+}

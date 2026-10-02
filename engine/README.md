@@ -62,6 +62,8 @@ The current file was built from WikiText-103 (81M words): 100k-word vocabulary, 
 
 ## Config
 
+The viewer now groups everyday controls separately from collapsible Advanced tiles. See [the settings guide](../docs/settings.md) for routing, writing, timing, per-app profiles, privacy and popup controls.
+
 `%APPDATA%\Completionist\config.toml`, all optional (the tray's "Open settings file" creates a commented template):
 
 ```toml

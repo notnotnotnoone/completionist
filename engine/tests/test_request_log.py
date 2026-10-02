@@ -3,7 +3,7 @@ from completionist_engine.request_log import RequestLog
 
 
 def add(log: RequestLog, outcome="ok", app="notepad.exe", reply="ld is", prompt="Hello wor", **extra):
-    return log.add(app=app, prompt=prompt, reply=reply, outcome=outcome, attempts=extra.pop("attempts", []), ttft_ms=120, total_ms=300)
+    return log.add(app=app, prompt=prompt, reply=reply, outcome=outcome, attempts=extra.pop("attempts", []), ttft_ms=120, total_ms=300, **extra)
 
 
 def test_newest_request_comes_first_and_ids_count_up():
@@ -41,11 +41,15 @@ def test_limit_trims_the_rows_but_not_the_total():
     assert len(rows) == 2 and total == 4
 
 
-def test_long_text_is_trimmed_to_its_useful_end():
+def test_full_text_and_event_history_are_kept():
     log = RequestLog()
-    entry = add(log, prompt="x" * 5000 + "TAIL", reply="y" * 5000)
-    assert entry.prompt.endswith("TAIL") and len(entry.prompt) <= 2000  # the text nearest the caret is what matters
-    assert len(entry.reply) <= 1000
+    entry = add(log, prompt="x" * 5000 + "TAIL", reply="y" * 5000, suffix="after",
+                settings={"model": "test"}, events=[{"ms": 0, "kind": "started"}])
+    assert entry.prompt == "x" * 5000 + "TAIL"
+    assert entry.reply == "y" * 5000
+    assert entry.suffix == "after"
+    assert entry.settings == {"model": "test"}
+    assert entry.events == ({"ms": 0, "kind": "started"},)
 
 
 def test_attempts_are_kept_and_clear_empties_the_log():
@@ -54,3 +58,15 @@ def test_attempts_are_kept_and_clear_empties_the_log():
     assert [a.model for a in log.get(entry.id).attempts] == ["a/first", "b/second"]
     log.clear()
     assert log.recent() == ([], 0)
+
+
+def test_timings_mode_scrubs_full_detail_from_existing_entries():
+    log = RequestLog()
+    entry = add(log, suffix="private", settings={"model": "test"},
+                events=[{"ms": 1, "kind": "text_chunk", "text": "private"}])
+    log.configure("timings", 0)
+    scrubbed = log.get(entry.id)
+    assert scrubbed is not None
+    assert scrubbed.prompt == scrubbed.reply == scrubbed.suffix == ""
+    assert scrubbed.settings == {}
+    assert scrubbed.events == ()

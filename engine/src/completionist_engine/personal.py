@@ -23,7 +23,7 @@ _AFTER_LAST_KEY = "\U0010ffff"
 
 def _clean(word: str) -> str | None:
     word = word.lower()
-    return word if len(word) <= _MAX_WORD_LENGTH and _WORD.fullmatch(word) else None
+    return word if 2 <= len(word) <= _MAX_WORD_LENGTH and _WORD.fullmatch(word) else None
 
 
 class _Chains:
@@ -189,6 +189,9 @@ class PersonalStore:
             for row in db.execute(f"SELECT {cols}, word, n FROM {chains.table}"):
                 chains.add(tuple(row[: chains.order]), row[chains.order], row[chains.order + 1])
         db.commit()
+        for word in tuple(self._words):
+            if len(word) == 1:
+                self.forget(word)
 
     def _reset_memory(self) -> None:
         self._words.clear()

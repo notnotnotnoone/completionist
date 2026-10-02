@@ -178,11 +178,13 @@ def test_each_capture_has_its_own_id():
 from types import SimpleNamespace  # noqa: E402
 
 from completionist_engine.app import screen_wanted  # noqa: E402
+from completionist_engine.config import Config, PhraseConfig  # noqa: E402
+from dataclasses import replace  # noqa: E402
 
 
 def stubs(*, available=True, screen_context=True, paused=False, block=("code.exe",)):
-    phrases = SimpleNamespace(available=available, config=SimpleNamespace(screen_context=screen_context))
-    engine = SimpleNamespace(paused=paused, config=SimpleNamespace(block=frozenset(block)))
+    phrases = SimpleNamespace(available=available, config=PhraseConfig(screen_context=screen_context))
+    engine = SimpleNamespace(paused=paused, private_mode=False, config=Config(block=frozenset(block), phrase=phrases.config))
     return screen_wanted(engine, phrases)
 
 
@@ -198,9 +200,10 @@ def test_reading_stops_while_paused_and_in_apps_the_person_blocked():
 
 
 def test_reading_follows_the_live_settings_not_the_ones_at_start():
-    phrases = SimpleNamespace(available=True, config=SimpleNamespace(screen_context=True))
-    engine = SimpleNamespace(paused=False, config=SimpleNamespace(block=frozenset()))
+    phrases = SimpleNamespace(available=True, config=PhraseConfig(screen_context=True))
+    engine = SimpleNamespace(paused=False, private_mode=False, config=Config(block=frozenset(), phrase=phrases.config))
     wanted = screen_wanted(engine, phrases)
     assert wanted("chrome.exe") is True
-    phrases.config = SimpleNamespace(screen_context=False)  # a config reload swaps the object
+    phrases.config = PhraseConfig(screen_context=False)  # a config reload swaps the object
+    engine.config = replace(engine.config, phrase=phrases.config)
     assert wanted("chrome.exe") is False
