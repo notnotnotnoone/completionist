@@ -27,3 +27,6 @@ data/out/
 
 # Command Code tool preferences (not part of the project)
 .commandcode/
+
+# Generated roadmap brief for agents (python scripts/roadmap.py brief)
+docs/roadmap/roadmap-brief.md

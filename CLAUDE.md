@@ -24,7 +24,13 @@ System-wide, VS Code-style English autocomplete for Windows. A C++ TSF text serv
 
 The design for the map pages, and the plan to build them, are in `docs/superpowers/specs/2026-09-29-roadmap-highway-map-design.md` and `docs/superpowers/plans/2026-09-29-roadmap-highway-map.md`.
 
-1. **At the start of a session**, read `roadmap.js`. Unless the user asks for something else, work on the tasks marked `doing` or `next`, and tell the user which one you're picking up.
+**Do not open `roadmap.js` if you can avoid it.** It is thousands of lines and burns tokens. Use the brief and the helper instead:
+
+- `python scripts/roadmap.py brief` writes `docs/roadmap/roadmap-brief.md` (git-ignored, regenerated each time) and prints it: the active group's open tasks, planned groups, open risks, recent decisions and log, the highway/area map and the commands. **Run it before checking the roadmap**, and read it instead of `roadmap.js`.
+- `python scripts/roadmap.py start <task>`, `done <task> --title ... --text ...`, `log "..."` and `add-task <group> ...` make the routine edits (they change only the lines they need, re-run the checker, and undo themselves if it fails). Run `python scripts/roadmap.py --help` for the options.
+- Open `roadmap.js` only for what the helper can't do (dropping or moving tasks, renumbering, release essays, decisions, risks, closing a group), and read just the part you need (Grep for the id, then read a small range).
+
+1. **At the start of a session**, run the brief (above). Unless the user asks for something else, work on the tasks marked `doing` or `next`, and tell the user which one you're picking up.
 2. **When you start a task**, set its status to `doing`.
 3. **When you finish a task**, set it to `done` and add `refs` (branch, key files, version). Promote the next task(s) to `next`.
 4. **When plans change**, edit the roadmap in the same session:
@@ -83,7 +89,7 @@ Completionist uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `
 | `tip/` | The real TSF DLL (M1, adapted from Microsoft's SampleIME) |
 | `docs/roadmap/` | Roadmap data (`roadmap.js`), the highway map (`index.html`, `map-layout.js`, `map.js`, `page.js`), the task board (`tasks.html`), shared `theme.css` and `common.js` |
 | `CONTEXT.md` | What the product is, its architecture, glossary, the official Evergreen color scheme and typography |
-| `scripts/` | `check_roadmap.py`; `install.ps1` / `uninstall.ps1` (user-run: UAC, keyboard, logon task) |
+| `scripts/` | `roadmap.py` (agent brief and roadmap edit commands, tests in `test_roadmap_cli.py`), `check_roadmap.py`; `install.ps1` / `uninstall.ps1` (user-run: UAC, keyboard, logon task) |
 
 - **C++ builds** use the VS 2022 Build Tools from the command line: `vcvars64.bat`, then `cl`, with the static CRT (`/MT`), x64 only. See `tip/spike/build.cmd` for the pattern.
 - **A loaded DLL is locked.** Rename it aside before rebuilding. Apps (Chrome especially: use `chrome://restart`) must restart to pick up a new build.

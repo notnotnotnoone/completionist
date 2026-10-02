@@ -1649,8 +1649,22 @@ window.COMPLETIONIST_ROADMAP = {
           "notes": "The highway map's lane height now follows how many patch stops a highway carries, and a tall lane deals its stops into slot rows above and below the road. The Browser extension highway opens at 3.0.0, not 1.0.0."
         },
         {
-          "id": "M10.3",
+          "id": "M10.10",
           "version": "1.1.7",
+          "title": "Agent roadmap brief and edit helper",
+          "status": "done",
+          "area": "docs",
+          "stories": [],
+          "refs": [
+            "scripts/roadmap.py",
+            "scripts/test_roadmap_cli.py",
+            "CLAUDE.md"
+          ],
+          "notes": "scripts/roadmap.py brief writes a short git-ignored docs/roadmap/roadmap-brief.md for agents, and start, done, log and add-task make the routine roadmap edits without opening roadmap.js, undoing themselves if the checker rejects the result. CLAUDE.md tells agents to run the brief first and avoid roadmap.js."
+        },
+        {
+          "id": "M10.3",
+          "version": "1.1.8",
           "title": "Overhaul the dashboard (the viewer)",
           "status": "next",
           "area": "viewer",
@@ -1659,7 +1673,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M10.1",
-          "version": "1.1.8",
+          "version": "1.1.9",
           "title": "Scope the popup redesign: audit the popup in real apps and decide what else is included",
           "status": "todo",
           "area": "dll",
@@ -1668,14 +1682,14 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M10.2",
-          "version": "1.1.9",
+          "version": "1.1.10",
           "title": "Redesign and rewrite the popup drawing",
           "status": "todo",
           "area": "dll",
           "stories": [
             74
           ],
-          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.7 is done. A bad popup must fall back to the current look, never crash the host app."
+          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.8 is done. A bad popup must fall back to the current look, never crash the host app."
         }
       ]
     },
@@ -2578,6 +2592,14 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The roadmap highway map now gives busy highways taller lanes with stops stacked in rows, and the Browser extension lane opens at 3.0.0."
     },
     {
+      "version": "1.1.7",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Agent roadmap brief",
+      "highways": ["tooling"],
+      "text": "Agents now read a short generated roadmap brief and use a helper script for routine roadmap edits, instead of opening the huge roadmap.js."
+    },
+    {
       "version": "2.0.0",
       "status": "next",
       "title": "A dashboard and popup with a deliberate look",
@@ -2886,6 +2908,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.1.7: scripts/roadmap.py writes a short agent brief and makes the routine roadmap edits, CLAUDE.md tells agents to avoid opening roadmap.js, and the planned M10 tasks moved to 1.1.8-1.1.10."
+    },
     {
       "date": "2026-10-01",
       "text": "Released 1.1.6: the highway map gives busy highways taller lanes with patch stops stacked in rows, the Browser extension lane opens at 3.0.0 not 1.0.0, and the planned M10 tasks moved to 1.1.7-1.1.9."
