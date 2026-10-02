@@ -8,7 +8,7 @@ window.COMPLETIONIST_ROADMAP = {
   "updated": "2026-10-01",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "The viewer icon, personal word log and Requests detail fixes are complete through 1.1.5; the dashboard overhaul is next in the active M10 group, leading to 2.0.0.",
+  "now": "The viewer icon, personal word log and Requests detail fixes are complete through 1.1.5; the dashboard overhaul is next in the active M10 group, leading to 2.0.0. Tense-aware suggestions are planned for 2.1.0.",
   "highways": [
     {
       "id": "engine",
@@ -48,7 +48,7 @@ window.COMPLETIONIST_ROADMAP = {
       "areas": [
         "extension"
       ],
-      "opens": "1.0.0"
+      "opens": "3.0.0"
     }
   ],
   "milestones": [
@@ -1635,8 +1635,22 @@ window.COMPLETIONIST_ROADMAP = {
           "notes": "The in-memory event timeline shows the exact outgoing JSON without the authorization header, followed by the HTTP status; the config watcher test uses monotonic file times, and the repository has a small AGENTS.MD pointer to CLAUDE.md."
         },
         {
-          "id": "M10.3",
+          "id": "M10.9",
           "version": "1.1.6",
+          "title": "Proportional highway lanes and a 3.0.0 browser lane",
+          "status": "done",
+          "area": "docs",
+          "stories": [],
+          "refs": [
+            "docs/roadmap/map-layout.js",
+            "docs/roadmap/map.js",
+            "scripts/map_layout.test.mjs"
+          ],
+          "notes": "The highway map's lane height now follows how many patch stops a highway carries, and a tall lane deals its stops into slot rows above and below the road. The Browser extension highway opens at 3.0.0, not 1.0.0."
+        },
+        {
+          "id": "M10.3",
+          "version": "1.1.7",
           "title": "Overhaul the dashboard (the viewer)",
           "status": "next",
           "area": "viewer",
@@ -1645,7 +1659,7 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M10.1",
-          "version": "1.1.7",
+          "version": "1.1.8",
           "title": "Scope the popup redesign: audit the popup in real apps and decide what else is included",
           "status": "todo",
           "area": "dll",
@@ -1654,14 +1668,32 @@ window.COMPLETIONIST_ROADMAP = {
         },
         {
           "id": "M10.2",
-          "version": "1.1.8",
+          "version": "1.1.9",
           "title": "Redesign and rewrite the popup drawing",
           "status": "todo",
           "area": "dll",
           "stories": [
             74
           ],
-          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.6 is done. A bad popup must fall back to the current look, never crash the host app."
+          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.7 is done. A bad popup must fall back to the current look, never crash the host app."
+        }
+      ]
+    },
+    {
+      "id": "M11",
+      "title": "Tense-aware suggestions",
+      "status": "planned",
+      "goal": "Use whether the current sentence is in past or present tense to rank suggestions that fit what the person is writing.",
+      "done_when": "Past and present sentence context can influence suggestion ranking in representative examples, while ambiguous or mixed-tense context leaves the existing ranking unchanged.",
+      "tasks": [
+        {
+          "id": "M11.1",
+          "version": "2.0.2",
+          "title": "Use sentence tense when ranking word suggestions",
+          "status": "todo",
+          "area": "engine",
+          "stories": [],
+          "notes": "Detect whether the current sentence is in past or present tense from available context and use it as a ranking signal. Keep typed-prefix and context evidence in consideration; if tense is ambiguous or mixed, do not force a tense-based change."
         }
       ]
     },
@@ -1674,12 +1706,12 @@ window.COMPLETIONIST_ROADMAP = {
       "tasks": [
         {
           "id": "M6.1",
-          "version": "2.0.1",
+          "version": "2.1.1",
           "title": "Chrome extension over Native Messaging",
           "status": "todo",
           "area": "extension",
           "stories": [],
-          "notes": "Inline ghost text and page context in web fields. Moved from 1.1.1 to 2.0.1 (2026-10-01): it now leads the 3.0.0 major release, after the dashboard and popup redesign."
+          "notes": "Inline ghost text and page context in web fields. Moved from 1.1.1 to 2.0.1 (2026-10-01), then to 2.1.1 (2026-10-01) to leave room for the tense-aware suggestions milestone; it still leads the 3.0.0 major release after the dashboard and popup redesign."
         }
       ]
     }
@@ -2409,8 +2441,7 @@ window.COMPLETIONIST_ROADMAP = {
       "highways": [
         "engine",
         "tsf",
-        "tooling",
-        "browser"
+        "tooling"
       ],
       "essay": [
         "Completionist 1.0 put the suggestions of a code editor into the places you write English on Windows. Type a few letters in Discord, a browser text box or an email and a short list of completions appears just under the caret, ranked by the words before it and by the words you actually use. Tab takes the top one. In apps you choose, and on Ctrl+Space everywhere else, a greyed phrase appears above the list, a continuation of your sentence that you take whole with Tab or one word at a time with Ctrl+Right. Enter is never touched, and nothing in a password field is read or sent. It starts with Windows, lives in the tray, and can be paused with Ctrl+Alt+P.",
@@ -2539,6 +2570,14 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "The Requests event timeline now includes outgoing JSON and HTTP status, the config watcher test is stable, and the repo has an agent-guide pointer."
     },
     {
+      "version": "1.1.6",
+      "status": "released",
+      "date": "2026-10-01",
+      "title": "Proportional map lanes",
+      "highways": ["tooling"],
+      "text": "The roadmap highway map now gives busy highways taller lanes with stops stacked in rows, and the Browser extension lane opens at 3.0.0."
+    },
+    {
       "version": "2.0.0",
       "status": "next",
       "title": "A dashboard and popup with a deliberate look",
@@ -2549,6 +2588,13 @@ window.COMPLETIONIST_ROADMAP = {
         "It costs a rewrite of the most delicate rendering code in the project. That code lives inside every application the user types in, so each change is proved in the harness before it is tried in a real app, and a popup that can’t draw the new design has to fall back to the current one and never crash the host. It also costs restraint. A redesign is an invitation to add themes, settings and animation, and for a typing tool each of those makes it slower to read and easier to distract. The audit will say how far the scope goes, and whether the tray menu deserves the same treatment or is fine as it is.",
         "What 2.0 leaves out is as deliberate as what it includes. It adds no new suggestion features, no themes or user-editable styles and no animation beyond whatever helps the eye follow the highlighted row. It does not change how suggestions are ranked, what leaves the machine, or which keys are taken. Its whole scope is how the dashboard and the existing suggestions look and read, which keeps the release small enough to finish and to test properly. This essay is a plan for now, and it becomes a retrospective of what actually shipped when the release is done."
       ]
+    },
+    {
+      "version": "2.1.0",
+      "status": "planned",
+      "title": "Tense-aware suggestions",
+      "milestone": "M11",
+      "text": "This release will make the tense of the current sentence one signal in word suggestion ranking. When the surrounding text indicates past or present tense, Completionist can favour suggestions that fit the sentence while still weighing the typed prefix and nearby word context. If the sentence is ambiguous or mixes tenses, the current ranking remains in place."
     },
     {
       "version": "3.0.0",
@@ -2840,6 +2886,14 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-01",
+      "text": "Released 1.1.6: the highway map gives busy highways taller lanes with patch stops stacked in rows, the Browser extension lane opens at 3.0.0 not 1.0.0, and the planned M10 tasks moved to 1.1.7-1.1.9."
+    },
+    {
+      "date": "2026-10-01",
+      "text": "Planned M11 (2.1.0): sentence past or present tense will become a ranking signal for word suggestions, with ambiguous or mixed-tense context falling back to current ranking; moved M6.1 to 2.1.1 to keep the release order."
+    },
     {
       "date": "2026-10-01",
       "text": "Released 1.1.5: Requests shows outgoing JSON and HTTP status without the authorization header, the config watcher test uses monotonic file times, and the agent-guide pointer is tracked."

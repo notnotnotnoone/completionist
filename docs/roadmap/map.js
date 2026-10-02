@@ -101,7 +101,8 @@
       hit = [x - 18, y - 6, 36, 66];
     } else {
       if (hws.length === 1) {
-        const y = ys[0];
+        const y = ys[0] + (e.dy || 0);
+        if (e.dy) body += `<path d="M${x} ${ys[0]} V${y}" style="stroke:${col(hws[0])};stroke-width:4;stroke-linecap:round${e.status === "released" ? "" : ";stroke-dasharray:4 3;opacity:.6"}"/>`;
         if (e.status === "next") body += halo(`<circle cx="${x}" cy="${y}" r="10" style="fill:none;stroke:var(--accent);stroke-width:4"/>`);
         body += `<circle cx="${x}" cy="${y}" r="9" style="${stateStyle(e.status, col(hws[0]))}"/>${e.status === "released" ? CHECK(x, y) : ""}`;
       } else {
@@ -109,8 +110,9 @@
         body += `<rect x="${x - 10}" y="${y0}" width="20" height="${h}" rx="10" style="${stateStyle(e.status, "var(--ink)")}"/>`;
         hws.forEach((id, k) => { body += `<circle cx="${x}" cy="${ys[k]}" r="4.5" style="fill:${col(id)};stroke:var(--surface);stroke-width:2"/>`; });
       }
-      tagsBelow = [bottom + 30, bottom + 44];
-      hit = [x - 16, top - 16, 32, bottom - top + 32];
+      const dy = e.dy || 0;
+      tagsBelow = [bottom + dy + 30, bottom + dy + 44];
+      hit = [x - 16, Math.min(top, top + dy) - 16, 32, bottom - top + Math.abs(dy) + 32];
     }
 
     if (tagsBelow) {

@@ -98,3 +98,28 @@ test("the input data is not modified", () => {
   layoutMap(data);
   assert.equal(JSON.stringify(data), before);
 });
+
+// A busy highway: 24 single-highway patches on "e", one on "t".
+const busy = () => {
+  const d = fixture();
+  d.releases = [{ version: "0.0.1", status: "released", highways: ["t"] }, { version: "1.0.0", status: "planned" }];
+  for (let i = 2; i <= 25; i++) d.releases.push({ version: `0.0.${i}`, status: "released", highways: ["e"] });
+  return d;
+};
+
+test("lanes: a busy highway gets a taller band, the others keep the standard 116", () => {
+  const L = layoutMap(busy());
+  const y = Object.fromEntries(L.lanes.map((l) => [l.id, l.y]));
+  assert.equal(y.e, 250);
+  assert.equal(y.t - y.e, 180);
+  assert.equal(L.lanes[0].band.bottom - L.lanes[0].band.top, 180);
+  assert.equal(y.b - y.t, 116);
+  assert.equal(L.height, 686);
+});
+
+test("slots: a busy highway's patches cycle through slot rows, quiet ones stay on the road", () => {
+  const L = layoutMap(busy());
+  const dys = L.events.filter((e) => e.kind === "patch" && e.lanes[0] === "e").map((e) => e.dy);
+  assert.deepEqual(dys.slice(0, 4), [0, 64, 0, 64]);
+  assert.ok(L.events.filter((e) => e.kind === "patch" && e.lanes[0] === "t").every((e) => !e.dy));
+});

@@ -5,9 +5,12 @@
   else root.CompletionistMapLayout = factory();
 })(typeof self !== "undefined" ? self : this, function () {
   const G = {
-    left: 190, laneTop: 250, laneGap: 116, bundleGap: 18, curve: 80, joint: 12, bottom: 140, tail: 40,
+    left: 190, laneTop: 250, bundleGap: 18, curve: 80, joint: 12, bottom: 140, tail: 40,
     col: { major: 220, minor: 170, patch: 104, now: 120, end: 160 },
     rows: { gantry: 24, A: 100, B: 168 },
+    // A busy highway gets a taller band: one slot row per `perSlot` single-highway patches (up to maxSlots),
+    // `pitch` apart. Slots run on the road, then further below it (never above: the exit signs live there).
+    perSlot: 10, maxSlots: 4, pitch: 64, minUp: 46, minDown: 70, slotOrder: [0, 1, 2, 3],
   };
   const parse = (v) => String(v).split(".").map(Number);
   const cmp = (a, b) => { const x = parse(a), y = parse(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; };
@@ -48,8 +51,31 @@
     const width = x;
     const roadEnd = width - G.tail;
 
-    // 3. Lanes, and each interchange's bundle of open highways.
-    const laneY = Object.fromEntries(highways.map((h, i) => [h.id, G.laneTop + i * G.laneGap]));
+    // 3. Lanes: a highway's height follows how many patch stops it carries; its stops are dealt into slot rows.
+    const solo = (e) => e.kind === "patch" && !e.fix && e.lanes.length === 1;
+    const slotsOf = Object.fromEntries(highways.map((h) => {
+      const count = events.filter((e) => solo(e) && e.lanes[0] === h.id).length;
+      const n = Math.min(G.maxSlots, Math.max(1, Math.round(count / G.perSlot)));
+      return [h.id, G.slotOrder.slice(0, n)];
+    }));
+    const dealt = {};
+    for (const e of events) {
+      if (!solo(e)) continue;
+      const id = e.lanes[0], slots = slotsOf[id];
+      dealt[id] = dealt[id] || 0;
+      e.slot = slots[dealt[id]++ % slots.length];
+    }
+    const laneY = {}, laneBand = {};
+    let cursor = G.laneTop;
+    highways.forEach((h, i) => {
+      const slots = slotsOf[h.id];
+      const up = Math.max(G.minUp, -Math.min(0, ...slots) * G.pitch + 20), down = Math.max(G.minDown, Math.max(0, ...slots) * G.pitch + G.minDown);
+      if (i) cursor += up;
+      laneY[h.id] = cursor;
+      laneBand[h.id] = { top: cursor - up, bottom: cursor + down };
+      cursor += down;
+    });
+    for (const e of events) if (e.slot !== undefined) e.dy = e.slot * G.pitch;
     const majors = events.filter((e) => e.kind === "major");
     for (const e of majors) {
       const open = highways.filter((h) => isOpen(h, e.version));
@@ -58,7 +84,7 @@
     }
     const lanes = highways.map((h) => {
       const at = h.opens ? majors.find((e) => e.version === h.opens) : majors[0];
-      return { id: h.id, y: laneY[h.id], opensX: at.x, opensId: at.id };
+      return { id: h.id, y: laneY[h.id], band: laneBand[h.id], opensX: at.x, opensId: at.id };
     });
 
     // 4. One path per highway: out of its opening interchange, through every later interchange, to the end.
@@ -113,7 +139,7 @@
       else if (e.kind === "minor") e.row = n++ % 2 ? "B" : "A";
     }
 
-    const height = G.laneTop + (highways.length - 1) * G.laneGap + G.bottom;
+    const height = laneBand[highways[highways.length - 1].id].bottom + G.bottom - G.minDown;
     return { G, width, height, roadEnd, events, lanes, paths, pieces, barriers, now: events.find((e) => e.kind === "now") };
   }
 
