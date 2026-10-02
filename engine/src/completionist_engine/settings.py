@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from completionist_engine.config import ConfigError, load_config, _PHRASE_CHECKS, _PROVIDER_CHECKS, _finite_number
-from completionist_engine.context import INSTRUCTIONS
+from completionist_engine.context import INSTRUCTIONS, PROMPT_TEST_SCENARIOS
 
 EDITABLE: dict[str, frozenset[str]] = {
     "words": frozenset({"limit", "next", "chunks", "next_threshold", "typo_correction"}),
@@ -56,6 +56,7 @@ def read_settings(path: Path) -> dict[str, dict[str, Any]]:
             "instructions": config.phrase.instructions or INSTRUCTIONS,
             "instructions_default": INSTRUCTIONS,
             "instructions_custom": bool(config.phrase.instructions),
+            "prompt_test_scenarios": [dict(scenario) for scenario in PROMPT_TEST_SCENARIOS],
             "api_key_set": bool(config.phrase.provider.api_key),
         },
         "apps": {"block": sorted(config.block), "allow": sorted(config.allow)},

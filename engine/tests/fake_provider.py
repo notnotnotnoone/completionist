@@ -1,4 +1,4 @@
-"""A tiny local HTTP server that speaks enough of an OpenAI-compatible /completions stream for tests."""
+"""A tiny local HTTP server that speaks enough of a chat-completions stream for tests."""
 
 import asyncio
 import contextlib
@@ -69,9 +69,9 @@ async def fake_provider(script: Script | Callable[[Received], Script] | None = N
                     return
                 if current.delay:
                     await asyncio.sleep(current.delay)
-                writer.write(sse({"choices": [{"index": 0, "text": text, "finish_reason": None}]}))
+                writer.write(sse({"choices": [{"index": 0, "delta": {"content": text}, "finish_reason": None}]}))
                 await writer.drain()
-            writer.write(sse({"choices": [{"index": 0, "text": "", "finish_reason": "stop"}]}))
+            writer.write(sse({"choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]}))
             if current.usage is not None:
                 writer.write(sse({"choices": [], "usage": current.usage}))
             writer.write(sse("[DONE]"))

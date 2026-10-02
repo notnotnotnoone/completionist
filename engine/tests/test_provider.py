@@ -35,14 +35,15 @@ def test_the_request_is_an_openai_style_completion_with_a_bearer_key():
             return received[0]
 
     request = run(scenario())
-    assert request.path == "/completions"
+    assert request.path == "/chat/completions"
     assert request.headers["authorization"] == "Bearer sk-secret"
     assert request.body["model"] == "test-model"
-    assert request.body["prompt"] == "Hello wor"
+    assert request.body["messages"] == [{"role": "user", "content": "Hello wor"}]
     assert request.body["suffix"] == "ld"
     assert request.body["stream"] is True
     assert request.body["max_tokens"] == 40
     assert request.body["stop"] == ["\n"]
+    assert request.body["reasoning"] == {"effort": "none"}
 
 
 def test_without_fim_the_suffix_is_not_sent():

@@ -117,7 +117,8 @@ def test_manual_preview_sends_nothing_until_approved_and_typing_invalidates_it()
             assert "Hello wor" in preview["prompt"] and not received
             assert service.send_preview(preview["id"])
             await wait_for(lambda: received)
-            assert received[0].body["prompt"] == preview["prompt"]
+            assert received[0].body["messages"][0]["content"] in preview["prompt"]
+            assert received[0].body["messages"][1]["content"] in preview["prompt"]
             session.on_dismiss()
             session.on_hotkey(request("Different"), "hotkey")
             await asyncio.sleep(0.02)
@@ -138,8 +139,8 @@ def test_writing_preferences_reach_prompt_and_excluded_phrases_never_stream():
             session = service.open_session(pushes.append)
             session.on_hotkey(request(), "hotkey")
             await wait_for(lambda: service.log.recent()[1])
-            assert "Canadian" in received[0].body["prompt"]
-            assert "professional" in received[0].body["prompt"]
+            assert "Canadian" in received[0].body["messages"][0]["content"]
+            assert "professional" in received[0].body["messages"][0]["content"]
             assert all("banned" not in push.text for push in pushes)
             session.close()
             await service.aclose()

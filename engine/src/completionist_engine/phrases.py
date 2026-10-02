@@ -9,7 +9,7 @@ from collections.abc import Callable
 
 from completionist_engine.config import PhraseConfig
 from completionist_engine.metrics import Metrics
-from completionist_engine.context import anchored_window, build_prompt, screen_for_prompt, trim_suffix
+from completionist_engine.context import anchored_window, build_messages, screen_for_prompt, trim_suffix
 from completionist_engine.phrase_provider import Attempt, PhraseProvider, PhraseRequest, ProviderError
 from completionist_engine.phrase_scheduler import Action, Cancel, Mode, PhraseScheduler, Start, Update
 from completionist_engine.protocol import PhraseUpdate, Request
@@ -75,7 +75,7 @@ class PhraseService:
         if self._preview is None or self._private:
             return None
         ident, _, request, prepared = self._preview
-        return {"id": ident, "app": request.app, "title": request.title, "prompt": prepared[0].prompt,
+        return {"id": ident, "app": request.app, "title": request.title, "prompt": prepared[0].display_prompt,
                 "suffix": prepared[0].suffix if prepared[3].provider.fim else ""}
 
     def cancel_preview(self, owner: "PhraseSession | None" = None, preview_id: int | None = None) -> bool:
@@ -303,16 +303,17 @@ class PhraseSession:
         if shot is not None and (shot.app.lower() != request.app.lower() or shot.title != request.title):
             shot = None
         screen_sent = screen_for_prompt(shot.text, request.before) if shot is not None else ""
-        prompt = build_prompt(
-            request.app, request.title, anchored_window(request.before, config.context_before), phrase_instructions(config), screen_sent
+        system_prompt, prompt = build_messages(
+            request.app, request.title, anchored_window(request.before, config.context_before),
+            phrase_instructions(config), screen_sent, config.context_source,
         )
-        phrase_request = PhraseRequest(prompt=prompt, suffix=trim_suffix(request.after, config.context_after))
+        phrase_request = PhraseRequest(prompt=prompt, system_prompt=system_prompt, suffix=trim_suffix(request.after, config.context_after))
         return phrase_request, shot, screen_sent, config, self._service._privacy_generation
 
     async def _run(self, request: Request) -> None:
         phrase_request, shot, screen_sent, config, privacy_generation = self._preview_approved or self._prepare(request, self._config)
         self._preview_approved = None
-        prompt = phrase_request.prompt
+        prompt = phrase_request.display_prompt
         task = asyncio.current_task()
         service = self._service
         started = service.clock()

@@ -5,7 +5,7 @@ window.COMPLETIONIST_ROADMAP = {
   "schema": 3,
   "project": "Completionist",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
-  "updated": "2026-10-01",
+  "updated": "2026-10-02",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
   "now": "The viewer icon, personal word log and Requests detail fixes are complete through 1.1.5; the dashboard overhaul is next in the active M10 group, leading to 2.0.0. Tense-aware suggestions are planned for 2.1.0.",
@@ -1675,7 +1675,7 @@ window.COMPLETIONIST_ROADMAP = {
           "id": "M10.1",
           "version": "1.1.9",
           "title": "Scope the popup redesign: audit the popup in real apps and decide what else is included",
-          "status": "todo",
+          "status": "doing",
           "area": "dll",
           "stories": [],
           "notes": "Assumed to mean the popup. The viewer now has its own task (M10.3), so this only decides whether the tray menu comes too. Mockups and Evergreen design tokens follow; split into tasks when scoped."
@@ -1690,6 +1690,48 @@ window.COMPLETIONIST_ROADMAP = {
             74
           ],
           "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.8 is done. A bad popup must fall back to the current look, never crash the host app."
+        },
+        {
+          "id": "M10.11",
+          "version": "1.1.11",
+          "title": "Explain Windows OCR context to the cloud model",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "refs": [
+            "engine/src/completionist_engine/context.py",
+            "docs/settings.md"
+          ],
+          "notes": "Update the phrase prompt to identify OCR text as locally recognized, imperfect background context and treat it as untrusted data; document that only recognized text is sent."
+        },
+        {
+          "id": "M10.12",
+          "version": "1.1.12",
+          "title": "Copy the prompt test pack and disable reasoning by default",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "refs": [
+            "engine/src/completionist_engine/context.py",
+            "engine/src/completionist_engine/phrase_provider.py",
+            "engine/src/completionist_engine/viewer.html",
+            "docs/settings.md"
+          ],
+          "notes": "Add a Settings action that copies the built-in system prompt plus three provider-playground scenarios; switch phrase requests to chat completions so reasoning effort defaults to none and no thinking output is requested."
+        },
+        {
+          "id": "M10.13",
+          "version": "1.1.13",
+          "title": "Ship OCR-aware prompt playground to main",
+          "status": "done",
+          "area": "engine",
+          "stories": [],
+          "refs": [
+            "engine/src/completionist_engine/context.py",
+            "engine/src/completionist_engine/phrase_provider.py",
+            "engine/src/completionist_engine/viewer.html"
+          ],
+          "notes": "Merge the Windows OCR-aware system prompt, three synthetic provider comparison scenarios, copy action and no-reasoning default into main."
         }
       ]
     },
@@ -2600,6 +2642,30 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "Agents now read a short generated roadmap brief and use a helper script for routine roadmap edits, instead of opening the huge roadmap.js."
     },
     {
+      "version": "1.1.11",
+      "status": "released",
+      "date": "2026-10-02",
+      "title": "Cloud model OCR context",
+      "highways": ["engine", "tooling"],
+      "text": "The phrase prompt now explains the local Windows OCR source and treats recognized screen text as imperfect, untrusted background context."
+    },
+    {
+      "version": "1.1.12",
+      "status": "released",
+      "date": "2026-10-02",
+      "title": "Prompt playground pack and reasoning control",
+      "highways": ["engine", "tooling"],
+      "text": "Settings now copies the OCR-aware system prompt with three comparison cases, and cloud requests use chat completions with configurable reasoning defaulted to none."
+    },
+    {
+      "version": "1.1.13",
+      "status": "released",
+      "date": "2026-10-02",
+      "title": "Merge OCR-aware prompt playground",
+      "highways": ["engine", "tooling"],
+      "text": "The OCR-aware cloud prompt, three provider-playground scenarios and no-reasoning default are now released on main."
+    },
+    {
       "version": "2.0.0",
       "status": "next",
       "title": "A dashboard and popup with a deliberate look",
@@ -2908,6 +2974,42 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-02",
+      "text": "Released 1.1.13: The OCR-aware cloud prompt, three provider-playground scenarios and no-reasoning default are now released on main."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.13 (1.1.13): Ship OCR-aware prompt playground to main"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Started M10.1."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Released 1.1.12: Settings now copies the OCR-aware system prompt with three comparison cases, and cloud requests use chat completions with configurable reasoning defaulted to none."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Started M10.12."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Started M10.12."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.12 (1.1.12): Copy the prompt test pack and disable reasoning by default"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Released 1.1.11: The phrase prompt now explains the local Windows OCR source and treats recognized screen text as imperfect, untrusted background context."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.11 (1.1.11): Explain Windows OCR context to the cloud model"
+    },
     {
       "date": "2026-10-01",
       "text": "Released 1.1.7: scripts/roadmap.py writes a short agent brief and makes the routine roadmap edits, CLAUDE.md tells agents to avoid opening roadmap.js, and the planned M10 tasks moved to 1.1.8-1.1.10."

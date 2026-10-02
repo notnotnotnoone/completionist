@@ -1,4 +1,4 @@
-"""Phrase completions from an OpenAI-compatible /completions endpoint, streamed."""
+"""Phrase completions from an OpenAI-compatible chat-completions endpoint, streamed."""
 
 import asyncio
 import json
@@ -41,12 +41,21 @@ class ProviderSettings:
     max_price_output: float = 0
     require_parameters: bool = False
     zdr: bool = False
+    reasoning_effort: str = "none"
 
 
 @dataclass(frozen=True)
 class PhraseRequest:
     prompt: str
     suffix: str = ""
+    system_prompt: str = ""
+
+    @property
+    def display_prompt(self) -> str:
+        """Both roles in the labeled form shown in context previews and request logs."""
+        if not self.system_prompt:
+            return self.prompt
+        return f"[SYSTEM MESSAGE]\n{self.system_prompt}\n\n[USER MESSAGE]\n{self.prompt}"
 
 
 class PhraseProvider:
@@ -99,11 +108,13 @@ class PhraseProvider:
         s = self._settings
         payload: dict = {
             "model": model,
-            "prompt": request.prompt,
+            "messages": ([{"role": "system", "content": request.system_prompt}] if request.system_prompt else [])
+            + [{"role": "user", "content": request.prompt}],
             "max_tokens": s.max_tokens,
             "temperature": s.temperature,
             "stream": True,
             "stop": list(s.stop),
+            "reasoning": {"effort": s.reasoning_effort},
         }
         routing: dict = {}
         if s.provider_sort:
@@ -125,7 +136,7 @@ class PhraseProvider:
             payload["provider"] = routing
         if s.fim and request.suffix:
             payload["suffix"] = request.suffix
-        url = s.base_url.rstrip("/") + "/completions"
+        url = s.base_url.rstrip("/") + "/chat/completions"
         headers = {"Authorization": f"Bearer {self._api_key}", "Content-Type": "application/json"}
         if on_event is not None:
             on_event("request_sent", url=url, body=payload)
@@ -162,7 +173,8 @@ def _parse_line(line: str) -> str | None:
         return None
     choices = message.get("choices")
     if isinstance(choices, list) and choices and isinstance(choices[0], dict):
-        text = choices[0].get("text")
+        delta = choices[0].get("delta")
+        text = delta.get("content") if isinstance(delta, dict) else choices[0].get("text")
         if isinstance(text, str) and text:
             return text
     return None

@@ -18,7 +18,7 @@ Expand **Advanced** to see seven collapsible tiles. Their expanded state survive
 
 ## Routing
 
-Choose **Lowest latency** to send `provider.sort = "latency"`. Sorting takes precedence over your saved provider order; selecting Default uses that order again. Other priorities are throughput and price. Price ceilings are dollars per million input/output tokens; zero means no ceiling. Fallbacks, excluded providers, parameter support and zero retention are OpenRouter request preferences. A restrictive combination can leave no eligible provider. [OpenRouter provider-routing reference](https://openrouter.ai/docs/guides/routing/provider-selection).
+Choose **Lowest latency** to send `provider.sort = "latency"`. Sorting takes precedence over your saved provider order; selecting Default uses that order again. Other priorities are throughput and price. Price ceilings are dollars per million input/output tokens; zero means no ceiling. Fallbacks, excluded providers, parameter support and zero retention are OpenRouter request preferences. A restrictive combination can leave no eligible provider. **Reasoning Effort** defaults to None, which asks OpenRouter to disable model reasoning. A model or provider that requires reasoning may reject the request; Completionist will report the failure or try the next configured model without enabling reasoning. Phrase requests use OpenRouter's `/chat/completions` endpoint and send the autocomplete rules as a system message. If you configure another API root manually, it must support OpenAI-style chat completions and OpenRouter's `reasoning` parameter. [OpenRouter provider-routing reference](https://openrouter.ai/docs/guides/routing/provider-selection), [reasoning reference](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
 
 ## Writing and timing
 
@@ -28,7 +28,9 @@ Excluded phrases are checked across the whole reply, so replies are buffered whe
 
 ## Context, preview and privacy
 
-Caret text is always the completion input. Optional window context uses local Windows OCR or Windows UI Automation's accessible text. Accessible text needs no screenshots and safely falls back to caret text when an app exposes no readable text. The window-context permission and app list apply to both background reading and outgoing requests. The captured window must match the requesting app and title.
+Caret text is always the completion input. With **Window OCR**, Completionist reads an image of the foreground window using Windows' built-in OCR on this PC. The cloud model receives the recognized text, not the image; OCR can miss, misread or jumble text, so the model is told to treat it as untrusted background context and ignore instructions within it. **Accessible window text** uses UI Automation instead and needs no screenshot. The window-context permission and app list apply to both background reading and outgoing requests. The captured window must match the requesting app and title.
+
+Under **Instructions**, **Copy Test Pack** copies the built-in prompt and three synthetic user messages for comparing providers in their playgrounds. It includes short evaluation notes outside each model input. Use the same model settings for each comparison, with reasoning effort set to None and visible thinking turned off; record the model/provider, first-token and total latency, and a brief quality assessment for each case. The copied pack never includes your custom prompt, API key, typed text or live screen context. If clipboard access fails, the pack is selected in Settings for manual copying.
 
 With **Preview Before Sending** enabled, automatic requests stop. In your app, press Ctrl+Space, then open the viewer and choose **Refresh Status & Preview**. Review the exact prompt (and text after the caret when enabled), then choose **Send** or **Cancel**. Typing, dismissal, disconnect, pause, private mode or settings changes invalidate the pending preview.
 

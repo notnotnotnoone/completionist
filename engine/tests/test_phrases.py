@@ -23,6 +23,10 @@ def make_service(url: str, *, key: str | None = "k", **overrides) -> PhraseServi
     return PhraseService(config)
 
 
+def user_message(body: dict) -> str:
+    return body["messages"][-1]["content"]
+
+
 async def settle(pushes: list[PhraseUpdate], until=lambda p: p and p[-1].done, timeout=3.0):
     end = asyncio.get_running_loop().time() + timeout
     while asyncio.get_running_loop().time() < end:
@@ -85,7 +89,7 @@ def test_typing_keeps_postponing_the_request():
 
     received = asyncio.run(scenario())
     assert len(received) == 1
-    assert received[0].body["prompt"].endswith("Hello wor")  # asked about the latest text only
+    assert user_message(received[0].body).endswith("TEXT TO CONTINUE:\nHello wor")  # asked about the latest text only
 
 
 def test_hotkey_mode_does_not_ask_on_its_own():
@@ -113,9 +117,10 @@ def test_the_prompt_has_a_header_the_anchored_window_and_the_text_after_the_care
             return received[0].body
 
     body = asyncio.run(scenario())
-    header = next(line for line in body["prompt"].splitlines() if line.startswith("[Text typed in"))
+    prompt = user_message(body)
+    header = next(line for line in prompt.splitlines() if line.startswith("[Text typed in"))
     assert "Inbox" in header and "notepad" in header
-    assert body["prompt"].endswith("Dear Sam, thanks for th")
+    assert prompt.endswith("TEXT TO CONTINUE:\nDear Sam, thanks for th")
     assert body["suffix"] == " meeting."
 
 
@@ -128,7 +133,7 @@ def test_a_long_text_is_windowed_to_the_configured_cap():
             session.on_hotkey(req(1, "word " * 1000 + "end", event="hotkey"), "hotkey")
             await settle(pushes)
             session.close()
-            return received[0].body["prompt"]
+            return received[0].body["messages"][0]["content"] + user_message(received[0].body)
 
     assert len(asyncio.run(scenario())) < 450 + len(INSTRUCTIONS)  # the window, a short header, and the fixed instructions
 
@@ -406,7 +411,7 @@ def test_a_finished_request_is_logged_with_its_text_and_timings():
         "started", "context", "model_started", "request_sent", "response_started",
         "first_text", "text_chunk", "text_chunk", "model_finished", "finished"
     ]
-    assert entry.events[3]["body"]["prompt"] == entry.prompt
+    assert "[SYSTEM MESSAGE]\n" + entry.events[3]["body"]["messages"][0]["content"] in entry.prompt
     assert entry.events[-1]["outcome"] == "ok"
 
 
@@ -469,13 +474,13 @@ def run_with_screen(screen, *, before="Hello wor", enabled=True):
 
 def test_screen_text_is_sent_to_the_model_with_the_typed_text():
     service, received = run_with_screen(FakeScreen("Sam: can you send the invoice?"))
-    prompt = received[0].body["prompt"]
-    assert "Sam: can you send the invoice?" in prompt and prompt.endswith("Hello wor")
+    prompt = user_message(received[0].body)
+    assert "Sam: can you send the invoice?" in prompt and prompt.endswith("TEXT TO CONTINUE:\nHello wor")
 
 
 def test_lines_the_person_typed_are_not_sent_back_as_screen_text():
     service, received = run_with_screen(FakeScreen("Sam: can you send the invoice?\nHello wor"))
-    assert received[0].body["prompt"].count("Hello wor") == 1
+    assert user_message(received[0].body).count("Hello wor") == 1
     (entry,), _ = service.log.recent()
     assert entry.screen_sent == "Sam: can you send the invoice?"
 
@@ -491,20 +496,20 @@ def test_the_log_keeps_the_capture_and_what_was_sent_from_it():
 def test_with_screen_context_off_nothing_is_asked_for_or_sent():
     screen = FakeScreen("Sam: can you send the invoice?")
     service, received = run_with_screen(screen, enabled=False)
-    assert screen.asked == 0 and "invoice" not in received[0].body["prompt"]
+    assert screen.asked == 0 and "invoice" not in user_message(received[0].body)
     (entry,), _ = service.log.recent()
     assert entry.screen is None and entry.screen_sent == ""
 
 
 def test_a_service_without_a_screen_behaves_as_before():
     service, received = run_with_screen(None)
-    assert "<screen>" not in received[0].body["prompt"]
+    assert "<screen>" not in user_message(received[0].body)
     (entry,), _ = service.log.recent()
     assert entry.screen is None
 
 
 def test_a_capture_with_no_text_is_logged_but_adds_nothing_to_the_prompt():
     service, received = run_with_screen(FakeScreen(""))
-    assert "<screen>" not in received[0].body["prompt"]
+    assert "<screen>" not in user_message(received[0].body)
     (entry,), _ = service.log.recent()
     assert entry.screen is not None and entry.screen_sent == ""

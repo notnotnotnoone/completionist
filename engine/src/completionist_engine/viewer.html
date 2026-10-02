@@ -190,6 +190,7 @@ details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32
 @media (hover: hover) and (pointer: fine) { .fold > summary:hover { color: var(--accent-ink); } }
 .set.wide { grid-template-columns: minmax(0, 1fr) auto; }
 .set.wide .wide-field { grid-column: 1 / -1; }
+.set.wide .copy-fallback { grid-column: 1 / -1; }
 .field.prompt { min-height: 280px; font: .8125rem/1.5 var(--mono); }
 .advanced > summary { font-size: 1.125rem; }
 .tile > summary { padding: 12px 0; }
@@ -582,7 +583,7 @@ async function openRequest(id, opener, animate) {
   $("sheet-body").replaceChildren(
     el("div", { className: "line" }, outcome(r.outcome), el("b", { textContent: r.app }), el("span", { textContent: at })),
     el("div", { className: "line" }, el("span", { textContent: `First text ${ms(r.ttft_ms)} · took ${ms(r.total_ms)}` })),
-    section("You (text before the caret)", el("pre", { className: "text", textContent: r.prompt })),
+    section("Prompt sent to the model (system and user messages)", el("pre", { className: "text", textContent: r.prompt })),
     ...(r.suffix ? [section("Text after the caret sent to the model", el("pre", { className: "text", textContent: r.suffix }))] : []),
     ...screenSections(r),
     section("Suggestion", r.reply ? el("pre", { className: "text", textContent: r.reply }) : el("p", { className: "text none", textContent: r.outcome === "cancelled" ? "Nothing arrived before the request was dropped." : "Nothing came back." })),
@@ -666,6 +667,7 @@ async function loadStats() {
 const OPTIONS = {
   mode: [["apps", "Follow app list"], ["auto", "Automatic everywhere allowed"], ["hotkey", "Hotkey only"]],
   provider_sort: [["", "Default / preferred providers"], ["latency", "Lowest latency"], ["throughput", "Highest throughput"], ["price", "Lowest price"]],
+  reasoning_effort: [["none", "None (off)"], ["minimal", "Minimal"], ["low", "Low"], ["medium", "Medium"], ["high", "High"], ["xhigh", "Extra high"]],
   completion_length: [["default", "Default"], ["short", "A few words"], ["sentence", "One sentence"], ["long", "Longer continuation"]],
   writing_style: [["match", "Match nearby text"], ["neutral", "Neutral"], ["casual", "Casual"], ["professional", "Professional"]],
   spelling: [["auto", "Match nearby text"], ["canadian", "Canadian English"], ["american", "American English"], ["british", "British English"]],
@@ -698,6 +700,7 @@ const GROUPS = [
     ["popup.width_scale", "number", "Popup Width", "0.5 to 2 times the normal width.", number(0.5, 0.1, 2)],
   ]],
   ["routing", "Routing", "Provider preferences and limits.", [
+    ["phrase.reasoning_effort", "select", "Reasoning Effort", "None disables model thinking where the selected model supports it.", choice("reasoning_effort")],
     ["phrase.provider_order", "list", "Preferred Providers", "One per line, like Groq; used when routing priority is Default."],
     ["phrase.allow_fallbacks", "bool", "Allow Provider Fallbacks", "Try other providers if your preferred hosts are unavailable."],
     ["phrase.provider_ignore", "list", "Excluded Providers", "Never route to these providers; one per line."],
@@ -820,9 +823,38 @@ function setting(sec, key, kind, label, hint, opt) {
     const restore = el("button", { className: "btn quiet", type: "button", textContent: "Restore Built-in", disabled: !custom && input.value === loaded.phrase.instructions_default });
     restore.addEventListener("click", () => { input.value = loaded.phrase.instructions_default; input.dispatchEvent(new Event("input", { bubbles: true })); restore.disabled = true; input.focus(); });
     input.addEventListener("input", () => { restore.disabled = input.value.trim() === loaded.phrase.instructions_default.trim(); });
+    const fallback = el("textarea", { className: "field prompt copy-fallback", rows: 20, hidden: true, readOnly: true, "aria-label": "Prompt test pack for manual copying" });
+    const copy = el("button", { className: "btn quiet", type: "button", textContent: "Copy Test Pack" });
+    copy.addEventListener("click", async () => {
+      const scenarios = loaded.phrase.prompt_test_scenarios || [];
+      const sections = [
+        "COMPLETIONIST CLOUD PROMPT TEST PACK",
+        "PLAYGROUND SETTINGS: use the same generation settings for each provider; set reasoning effort to None and turn off visible thinking output. Record the model/provider, first-token and total latency, and a brief quality assessment for each case.",
+        "",
+        "SYSTEM PROMPT (paste into the playground's system field)",
+        loaded.phrase.instructions_default,
+      ];
+      scenarios.forEach((scenario, index) => sections.push(
+        "", `SCENARIO ${index + 1}: ${scenario.title}`,
+        "Paste only this next section as the user message:", scenario.input,
+        "Evaluation notes (keep out of the model input):", scenario.evaluation,
+      ));
+      const pack = sections.join("\n");
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+        await navigator.clipboard.writeText(pack);
+        fallback.hidden = true;
+        toast("Prompt and 3 test scenarios copied.");
+      } catch {
+        fallback.value = pack;
+        fallback.hidden = false;
+        fallback.focus(); fallback.select();
+        toast("Clipboard unavailable. The test pack is selected below; copy it manually.");
+      }
+    });
     ctl.prepend(el("span", { className: "pill" + (custom ? " on" : ""), textContent: custom ? "Custom" : "Built-in" }));
-    ctl.append(restore);
-    return el("div", { className: "set wide" }, t, ctl, el("div", { className: "wide-field" }, input));
+    ctl.append(restore, copy);
+    return el("div", { className: "set wide" }, t, ctl, el("div", { className: "wide-field" }, input), fallback);
   }
   return el("div", { className: "set" }, t, ctl);
 }

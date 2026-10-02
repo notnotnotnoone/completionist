@@ -19,7 +19,7 @@
 
     [phrase]                    # phrase continuations from a cloud completion model
     enabled = true
-    base_url = "https://openrouter.ai/api/v1"    # OpenRouter, or any OpenAI-compatible /completions endpoint
+    base_url = "https://openrouter.ai/api/v1"    # OpenRouter API root; phrase requests use /chat/completions
     models = ["meta-llama/llama-3.3-70b-instruct"]    # tried in order; the next only if the one before fails
     provider_order = ["Groq"]                    # OpenRouter providers to prefer, in order (others stay as fallbacks)
     api_key = "sk-or-..."                        # your OpenRouter key; empty turns phrases off
@@ -32,6 +32,7 @@
     context_after = 2000
     instructions = ""           # replaces the built-in instructions the model is given ("" keeps them)
     screen_context = true       # read the window you type in (Windows OCR, on this PC) and send that text with your own
+    reasoning_effort = "none"   # disable model reasoning where supported
 
     [hotkeys]
     pause = "ctrl+alt+p"        # pause / resume Completionist from anywhere ("" turns the hotkey off)
@@ -454,6 +455,7 @@ _PROVIDER_CHECKS = {
     "allow_fallbacks": _boolean, "provider_ignore": _provider_list,
     "max_price_input": _non_negative_number, "max_price_output": _non_negative_number,
     "require_parameters": _boolean, "zdr": _boolean,
+    "reasoning_effort": _choice("none", "minimal", "low", "medium", "high", "xhigh"),
 }
 _PHRASE_CHECKS = {
     "mode": _choice("apps", "auto", "hotkey"), "min_chars": _non_negative_int,
