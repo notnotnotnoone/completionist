@@ -179,7 +179,8 @@ std::string EncodeShow(const Snapshot& s) {
     };
     if (!validText(s.typedFragment) || !validText(s.phrase) || !validText(s.phraseLead) ||
         s.settings.font_size < 7 || s.settings.font_size > 24 || !std::isfinite(s.settings.width_scale) ||
-        s.settings.width_scale < .5 || s.settings.width_scale > 2.0) return {};
+        s.settings.width_scale < .5 || s.settings.width_scale > 2.0 ||
+        s.waitMs > 600000 || s.elapsedMs > 600000) return {};
     const bool hasPhrase = !s.phrase.empty();
     if ((s.selection == -1 && !hasPhrase) || (s.selection >= 0 && static_cast<std::size_t>(s.selection) >= s.words.size()) ||
         s.selection < -2 || static_cast<uint64_t>(s.partialBegin) + s.partialLength > s.phrase.size()) return {};

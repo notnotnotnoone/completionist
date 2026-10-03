@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "M10.20 Task 7 review follow-up: EncodeShow now rejects wait/elapsed durations above the parser's 600000 ms cap; host native assertions compile only and runtime gates remain UNRUN."
+    },
+    {
+      "date": "2026-10-03",
       "text": "M10.20 Task 7 final source checks: native assertions compiled only and staged alternate TSF DLL linked cleanly; default external activation remains off and all native/runtime/DPI acceptance gates are UNRUN."
     },
     {

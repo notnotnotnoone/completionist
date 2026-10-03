@@ -178,6 +178,16 @@ TEST(render_encoder_never_emits_text_or_settings_rejected_by_parser) {
     invalidUtf8Limit = Sample();
     invalidUtf8Limit.triggerReason = std::string(256, '\xFF');
     CHECK(EncodeShow(invalidUtf8Limit).empty());
+    Snapshot invalidDuration = Sample();
+    invalidDuration.waitMs = 600001;
+    CHECK(EncodeShow(invalidDuration).empty());
+    invalidDuration = Sample();
+    invalidDuration.elapsedMs = 600001;
+    CHECK(EncodeShow(invalidDuration).empty());
+    Snapshot maximumDuration = Sample();
+    maximumDuration.waitMs = 600000;
+    maximumDuration.elapsedMs = 600000;
+    CHECK(ParseShow(Body(EncodeShow(maximumDuration))).has_value());
 }
 
 TEST(render_protocol_preserves_uint64_identity_and_revision_exactly) {
