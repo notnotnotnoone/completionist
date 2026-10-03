@@ -1282,6 +1282,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "M10.17: add compile-only physical/DIP popup placement, measured DirectWrite text and Evergreen palette parity; runtime and fixture gates remain unrun."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Started M10.17 toward 2.0.0."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Task 3 review round 2 fix: parser now selectively retains bounded known engine/renderer root fields even after 4096 unknown members, while skipping other excess members with syntax validation and duplicate-key detection. Added >4096 unknown root keys before id/type/replace/words/origins regression plus duplicate-id rejection. Host protocol compile-only exited 0; runtime remains UNRUN and M10.16 stays doing."
     },
     {
@@ -3816,7 +3824,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.17",
       "title": "Build native layout, typography and Evergreen palette",
-      "status": "todo",
+      "status": "doing",
       "area": "dll",
       "stories": [
         74

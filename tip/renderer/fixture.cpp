@@ -2,7 +2,9 @@
 #include "fixture.h"
 #include "material.h"
 #include "shaders.h"
+#include "text.h"
 #include "wic_layout.h"
+#include "../src/render_protocol.h"
 
 #include <windows.h>
 #include <d2d1_1.h>
@@ -10,13 +12,14 @@
 #include <wincodec.h>
 #include <wrl/client.h>
 #include <cstdint>
+#include <filesystem>
 #include <vector>
 
 namespace renderer {
 namespace {
 using Microsoft::WRL::ComPtr;
-constexpr UINT kWidth = 640;
-constexpr UINT kHeight = 360;
+constexpr UINT kBaseWidth = 640;
+constexpr UINT kBaseHeight = 360;
 
 struct TextureMapGuard final {
     ID3D11DeviceContext* context;
@@ -91,8 +94,10 @@ bool savePng(const std::wstring& path, ID3D11DeviceContext* context, ID3D11Textu
 }
 }
 
-bool renderFixture(const std::wstring& outputPath) {
-    if (outputPath.empty()) return false;
+bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark) {
+    if (outputPath.empty() || dpi < 96) return false;
+    const UINT width = kBaseWidth * dpi / 96;
+    const UINT height = kBaseHeight * dpi / 96;
     ComApartment apartment;
     if (!apartment.initialized()) return false;
     UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
@@ -106,29 +111,29 @@ bool renderFixture(const std::wstring& outputPath) {
                                  D3D11_SDK_VERSION, &device, &level, &context))) return false;
     (void)level;
 
-    std::vector<std::uint32_t> pixels(static_cast<size_t>(kWidth) * kHeight);
-    for (UINT y = 0; y < kHeight; ++y) {
-        for (UINT x = 0; x < kWidth; ++x) {
+    std::vector<std::uint32_t> pixels(static_cast<size_t>(width) * height);
+    for (UINT y = 0; y < height; ++y) {
+        for (UINT x = 0; x < width; ++x) {
             const bool stripe = ((x / 24U) + (y / 24U)) % 2U == 0;
             const std::uint8_t r = static_cast<std::uint8_t>(stripe ? 24U + x % 80U : 180U - y % 80U);
             const std::uint8_t g = static_cast<std::uint8_t>(stripe ? 74U + y % 100U : 36U + x % 100U);
             const std::uint8_t b = static_cast<std::uint8_t>(stripe ? 50U : 110U + (x + y) % 100U);
-            pixels[static_cast<size_t>(y) * kWidth + x] = 0xff000000U | (static_cast<std::uint32_t>(r) << 16U) |
+            pixels[static_cast<size_t>(y) * width + x] = 0xff000000U | (static_cast<std::uint32_t>(r) << 16U) |
                 (static_cast<std::uint32_t>(g) << 8U) | b;
         }
     }
     D3D11_TEXTURE2D_DESC inputDesc{};
-    inputDesc.Width = kWidth; inputDesc.Height = kHeight; inputDesc.MipLevels = 1; inputDesc.ArraySize = 1;
+    inputDesc.Width = width; inputDesc.Height = height; inputDesc.MipLevels = 1; inputDesc.ArraySize = 1;
     inputDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; inputDesc.SampleDesc.Count = 1;
     inputDesc.Usage = D3D11_USAGE_DEFAULT; inputDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    D3D11_SUBRESOURCE_DATA inputData{pixels.data(), kWidth * sizeof(std::uint32_t), 0};
+    D3D11_SUBRESOURCE_DATA inputData{pixels.data(), width * sizeof(std::uint32_t), 0};
     ComPtr<ID3D11Texture2D> input;
     ComPtr<ID3D11ShaderResourceView> inputView;
     if (FAILED(device->CreateTexture2D(&inputDesc, &inputData, &input)) ||
         FAILED(device->CreateShaderResourceView(input.Get(), nullptr, &inputView))) return false;
 
     BlurMaterial blur;
-    if (!blur.create(device.Get(), kWidth, kHeight) || !blur.blur(context.Get(), inputView.Get())) return false;
+    if (!blur.create(device.Get(), width, height) || !blur.blur(context.Get(), inputView.Get())) return false;
 
     ComPtr<IDXGIDevice> dxgiDevice;
     ComPtr<ID2D1Factory1> d2dFactory;
@@ -145,30 +150,84 @@ bool renderFixture(const std::wstring& outputPath) {
                                    reinterpret_cast<IUnknown**>(writeFactory.GetAddressOf()))) ||
         FAILED(blur.outputTexture.As(&surface))) return false;
     auto properties = D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED));
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+        static_cast<float>(dpi), static_cast<float>(dpi));
     if (FAILED(drawing->CreateBitmapFromDxgiSurface(surface.Get(), &properties, &target))) return false;
     drawing->SetTarget(target.Get());
+    drawing->SetDpi(static_cast<float>(dpi), static_cast<float>(dpi));
     drawing->BeginDraw();
     ComPtr<ID2D1SolidColorBrush> shadow;
     ComPtr<ID2D1SolidColorBrush> glass;
-    ComPtr<ID2D1SolidColorBrush> ink;
-    ComPtr<IDWriteTextFormat> format;
-    const bool resourcesReady = SUCCEEDED(drawing->CreateSolidColorBrush(D2D1::ColorF(0, 0.06f), &shadow)) &&
-        SUCCEEDED(drawing->CreateSolidColorBrush(D2D1::ColorF(10.f / 255.f, 90.f / 255.f, 61.f / 255.f, 0.16f), &glass)) &&
-        SUCCEEDED(drawing->CreateSolidColorBrush(D2D1::ColorF(1, 1, 1, 0.98f), &ink)) &&
-        SUCCEEDED(writeFactory->CreateTextFormat(L"Segoe UI", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
-            DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 21.0f, L"en-us", &format));
-    if (resourcesReady) {
-        const auto panel = D2D1::RoundedRect(D2D1::RectF(111, 83, 529, 279), 26, 26);
-        drawing->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(111, 88, 529, 284), 26, 26), shadow.Get());
-        drawing->FillRoundedRectangle(panel, glass.Get());
-        drawing->DrawTextW(L"FIXTURE  Sharp foreground", 25, format.Get(), D2D1::RectF(137, 112, 504, 151), ink.Get());
-        drawing->DrawTextW(L"Local     Evergreen tint", 22, format.Get(), D2D1::RectF(137, 162, 504, 202), ink.Get());
-        drawing->DrawTextW(L"Generated pattern only", 22, format.Get(), D2D1::RectF(137, 212, 504, 252), ink.Get());
+    const auto& colors = dark ? palette::kDark : palette::kLight;
+    bool resourcesReady = SUCCEEDED(drawing->CreateSolidColorBrush(D2D1::ColorF(0, 0.06f), &shadow)) &&
+        SUCCEEDED(drawing->CreateSolidColorBrush(D2D1::ColorF(
+            static_cast<float>(colors.sign.r) / 255.0f, static_cast<float>(colors.sign.g) / 255.0f,
+            static_cast<float>(colors.sign.b) / 255.0f, 0.22f), &glass));
+
+    completionist::render::Snapshot snapshot{};
+    snapshot.caret = {static_cast<LONG>(36 * dpi / 96), static_cast<LONG>(98 * dpi / 96),
+                      static_cast<LONG>(38 * dpi / 96), static_cast<LONG>(118 * dpi / 96)};
+    snapshot.words = {{L"receive", "local", {3}}, {L"review", "learned", {}}};
+    snapshot.selection = 0;
+    snapshot.typedFragment = L"recieve";
+    snapshot.phraseLead = L" the";
+    snapshot.phrase = L" outline remains readable at every display scale";
+    snapshot.partialBegin = 0;
+    snapshot.partialLength = 9;
+    snapshot.ai = completionist::render::AiState::Streaming;
+    snapshot.elapsedMs = 800;
+    snapshot.engineConnected = true;
+    snapshot.settings.font_size = 12;
+    completionist::layout::WorkArea work{{0, 0, static_cast<LONG>(width), static_cast<LONG>(height)}, dpi};
+    renderer::text::TextRenderer textRenderer(writeFactory.Get());
+    renderer::text::PreparedText prepared;
+    completionist::layout::Layout layout;
+    const bool laidOut = textRenderer.Prepare(snapshot, 330.0f, &prepared);
+    if (laidOut) layout = completionist::layout::Place(snapshot, work, prepared.metrics);
+    if (resourcesReady && laidOut) {
+        const float scale = static_cast<float>(dpi) / 96.0f;
+        auto menuRect = D2D1::RectF(static_cast<float>(layout.menuBounds.left) / scale,
+            static_cast<float>(layout.menuBounds.top) / scale, static_cast<float>(layout.menuBounds.right) / scale,
+            static_cast<float>(layout.menuBounds.bottom) / scale);
+        auto dockRect = D2D1::RectF(static_cast<float>(layout.dockBounds.left) / scale,
+            static_cast<float>(layout.dockBounds.top) / scale, static_cast<float>(layout.dockBounds.right) / scale,
+            static_cast<float>(layout.dockBounds.bottom) / scale);
+        drawing->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(menuRect.left, menuRect.top + 5,
+            menuRect.right, menuRect.bottom + 5), 26, 26), shadow.Get());
+        drawing->FillRoundedRectangle(D2D1::RoundedRect(menuRect, 26, 26), glass.Get());
+        drawing->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(dockRect.left, dockRect.top + 4,
+            dockRect.right, dockRect.bottom + 4), 16, 16), shadow.Get());
+        drawing->FillRoundedRectangle(D2D1::RoundedRect(dockRect, 16, 16), glass.Get());
+
+        drawing->SetTransform(D2D1::Matrix3x2F::Translation(menuRect.left, menuRect.top));
+        const bool menuDrawn = textRenderer.Draw(drawing.Get(), snapshot, layout, prepared, colors,
+                                                  renderer::text::Surface::Menu);
+        drawing->SetTransform(D2D1::Matrix3x2F::Translation(dockRect.left, dockRect.top));
+        const bool dockDrawn = textRenderer.Draw(drawing.Get(), snapshot, layout, prepared, colors,
+                                                  renderer::text::Surface::Dock);
+        drawing->SetTransform(D2D1::Matrix3x2F::Identity());
+        prepared.Reset();
+        if (!menuDrawn || !dockDrawn) resourcesReady = false;
     }
     const HRESULT drawResult = drawing->EndDraw();
     drawing->SetTarget(nullptr);
-    if (!resourcesReady || FAILED(drawResult)) return false;
+    if (!resourcesReady || !laidOut || FAILED(drawResult)) return false;
     return savePng(outputPath, context.Get(), blur.outputTexture.Get());
+}
+
+bool renderFixtureMatrix(const std::wstring& outputDirectory) {
+    if (outputDirectory.empty()) return false;
+    const std::filesystem::path directory(outputDirectory);
+    std::error_code error;
+    std::filesystem::create_directories(directory, error);
+    if (error) return false;
+    for (UINT dpi : {96U, 144U, 192U}) {
+        for (bool dark : {false, true}) {
+            const auto name = std::wstring(L"completionist-") + std::to_wstring(dpi) +
+                (dark ? L"-dark.png" : L"-light.png");
+            if (!renderFixture((directory / name).wstring(), dpi, dark)) return false;
+        }
+    }
+    return true;
 }
 }

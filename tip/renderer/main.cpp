@@ -10,8 +10,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     LPWSTR* args = CommandLineToArgvW(GetCommandLineW(), &count);
     if (!args) return ERROR_INVALID_PARAMETER;
     int result = ERROR_SUCCESS;
-    if (count == 3 && lstrcmpW(args[1], L"--fixture") == 0) {
-        if (!renderer::renderFixture(args[2])) result = ERROR_GEN_FAILURE;
+    if (count == 3 && lstrcmpW(args[1], L"--fixture-matrix") == 0) {
+        if (!renderer::renderFixtureMatrix(args[2])) result = ERROR_GEN_FAILURE;
     } else if (count > 1 && lstrcmpW(args[1], L"--live") == 0) {
         // Live desktop acquisition stays disabled until capture policy and the
         // event-driven graphics worker are integrated and reviewed.
