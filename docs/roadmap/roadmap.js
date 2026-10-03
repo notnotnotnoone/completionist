@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-02",
+      "text": "Strengthened M10.14 WARP tests to compare production blur output with the normalized sigma-6 radius-18 Gaussian profile."
+    },
+    {
+      "date": "2026-10-02",
       "text": "Document the conservative V2 viewer scope and baseline/native live verification boundaries."
     },
     {

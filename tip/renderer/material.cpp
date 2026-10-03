@@ -1,6 +1,5 @@
 #include "material.h"
 #include "shaders.h"
-#include <array>
 #include <cmath>
 
 namespace renderer {
@@ -13,9 +12,6 @@ bool BlurMaterial::create(ID3D11Device* d, UINT w, UINT h) {
     vertical=horizontal;
     D3D11_SAMPLER_DESC sd{}; sd.Filter=D3D11_FILTER_MIN_MAG_MIP_LINEAR; sd.AddressU=sd.AddressV=sd.AddressW=D3D11_TEXTURE_ADDRESS_CLAMP; sd.MaxLOD=D3D11_FLOAT32_MAX;
     if(FAILED(d->CreateSamplerState(&sd,&sampler))) return false;
-    std::array<float,37> gaussianWeights{}; float total=0;
-    for(int i=-18;i<=18;++i){ auto x=static_cast<float>(i); gaussianWeights[static_cast<size_t>(i+18)]=std::exp(-(x*x)/(2.f*36.f)); total+=gaussianWeights[static_cast<size_t>(i+18)]; }
-    for(auto& x:gaussianWeights) x/=total;
     D3D11_BUFFER_DESC bd{}; bd.ByteWidth=sizeof(Constants); bd.Usage=D3D11_USAGE_DYNAMIC; bd.BindFlags=D3D11_BIND_CONSTANT_BUFFER; bd.CPUAccessFlags=D3D11_CPU_ACCESS_WRITE;
     if(FAILED(d->CreateBuffer(&bd,nullptr,&this->weights))) return false;
     auto make=[&](ComPtr<ID3D11Texture2D>& texture,ComPtr<ID3D11RenderTargetView>& target,ComPtr<ID3D11ShaderResourceView>& view){
