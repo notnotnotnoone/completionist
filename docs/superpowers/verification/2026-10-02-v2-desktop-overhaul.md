@@ -78,3 +78,47 @@ Native regression targets and an alternate TSF DLL link passed without executing
 Task 8 received one source review at `a378012`; its Important locked-renderer uninstall finding was fixed in `d6b9d37` with focused validation and implementer self-review. RendererProcess derives a fixed absolute artifact path, launches hidden with explicit `--serve` only when the engine's opt-in flag is supplied, probes session ownership without connecting, and uses existing maintenance for bounded retry polling. Three failures within 60 seconds latch retries off until engine restart. Shutdown acts only on the service's owned child. Installation source preserves the prior DLL/renderer pair and builds/copies before DLL activation; uninstall preflights the verified renderer path and aborts before component removal if a persistent lock remains, with normal-close/retry guidance.
 
 Focused injected-process tests passed 9/9. Extracted actual uninstall helpers passed unlocked/locked/bounded-timeout/released workspace-file checks; PowerShell AST and preflight-order checks passed. Diff and roadmap checks passed. No actual renderer child, installed task, installer/uninstaller, registration, capture or window was run. Real token/session reuse, renderer shutdown, locked installation rollback and native/live acceptance remain UNRUN. M10.21 is done for this source/fake-test stage; it does not establish Task9 live acceptance.
+
+## Task 9 final quiet validation and review staging — 2026-10-03
+
+This records source/build readiness separately from actual Windows acceptance. The required full engine regression passed once after Task 8 integration:
+
+- `engine/.venv/Scripts/python.exe -m pytest engine/tests --basetemp=.superpowers/task9-pytest -p no:cacheprovider` — **643 passed, 1 skipped in 20.90s**.
+- `node engine/tests/viewer_browser.cjs` with `NODE_PATH=C:\Users\Linqi\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules` and `TEMP`/`TMP` set to `.superpowers/browser-temp` — **12 synthetic headless Chrome checks passed**, exit 0. Screenshots are synthetic fixtures retained under the ignored `viewer-artifacts` directory.
+- `cmd /c .superpowers\task9-stage\task9-renderer-assertions-compile.cmd --compile-only` — renderer x64 executable and three assertion executables compiled successfully. The `--compile-only` branch was used; no produced executable was launched.
+- `cmd /c .superpowers\task9-stage\task9-host-assertions-compile.cmd --compile-only` — two host assertion executables compiled successfully. No produced executable was launched.
+- `cmd /c .superpowers\task9-stage\task9-host-build.cmd` — x64 static-CRT TSF DLL compiled successfully to the alternate stage folder. The default `tip/build.cmd` and `tip/renderer/build.cmd` were not run.
+- `python scripts/check_roadmap.py` — **roadmap ok** (97/108 done, latest release 1.1.14, target 2.0.0).
+
+The paired review artifacts are in ignored `tip/out/task9-review/`; `manifest.json` records base commit `63e57bfe68c12c30fae98e4af9f8a502872b824f`, SHA-256 hashes and build flags. The DLL is `tip/out/task9-review/host/CompletionistTip.dll` (SHA-256 `997BEABCD338193E020D419EBCF8D64CB57EF99984A70D55154B11B15B2BB94B`); the renderer is `tip/out/task9-review/renderer/CompletionistRenderer.exe` (SHA-256 `AF963AE6515BB8480E814FAC3B1013836E3227E6182FCD04739EB055AF9D1DDB`). Host assertion binaries are `host-tests/tests.exe` and `host-tests/test_popup_layout.exe`; renderer assertion binaries are `renderer-tests/test_blur.exe`, `renderer-tests/test_session.exe` and `renderer-tests/test_capture_policy.exe`. Compilation does not establish that their assertions pass.
+
+The pre-existing `tip/out/CompletionistTip.dll` was preserved with SHA-256 `9AFCFCA1B948C6E5FBF8072B699A4985DB1E319FECEE0109468B5834755BA735`. There was no `tip/out/CompletionistRenderer.exe` at the default path before or after staging. No install, registration, UAC prompt, engine `--serve-renderer`, native test, fixture, debugger, capture, foreground harness, or produced executable was launched. Default external rendering remains disabled.
+
+### Owner-run acceptance matrix — all pending
+
+- [ ] Automatic 350 ms/default-config countdown, manual shortcut, cancellation/new typing, streaming/ready/error states, correction insertion, truthful Local/Learned/AI origins, exact partial acceptance, minimized dock, light/dark and reduced motion.
+- [ ] Notepad, Chrome and one Electron app at 100%, 150% and 200%; both monitors, negative coordinates and all screen edges; long Unicode phrases/corrections; focus retention and Enter/Tab behavior.
+- [ ] Two-window capture exclusion/no feedback, rotation and dirty-region inactivity; unsupported build, HDR, high contrast, disabled transparency, capture/device failure, lock/unlock and desktop switch; no stale topmost UI after host/engine/renderer exit or restart.
+- [ ] Dock click without activation, collapse/reversal/auto-minimize, UI Automation and accessibility names; process supervision, duplicate renderer behavior, locked-file install rollback and paired artifact restoration.
+- [ ] Measure foreground paint p95 (32 ms target), GPU glass p95 (4 ms target) and idle capture/repaint behavior on recorded hardware.
+- [ ] Run the focus-stealing TSF harness only after the owner says they are away. No visual Windows or live-app results are inferred from compilation, generated fixtures or browser screenshots.
+
+### Rollback procedure for a later owner-approved install
+
+`scripts/install.ps1` saves the prior pair under `tip/out/rollback/` before replacing either artifact and restores it if activation fails. After a successful install, restore that saved pair from the checkout root, then restart affected apps (and the engine if it is running):
+
+```powershell
+$rollback = 'tip/out/rollback'
+if (Test-Path "$rollback/CompletionistTip.dll") {
+    Copy-Item "$rollback/CompletionistTip.dll" 'tip/out/CompletionistTip.dll' -Force
+} else {
+    Remove-Item 'tip/out/CompletionistTip.dll' -Force -ErrorAction SilentlyContinue
+}
+if (Test-Path "$rollback/CompletionistRenderer.exe") {
+    Copy-Item "$rollback/CompletionistRenderer.exe" 'tip/out/CompletionistRenderer.exe' -Force
+} else {
+    Remove-Item 'tip/out/CompletionistRenderer.exe' -Force -ErrorAction SilentlyContinue
+}
+```
+
+This task did not install or register the staged pair. Registration, keyboard settings and any future install remain owner-run; restart apps so they release any loaded DLL before replacing files.

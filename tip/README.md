@@ -52,3 +52,9 @@ To remove it: `.\enable-keyboard.ps1 -Remove`, then `.\register.ps1 -Unregister`
 * If the engine isn't running, nothing happens, and it reconnects on its own.
 * Nothing typed into a password field (or where the app has turned keyboards off) is sent anywhere.
 * The popup consumes a key only while it's showing words for the text that is currently there.
+
+## Task 9 review build
+
+A review-only x64 pair is staged at `out/task9-review/host/CompletionistTip.dll` and `out/task9-review/renderer/CompletionistRenderer.exe`. `out/task9-review/manifest.json` records the base commit, build flags and artifact hashes. Native assertion programs are also staged there, compiled only; they have not been run. The existing DLL at `out/CompletionistTip.dll` was preserved, and the default renderer path was absent when this pair was built. These review artifacts do not establish runtime acceptance and are not installed. The external renderer remains disabled by default until owner-run live material, focus, DPI, accessibility and recovery checks pass.
+
+The full owner-run matrix and rollback procedure are recorded in [the V2 verification log](../docs/superpowers/verification/2026-10-02-v2-desktop-overhaul.md). `scripts/install.ps1` saves the existing DLL/renderer pair in `out/rollback/` before an owner-approved install and restores it if activation fails.

@@ -242,16 +242,18 @@ Expose `RendererProcess.start() -> None`, `poll(now: float) -> None` and `stop()
 
 ## Task 9: Validate and stage the desktop overhaul
 
-**Files:** update `tip/README.md`, this plan's checkboxes, `docs/roadmap/roadmap.js`; create `docs/superpowers/verification/2026-10-02-v2-desktop-overhaul.md` with actual results and rollback commands during execution.
+**Files:** update `tip/README.md`, this plan's checkboxes, `docs/roadmap/roadmap.js`; maintain `docs/superpowers/verification/2026-10-02-v2-desktop-overhaul.md` with results and rollback commands.
 
-- [ ] Run `uv run --project engine pytest engine/tests`, `tip\test.cmd`, `tip\renderer\test.cmd`, `tip\build.cmd`, `tip\renderer\build.cmd`, and `python scripts/check_roadmap.py`. Record exact command/output and unrun checks.
-- [ ] Stage both binaries for owner review. Supply manual matrix from spec; gather results and logs without typed-text/capture dumps. Run focus-stealing TSF harness only once owner says away.
-- [ ] Verify actual automatic350ms/default-config countdown, manual shortcut, cancellation/new typing, streaming/ready/error, correction insert, local/learned origins, partial accept, minimized dock, both themes and reduced motion. Never use spike fixtures as proof of engine behavior.
-- [ ] Verify two apps/monitors, process termination, unsupported/HDR fallback, lock/unlock and no retained topmost UI. Measure 4ms GPU/32ms foreground p95 and idle behavior on recorded hardware.
-- [ ] Resolve failures before enabling the external renderer by default. If live material still fails its gate, do not label Acrylic or opaque fallback as completed liquid glass.
-- [ ] Write rollback steps to restore previous DLL/renderer pair and restart affected apps; registration remains user-approved. Check remaining viewer work before any V2 release claim.
-- [ ] Update roadmap refs/status only for actually completed tasks; do not create extra patch releases merely for checking plan boxes. Final commit includes roadmap validation; push/merge/release only within owner authorization.
-
+- [x] Run the full engine regression once after Task 8: `engine/.venv/Scripts/python.exe -m pytest engine/tests --basetemp=.superpowers/task9-pytest -p no:cacheprovider` — 643 passed, 1 skipped. Run the retained synthetic browser suite once: 12 checks passed.
+- [x] Compile host and renderer assertion targets with the isolated `--compile-only` build helpers. No assertion executable was launched.
+- [x] Build and stage a fresh x64 DLL/renderer review pair under ignored `tip/out/task9-review/`; record base commit, flags and hashes in its manifest. Preserve the existing owner DLL.
+- [x] Supply the owner-run matrix and rollback procedure in the verification log and `tip/README.md`; validate the roadmap after documentation.
+- [ ] Gather owner-run live/native results and logs without typed-text/capture dumps. Run the focus-stealing TSF harness only once the owner says away.
+- [ ] Verify automatic 350 ms/default-config countdown, manual shortcut, cancellation/new typing, streaming/ready/error, correction insertion, truthful origins, partial acceptance, minimized dock, themes and reduced motion.
+- [ ] Verify two apps/monitors, process termination, unsupported/HDR fallback, lock/unlock and no retained topmost UI. Measure 4 ms GPU/32 ms foreground p95 and idle behavior on recorded hardware.
+- [ ] Resolve failures before enabling the external renderer by default. If live material fails its gate, do not label the opaque fallback or unverified material as completed liquid glass.
+- [ ] Keep registration owner-approved; check the separate viewer track and all release gates before any V2 release claim.
+- [x] Update only verified roadmap evidence/status; no patch release is created for this validation task.
 ## Coverage and execution handoff
 
 Material feasibility -> Task1; actual engine data -> Task2; safety/IPC -> Task3; sizing/typography -> Task4; dock/motion/accessibility/fallback -> Task5; host keyboard/fallback -> Task6; TSF handoff -> Task7; supervision/install/viewer boundary -> Task8; real-app validation/rollout -> Task9. Review-focus cases each have an owning task above.
