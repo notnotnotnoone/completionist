@@ -169,9 +169,17 @@ bool SameIdentity(const Identity& a, const Identity& b) {
 }
 
 std::string EncodeShow(const Snapshot& s) {
+    const std::string session = CleanUtf8(s.owner.session);
+    const std::string reason = CleanUtf8(s.triggerReason);
     if (s.owner.pid == 0 || s.owner.hostHwnd == 0 || s.owner.generation == 0 || s.revision == 0 ||
-        s.owner.session.empty() || s.owner.session.size() > kMaxSessionBytes ||
-        s.words.size() > kMaxCandidates || s.triggerReason.size() > 256) return {};
+        session.empty() || session.size() > kMaxSessionBytes ||
+        s.words.size() > kMaxCandidates || reason.size() > 256) return {};
+    const auto validText = [](const std::wstring& value) {
+        return completionist::protocol::ToUtf8(value).size() <= kMaxTextBytes;
+    };
+    if (!validText(s.typedFragment) || !validText(s.phrase) || !validText(s.phraseLead) ||
+        s.settings.font_size < 7 || s.settings.font_size > 24 || !std::isfinite(s.settings.width_scale) ||
+        s.settings.width_scale < .5 || s.settings.width_scale > 2.0) return {};
     const bool hasPhrase = !s.phrase.empty();
     if ((s.selection == -1 && !hasPhrase) || (s.selection >= 0 && static_cast<std::size_t>(s.selection) >= s.words.size()) ||
         s.selection < -2 || static_cast<uint64_t>(s.partialBegin) + s.partialLength > s.phrase.size()) return {};
@@ -183,7 +191,7 @@ std::string EncodeShow(const Snapshot& s) {
     for (std::size_t i = 0; i < s.words.size(); ++i) {
         if (i) body.push_back(',');
         const auto& word = s.words[i];
-        if (word.text.size() * 4 > kMaxTextBytes || word.marks.size() > kMaxMarksPerCandidate ||
+        if (!validText(word.text) || word.marks.size() > kMaxMarksPerCandidate ||
             (word.origin != "local" && word.origin != "learned")) return {};
         body += "{\"text\":";
         JsonString(body, completionist::protocol::ToUtf8(word.text));
@@ -210,7 +218,7 @@ std::string EncodeShow(const Snapshot& s) {
     JsonString(body, AiName(s.ai));
     body += ",\"wait_ms\":" + std::to_string(s.waitMs) + ",\"elapsed_ms\":" + std::to_string(s.elapsedMs);
     body += ",\"trigger_reason\":";
-    JsonString(body, CleanUtf8(s.triggerReason));
+    JsonString(body, reason);
     body += std::string(",\"engine_connected\":") + (s.engineConnected ? "true" : "false") + ",\"settings\":";
     AddSettings(body, s.settings);
     body.push_back('}');

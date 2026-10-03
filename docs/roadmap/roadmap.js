@@ -1282,6 +1282,18 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "M10.20 Task 7 final source checks: native assertions compiled only and staged alternate TSF DLL linked cleanly; default external activation remains off and all native/runtime/DPI acceptance gates are UNRUN."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Started M10.20 toward 2.0.0."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "M10.20 Task 7 integration source and fake-peer assertions compile cleanly; alternate TSF DLL linked to tip/out/task7-review, default renderer activation remains disabled, and native/runtime/DPI acceptance gates remain UNRUN."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Recorded Task6 single-review fixes through e41a4eb, shared palette reuse and alternate DLL compile; native gates remain unrun."
     },
     {
@@ -3934,7 +3946,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.20",
       "title": "Connect TSF snapshots with renderer failover",
-      "status": "todo",
+      "status": "doing",
       "area": "dll",
       "stories": [
         74

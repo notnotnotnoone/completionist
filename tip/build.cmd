@@ -10,7 +10,7 @@ if exist "%HERE%out\CompletionistTip.dll" move /y "%HERE%out\CompletionistTip.dl
 del /q "%HERE%out\CompletionistTip.*.old" 2>nul
 rc /nologo /fo "%HERE%out\completionist.res" "%HERE%src\completionist.rc" || exit /b 1
 cl /nologo /std:c++20 /W4 /WX /EHsc /O2 /MT /Zi /utf-8 /DUNICODE /D_UNICODE /LD ^
-   "%HERE%src\tsf_service.cpp" "%HERE%src\engine_client.cpp" "%HERE%src\popup.cpp" "%HERE%src\popup_layout.cpp" "%HERE%src\protocol.cpp" "%HERE%src\log.cpp" ^
+   "%HERE%src\tsf_service.cpp" "%HERE%src\engine_client.cpp" "%HERE%src\render_client.cpp" "%HERE%src\popup.cpp" "%HERE%src\popup_layout.cpp" "%HERE%src\protocol.cpp" "%HERE%src\render_protocol.cpp" "%HERE%src\log.cpp" ^
    /Fo"%HERE%out\\" /Fd"%HERE%out\\" /Fe"%HERE%out\CompletionistTip.dll" ^
    /link /DEBUG /INCREMENTAL:NO /DEF:"%HERE%src\completionist.def" "%HERE%out\completionist.res" ^
    user32.lib gdi32.lib ole32.lib oleaut32.lib advapi32.lib uuid.lib

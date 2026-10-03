@@ -29,6 +29,7 @@
 #include "popup.h"
 #include "popup_model.h"
 #include "protocol.h"
+#include "render_client.h"
 #include "resource.h"
 
 namespace {
@@ -159,6 +160,16 @@ completionist::Modifiers CurrentModifiers() {
 }
 
 std::uint64_t NowMs() { return GetTickCount64(); }
+
+std::optional<RECT> PhysicalCaret(HWND ownerWindow, const RECT& logicalCaret) {
+    if (!ownerWindow || !IsWindow(ownerWindow)) return std::nullopt;
+    RECT physical = logicalCaret;
+    POINT corners[] = {{physical.left, physical.top}, {physical.right, physical.bottom}};
+    if (!LogicalToPhysicalPointForPerMonitorDPI(ownerWindow, &corners[0]) ||
+        !LogicalToPhysicalPointForPerMonitorDPI(ownerWindow, &corners[1])) return std::nullopt;
+    physical = {corners[0].x, corners[0].y, corners[1].x, corners[1].y};
+    return physical;
+}
 
 // ---------------------------------------------------------------------------------------------
 // TSF helpers (all require a valid edit cookie)
@@ -326,6 +337,15 @@ public:
         threadMgr_->AddRef();
         clientId_ = clientId;
         app_ = ExeName();
+        GUID rendererSession{};
+        wchar_t sessionText[40] = {};
+        if (SUCCEEDED(CoCreateGuid(&rendererSession)) && StringFromGUID2(rendererSession, sessionText, ARRAYSIZE(sessionText))) {
+            renderSession_.clear();
+            for (const wchar_t c : sessionText) {
+                if (!c) break;
+                if (c != L'{' && c != L'}') renderSession_.push_back(static_cast<char>(c));
+            }
+        }
 
         ITfSource* source = nullptr;
         if (SUCCEEDED(threadMgr_->QueryInterface(IID_ITfSource, reinterpret_cast<void**>(&source)))) {
@@ -339,6 +359,8 @@ public:
             keystrokes->Release();
         }
         if (!popup_.Create(g_module, &CompletionistService::PopupHook, this)) LogError(L"could not create the popup window");
+        renderClient_ = std::make_unique<completionist::render::RenderClient>(popup_.hwnd(), renderIdentity_);
+        if (completionist::render::kExternalRendererActivationEnabled) renderClient_->Start();
         if (popup_.hwnd()) connectionObserverToken_ = EngineClient::Instance().RegisterWindow(popup_.hwnd());
         EngineClient::Instance().Acquire();
         acquired_ = true;
@@ -373,6 +395,13 @@ public:
             threadMgr_ = nullptr;
         }
         HideAll();
+        if (renderClient_) renderClient_->Stop();
+        MSG pendingNotice{};
+        while (popup_.hwnd() && PeekMessageW(&pendingNotice, popup_.hwnd(),
+               completionist::render::kRenderClientNoticeMessage,
+               completionist::render::kRenderClientNoticeMessage, PM_REMOVE)) {
+            delete reinterpret_cast<completionist::render::ClientNotice*>(pendingNotice.lParam);
+        }
         EngineClient::Instance().UnregisterWindow(popup_.hwnd(), connectionObserverToken_);
         connectionObserverToken_ = 0;
         popup_.Destroy();
@@ -398,6 +427,7 @@ public:
         WatchContext(context);
         HideAll();
         if (context) {
+            RefreshRendererOwner(context);
             QueueInspect(context);
             context->Release();
         }
@@ -408,6 +438,8 @@ public:
     // ITfTextEditSink
     STDMETHODIMP OnEndEdit(ITfContext* context, TfEditCookie, ITfEditRecord*) override {
         COMPLETIONIST_GUARD_BEGIN
+        HideExternal();
+        popup_.Hide();
         model_.MarkStale();  // the words on screen belong to text that just changed
         retries_ = 0;
         QueueInspect(context);
@@ -419,6 +451,18 @@ public:
     STDMETHODIMP OnSetFocus(BOOL foreground) override {
         COMPLETIONIST_GUARD_BEGIN
         if (!foreground) HideAll();
+        else if (threadMgr_) {
+            ITfDocumentMgr* focus = nullptr;
+            if (SUCCEEDED(threadMgr_->GetFocus(&focus)) && focus) {
+                ITfContext* context = nullptr;
+                if (SUCCEEDED(focus->GetTop(&context)) && context) {
+                    RefreshRendererOwner(context);
+                    QueueInspect(context);
+                    context->Release();
+                }
+                focus->Release();
+            }
+        }
         return S_OK;
         COMPLETIONIST_GUARD_END(S_OK)
     }
@@ -453,6 +497,7 @@ public:
                 dismissed_ = true;
                 dismissedBefore_ = promptBefore_;
                 phrase_.clear();
+                HideExternal();
                 popup_.Hide();
                 completionist::protocol::Request dismiss;
                 dismiss.id = latestId_;
@@ -491,6 +536,8 @@ private:
 
     // Hide the popup and forget any words or phrase still being computed.
     void HideAll() {
+        HideExternal();
+        rendererEligible_ = false;
         popup_.Hide();
         model_.Close();
         model_.SetPhraseAvailable(false);  // no request goes out from here, so Ctrl+Space isn't ours to take
@@ -509,13 +556,43 @@ private:
         }
     }
 
+    void HideExternal() {
+        if (renderClient_ && renderIdentity_.pid && renderIdentity_.hostHwnd && renderIdentity_.generation)
+            renderClient_->Hide(renderIdentity_, ++renderRevision_);
+        externalPresented_ = false;
+    }
+
+    void RefreshRendererOwner(ITfContext* context) {
+        HWND foreground = GetForegroundWindow();
+        DWORD pid = 0;
+        if (foreground) GetWindowThreadProcessId(foreground, &pid);
+        ITfContextView* view = nullptr;
+        HWND viewWindow = nullptr;
+        if (!context || FAILED(context->GetActiveView(&view)) || !view) {
+            rendererEligible_ = false;
+            return;
+        }
+        view->GetWnd(&viewWindow);
+        view->Release();
+        const HWND foregroundRoot = foreground ? GetAncestor(foreground, GA_ROOT) : nullptr;
+        const HWND viewRoot = viewWindow ? GetAncestor(viewWindow, GA_ROOT) : nullptr;
+        if (!foreground || !viewWindow || !foregroundRoot || foregroundRoot != viewRoot ||
+            pid != GetCurrentProcessId() || renderSession_.empty()) {
+            rendererEligible_ = false;
+            return;
+        }
+        renderIdentity_ = {pid, reinterpret_cast<uint64_t>(foreground), renderSession_, completionist::render::NextRenderGeneration()};
+        rendererEligible_ = true;
+    }
+
     // Draws the popup for the current model state, and arranges a redraw when the phrase row becomes
     // the highlighted one.
-    void Render() {
+    void Render(bool publishExternal = true) {
         const bool hasStatus = aiState_ == completionist::render::AiState::Manual ||
             aiState_ == completionist::render::AiState::Scheduled || aiState_ == completionist::render::AiState::Working ||
             aiState_ == completionist::render::AiState::Streaming || aiState_ == completionist::render::AiState::Unavailable;
         if (!model_.visible() && !hasStatus) {
+            HideExternal();
             popup_.Hide();
             if (popup_.hwnd()) {
                 KillTimer(popup_.hwnd(), kArmTimer);
@@ -540,6 +617,36 @@ private:
         content.triggerReason = triggerReason_;
         content.engineConnected = engineConnected_;
         popup_.Show(content, model_.selection(now), caret_);
+        if (publishExternal && completionist::render::kExternalRendererActivationEnabled && rendererEligible_ && renderClient_) {
+            externalPresented_ = false;
+            const auto physicalCaret = PhysicalCaret(caretWindow_, caret_);
+            if (physicalCaret) {
+                completionist::render::Snapshot snapshot{};
+                snapshot.owner = renderIdentity_;
+                snapshot.revision = ++renderRevision_;
+                snapshot.caret = {physicalCaret->left, physicalCaret->top, physicalCaret->right, physicalCaret->bottom};
+                snapshot.selection = model_.selection(now);
+                snapshot.typedFragment = promptWord_;
+                snapshot.phrase = phrase_;
+                snapshot.phraseLead = promptWord_;
+                snapshot.ai = aiState_;
+                snapshot.waitMs = content.phraseWaitMs;
+                snapshot.elapsedMs = content.phraseElapsedMs;
+                snapshot.triggerReason = triggerReason_;
+                snapshot.engineConnected = engineConnected_;
+                snapshot.settings = popupSettings_;
+                for (std::size_t i = 0; i < words_.size(); ++i) {
+                    completionist::render::Candidate candidate;
+                    candidate.text = words_[i];
+                    candidate.origin = i < origins_.size() ? origins_[i] : "local";
+                    if (i < marks_.size()) candidate.marks = marks_[i];
+                    snapshot.words.push_back(std::move(candidate));
+                }
+                renderClient_->Publish(std::move(snapshot));
+            } else {
+                HideExternal();
+            }
+        }
         if (popup_.hwnd()) {
             std::uint64_t armedAt = model_.armed_at(now);
             if (armedAt) SetTimer(popup_.hwnd(), kArmTimer, static_cast<UINT>(armedAt - now + 5), nullptr);
@@ -642,9 +749,11 @@ private:
         RECT caret = {};
         BOOL clipped = FALSE;
         HRESULT extentHr = E_FAIL;
+        caretWindow_ = nullptr;
         wchar_t title[256] = L"";
         ITfContextView* view = nullptr;
         if (SUCCEEDED(context->GetActiveView(&view))) {
+            view->GetWnd(&caretWindow_);
             ITfRange* point = nullptr;
             if (SUCCEEDED(selection.range->Clone(&point))) {
                 point->Collapse(ec, TF_ANCHOR_END);
@@ -750,6 +859,7 @@ private:
         }
         model_.SetPhraseAvailable(reply.phrase_mode != "off");
         model_.SetSettings(reply.popup);
+        popupSettings_ = reply.popup;
         popup_.SetSettings(reply.popup);
         // Next words belong only where no word is being typed, and completions only where one is.
         bool allNext = !reply.kinds.empty();
@@ -772,6 +882,7 @@ private:
 
     // Replaces the typed part of the current word with words_[index] (a next word is inserted at the caret).
     void Accept(ITfContext* context, std::size_t index) {
+        HideExternal();
         popup_.Hide();
         if (index >= words_.size()) return;
         std::wstring chosen = words_[index];
@@ -787,6 +898,7 @@ private:
 
     // Inserts phrase text at the caret (the whole phrase, or its next word).
     void InsertPhrase(ITfContext* context, const std::wstring& text, const char* kind) {
+        HideExternal();
         if (text.empty()) return;
         std::wstring expectedBefore = promptBefore_;
         auto body = [this, self = ServiceHold(this), context = ComPtrHold(context), text, expectedBefore, kind](TfEditCookie ec) mutable {
@@ -933,6 +1045,25 @@ private:
                 if (reply) service->OnReply(*reply);
                 return true;
             }
+            if (message == completionist::render::kRenderClientNoticeMessage) {
+                std::unique_ptr<completionist::render::ClientNotice> notice(
+                    reinterpret_cast<completionist::render::ClientNotice*>(lParam));
+                if (notice && notice->ack && notice->ack->revision == service->renderRevision_ &&
+                    notice->ack->owner.pid == service->renderIdentity_.pid &&
+                    notice->ack->owner.hostHwnd == service->renderIdentity_.hostHwnd &&
+                    notice->ack->owner.session == service->renderIdentity_.session &&
+                    notice->ack->owner.generation >= service->renderIdentity_.generation) {
+                    service->renderIdentity_ = notice->ack->owner;
+                    if (!notice->fallbackVisible && notice->ack->presented) {
+                        service->externalPresented_ = true;
+                        service->popup_.Hide();
+                    }
+                } else if (notice && notice->fallbackVisible && service->externalPresented_) {
+                    service->externalPresented_ = false;
+                    service->Render(false);
+                }
+                return true;
+            }
             if (message == completionist::WM_COMPLETIONIST_CONNECTION) {
                 if (!completionist::IsCurrentConnectionObserver(service->connectionObserverToken_, wParam)) return true;
                 service->engineConnected_ = lParam != 0;
@@ -970,7 +1101,14 @@ private:
     std::wstring app_;
 
     completionist::Popup popup_;
+    std::unique_ptr<completionist::render::RenderClient> renderClient_;
     completionist::PopupModel model_;
+    completionist::PopupSettings popupSettings_;
+    completionist::render::Identity renderIdentity_{};
+    std::string renderSession_;
+    std::uint64_t renderRevision_ = 0;
+    bool rendererEligible_ = false;
+    bool externalPresented_ = false;
     std::vector<std::wstring> words_;
     std::vector<std::string> kinds_;  // what each of words_ is: "word", "chunk" or "next"
     std::vector<std::vector<int>> marks_;  // guessed letter positions per word (a typo correction's marks)
@@ -993,6 +1131,7 @@ private:
     std::wstring promptWord_;    // the typed part of the word the words complete
     std::wstring promptBefore_;  // text before the caret when it was asked
     RECT caret_ = {};
+    HWND caretWindow_ = nullptr;
     bool wordsAllowed_ = false;   // this text may show word completions
     bool phraseAllowed_ = false;  // ...and/or a phrase
     bool hotkeyPending_ = false;  // Ctrl+Space was pressed: ask for a phrase once the text has been read

@@ -2,6 +2,8 @@
 #include "../src/protocol.h"
 #include "test_harness.h"
 
+#include <limits>
+
 using namespace completionist::render;
 
 namespace {
@@ -149,6 +151,33 @@ TEST(render_encoder_replaces_invalid_utf8_metadata) {
     CHECK(parsed.has_value());
     CHECK(parsed->owner.session == "id\xEF\xBF\xBD");
     CHECK(parsed->triggerReason == "reason\xEF\xBF\xBD");
+}
+
+TEST(render_encoder_never_emits_text_or_settings_rejected_by_parser) {
+    Snapshot textTooLong = Sample();
+    textTooLong.typedFragment.assign(kMaxTextBytes + 1, L'x');
+    CHECK(EncodeShow(textTooLong).empty());
+    Snapshot phraseTooLong = Sample();
+    phraseTooLong.phrase.assign(kMaxTextBytes + 1, L'x');
+    CHECK(EncodeShow(phraseTooLong).empty());
+    Snapshot invalidSettings = Sample();
+    invalidSettings.settings.width_scale = std::numeric_limits<double>::quiet_NaN();
+    CHECK(EncodeShow(invalidSettings).empty());
+    invalidSettings.settings.width_scale = std::numeric_limits<double>::infinity();
+    CHECK(EncodeShow(invalidSettings).empty());
+    invalidSettings.settings.width_scale = 2.01;
+    CHECK(EncodeShow(invalidSettings).empty());
+    invalidSettings.settings.width_scale = 1.0;
+    invalidSettings.settings.font_size = 6;
+    CHECK(EncodeShow(invalidSettings).empty());
+    invalidSettings.settings.font_size = 25;
+    CHECK(EncodeShow(invalidSettings).empty());
+    Snapshot invalidUtf8Limit = Sample();
+    invalidUtf8Limit.owner.session = std::string(128, '\xFF');
+    CHECK(EncodeShow(invalidUtf8Limit).empty());
+    invalidUtf8Limit = Sample();
+    invalidUtf8Limit.triggerReason = std::string(256, '\xFF');
+    CHECK(EncodeShow(invalidUtf8Limit).empty());
 }
 
 TEST(render_protocol_preserves_uint64_identity_and_revision_exactly) {
