@@ -1,9 +1,24 @@
 #define NOMINMAX
 #include <windows.h>
-#include <cwchar>
+#include "fixture.h"
+#include "fault_dialogs.h"
+#include <shellapi.h>
 
-// Until the DirectComposition presentation path lands, the executable is inert.
-// This prevents an accidental desktop capture or an empty foreground window.
-int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int){
-    return std::wcsstr(GetCommandLineW(),L"--live") ? ERROR_NOT_SUPPORTED : ERROR_SUCCESS;
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
+    if (!renderer::suppressFaultDialogsForCurrentProcess()) return ERROR_FUNCTION_FAILED;
+    int count = 0;
+    LPWSTR* args = CommandLineToArgvW(GetCommandLineW(), &count);
+    if (!args) return ERROR_INVALID_PARAMETER;
+    int result = ERROR_SUCCESS;
+    if (count == 3 && lstrcmpW(args[1], L"--fixture") == 0) {
+        if (!renderer::renderFixture(args[2])) result = ERROR_GEN_FAILURE;
+    } else if (count > 1 && lstrcmpW(args[1], L"--live") == 0) {
+        // Live desktop acquisition stays disabled until capture policy and the
+        // event-driven graphics worker are integrated and reviewed.
+        result = ERROR_NOT_SUPPORTED;
+    } else if (count != 1) {
+        result = ERROR_INVALID_PARAMETER;
+    }
+    LocalFree(args);
+    return result;
 }

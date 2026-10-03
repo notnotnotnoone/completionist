@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-02",
+      "text": "Task 1b: added process-local crash-dialog suppression and DirectComposition presentation scaffolding; fixture WIC runtime fault is unverified after compile-only COM lifetime fix; M10.14 remains doing."
+    },
+    {
+      "date": "2026-10-02",
       "text": "Strengthened M10.14 WARP tests to compare production blur output with the normalized sigma-6 radius-18 Gaussian profile."
     },
     {

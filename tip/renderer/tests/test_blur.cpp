@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 #include "../material.h"
+#include "../fault_dialogs.h"
 
 using Microsoft::WRL::ComPtr;
 static void require(bool ok,const char* message){if(!ok){std::fprintf(stderr,"FAIL: %s\n",message);ExitProcess(1);}}
@@ -23,6 +24,7 @@ static std::vector<unsigned char> renderFixture(ID3D11Device* device,ID3D11Devic
 }
 static unsigned char at(const std::vector<unsigned char>& image,int w,int x,int y){return image[(static_cast<size_t>(y*w+x))*4];}
 int wmain(){
+    if(!renderer::suppressFaultDialogsForCurrentProcess()) return 2;
     constexpr int w=129,h=65,r=18,centerX=w/2,centerY=h/2;constexpr float sigma=6.f;
     std::array<float,2*r+1> expected{};float normalization=0;
     for(int i=-r;i<=r;++i){float x=static_cast<float>(i);expected[i+r]=std::exp(-(x*x)/(2*sigma*sigma));normalization+=expected[i+r];}
