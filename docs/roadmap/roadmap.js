@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-02",
+      "text": "Document the conservative V2 viewer scope and baseline/native live verification boundaries."
+    },
+    {
+      "date": "2026-10-02",
       "text": "Added partial D3D11 Gaussian blur and WARP fixture foundation for M10.14; live composition and acceptance remain pending."
     },
     {
