@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Record reviewed standalone material source and correct V2 scope notes; live/runtime acceptance remains open."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Fix Task 1b review: opaque fallback, shared fixture material, Windows build floor, and production resource-retirement probes."
     },
     {
@@ -3706,7 +3710,7 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
         "codex/native-autocomplete-v2"
       ],
-      "notes": "Scope and document review for the V2 native desktop surfaces. The owner verified the C++ glass spike works and requested softer true Gaussian blur. The final spec and nine-stage plan are drafted; latest material review, joint document approval and live desktop capture/focus/DPI verification remain pending. No production renderer or installed DLL has been changed. M10.14 is the next feasibility stage; viewer redesign remains an independent V2 track.",
+      "notes": "Owner authorized the V2 overhaul using Luna agents. Viewer is complete and reviewed; engine metadata, renderer protocol, native layout and standalone material source have independent reviews. Native runtime, live material/focus/DPI and real-app acceptance remain unrun after disruptive crash dialogs; external rendering stays disabled by default. No installation or release performed.",
       "targetRelease": "2.0.0",
       "label": "Popup scope"
     },
