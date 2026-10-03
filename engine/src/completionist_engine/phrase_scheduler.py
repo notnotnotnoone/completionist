@@ -59,6 +59,11 @@ class PhraseScheduler:
         self._inflight: int | None = None
         self._pending: Request | None = None
         self._due: float | None = None
+        self._origin_id: int | None = None
+        self._started_at: float | None = None
+        self._streaming = False
+        self._terminal_failure = False
+        self._usable = True
 
     # -- events ----------------------------------------------------------------------------------
 
@@ -66,6 +71,7 @@ class PhraseScheduler:
         """A keystroke (or caret move): the text before the caret is now `request.before`."""
         self._latest = request
         self._mode = mode
+        self._usable = usable
         actions: list[Action] = []
         if self._base is not None:
             if self._typed_since(request.before) is not None and self._consistent():
@@ -85,6 +91,7 @@ class PhraseScheduler:
         del now
         self._latest = request
         self._mode = mode
+        self._usable = usable
         if self._base is not None and self._typed_since(request.before) is not None and self._consistent():
             shown = self._shown()
             if shown or not self._done:
@@ -105,11 +112,12 @@ class PhraseScheduler:
         self._due = None
         return Update(tuple(self._start(pending)), "", False, pending.id)
 
-    def chunk(self, text: str, now: float) -> Update | None:
+    def chunk(self, text: str, now: float, origin_id: int | None = None) -> Update | None:
         """The provider produced more text. None if nothing is waiting for it any more."""
-        if self._base is None or self._latest is None:
+        if self._base is None or self._latest is None or not self._matches_origin(origin_id):
             return None
         self._text += text
+        self._streaming = True
         if not self._consistent():  # the writer typed something the phrase doesn't say
             actions = self._clear()
             if self._mode == "auto" and self._latest.before.strip():
@@ -118,17 +126,73 @@ class PhraseScheduler:
             return Update(tuple(actions), "", True, self._latest.id)
         return Update((), self._shown(), False, self._latest.id)
 
-    def finished(self) -> Update | None:
+    def finished(self, origin_id: int | None = None) -> Update | None:
         """The provider stream ended normally."""
-        if self._base is None or self._latest is None:
+        if self._base is None or self._latest is None or not self._matches_origin(origin_id):
             return None
         self._done = True
         self._inflight = None
+        self._origin_id = None
         return Update((), self._shown() if self._consistent() else "", True, self._latest.id)
 
-    def failed(self) -> Update | None:
+    def failed(self, origin_id: int | None = None) -> Update | None:
         """The provider failed: show whatever arrived and stop."""
-        return self.finished()
+        update = self.finished(origin_id)
+        if update is not None:
+            self._terminal_failure = True
+        return update
+
+    def provider_started(self, origin_id: int, now: float) -> bool:
+        """Record a real provider invocation, rejecting a cancelled/stale task."""
+        if not self._matches_origin(origin_id) or self._started_at is not None:
+            return False
+        self._started_at = now
+        self._terminal_failure = False
+        return True
+
+    def provider_chunk(self, origin_id: int) -> bool:
+        """Record that the provider yielded text, even when display filtering buffers it."""
+        if not self._matches_origin(origin_id) or self._started_at is None:
+            return False
+        self._streaming = True
+        return True
+
+    def provider_is_active(self, origin_id: int) -> bool:
+        return self._matches_origin(origin_id) and self._started_at is not None
+
+    def display_status(self, now: float) -> dict[str, object]:
+        """Return a bounded, read-only view of current scheduling and provider lifecycle."""
+        due = self._due
+        if self._mode == "off":
+            state, reason = "off", "paused"
+        elif due is not None:
+            state, reason = "scheduled", "idle"
+        elif self._terminal_failure:
+            state, reason = "unavailable", "unavailable"
+        elif self._inflight is not None:
+            reason = "manual" if self._mode == "hotkey" else "idle"
+            if self._started_at is None:
+                # The scheduler fired, but async preparation/provider invocation has not begun.
+                state = "manual" if self._mode == "hotkey" else "scheduled"
+            else:
+                state = "streaming" if self._streaming else "working"
+        elif self._done and self._started_at is not None:
+            state, reason = "ready", "manual" if self._mode == "hotkey" else "idle"
+        elif self._mode == "hotkey":
+            state, reason = "manual", "manual"
+        elif not self._usable:
+            state, reason = "unavailable", "unavailable"
+        else:
+            state, reason = "off", "paused"
+
+        remaining = max(0.0, due - now) if due is not None else 0.0
+        elapsed = max(0.0, now - self._started_at) if self._started_at is not None else 0.0
+        return {
+            "phrase_state": state,
+            "phrase_wait_ms": max(0, min(600000, round(remaining * 1000))),
+            "phrase_elapsed_ms": max(0, min(600000, round(elapsed * 1000))),
+            "trigger_reason": reason,
+        }
 
     def dismiss(self) -> tuple[Action, ...]:
         """The writer dismissed the popup, or accepted the phrase."""
@@ -146,6 +210,10 @@ class PhraseScheduler:
         self._text = ""
         self._done = False
         self._inflight = request.id
+        self._origin_id = request.id
+        self._started_at = None
+        self._streaming = False
+        self._terminal_failure = False
         return [Start(request)]
 
     def _clear(self) -> list[Action]:
@@ -154,7 +222,14 @@ class PhraseScheduler:
         self._text = ""
         self._done = True
         self._inflight = None
+        self._origin_id = None
+        self._started_at = None
+        self._streaming = False
+        self._terminal_failure = False
         return actions
+
+    def _matches_origin(self, origin_id: int | None) -> bool:
+        return self._origin_id is not None and (origin_id is None or self._origin_id == origin_id)
 
     def _typed_since(self, before: str) -> str | None:
         """What was typed after the request began, or None if `before` doesn't continue its text.

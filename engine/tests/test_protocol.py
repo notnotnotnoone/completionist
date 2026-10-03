@@ -112,6 +112,19 @@ def test_a_word_reply_carries_phrase_fields_only_when_relevant():
     assert PhraseUpdate(id=4, text="hi", done=True).to_message() == {"id": 4, "type": "phrase", "text": "hi", "done": True}
 
 
+def test_optional_status_and_origins_are_serialized_without_changing_legacy_shape():
+    from completionist_engine.protocol import PhraseUpdate
+
+    words = WordReply(id=2, replace=3, words=("work", "worldwide"), origins=("local", "learned"),
+                      phrase_state="scheduled", phrase_wait_ms=250, phrase_elapsed_ms=0, trigger_reason="idle")
+    message = words.to_message()
+    assert message["origins"] == ["local", "learned"]
+    assert message["phrase_state"] == "scheduled" and message["phrase_wait_ms"] == 250
+    assert message["phrase_elapsed_ms"] == 0 and message["trigger_reason"] == "idle"
+    update = PhraseUpdate(id=2, text="", done=False, phrase_state="working", phrase_elapsed_ms=12)
+    assert update.to_message()["phrase_state"] == "working"
+
+
 def test_a_quiet_flag_is_parsed_and_defaults_to_false():
     from completionist_engine.protocol import parse_request
 

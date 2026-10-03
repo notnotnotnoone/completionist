@@ -140,6 +140,24 @@ def test_an_engine_without_a_personal_store_still_works():
     assert session.handle(keystroke("hello wor")).words == ("work", "world")
 
 
+def test_origins_follow_candidates_through_chunks_casing_and_deduplication():
+    personal = PersonalStore()
+    personal.record_accepted("work", ())
+    personal.record_accepted("work", ())
+    personal.record_accepted("worldwide", ())
+    personal.record_accepted("worldwide", ())
+    config = Config(block=frozenset(), allow=frozenset(), word_limit=5, chunks=False)
+    engine = Engine(WordCompleter(VOCAB, personal=personal, promote_after=2), config, personal=personal)
+
+    reply = engine.handle(keystroke("Hello Wor"))
+
+    by_lower_word = {word.lower(): origin for word, origin in zip(reply.words, reply.origins)}
+    assert by_lower_word["work"] == "local"  # the personal boost does not change its provenance
+    assert by_lower_word["worldwide"] == "learned"
+    assert len(reply.origins) == len(reply.words)
+    assert len({word.lower() for word in reply.words}) == len(reply.words)  # casing/dedup kept alignment
+
+
 # --- next words -------------------------------------------------------------------------------------
 
 from completionist_engine.counts import Counts  # noqa: E402
@@ -225,6 +243,28 @@ def test_next_words_are_named_next():
     engine, _ = chain_engine(next_words=True, next_threshold=0.1)
     reply = engine.handle(keystroke("I'd like to "))
     assert reply.words == ("know", "see") and reply.kinds == ("next", "next")
+
+
+class _OutOfBaseNext:
+    def counts(self, context, prefix):
+        if context == ("to",):
+            return Counts({"woogle": 90} if "woogle".startswith(prefix) else {}, 100)
+        return Counts({}, 0)
+
+
+def test_next_word_origin_requires_personal_promotion_outside_the_base_dictionary():
+    config = Config(block=frozenset(), allow=frozenset(), word_limit=5, next_words=True, next_threshold=0.1)
+    corpus_only = Engine(WordCompleter(VOCAB, ngrams=_OutOfBaseNext()), config)
+    assert corpus_only.handle(keystroke("I'd like to ")).words == ()
+
+    personal = PersonalStore()
+    personal.record_accepted("woggle", ("to",))
+    personal.record_accepted("woggle", ("to",))
+    promoted = Engine(WordCompleter(VOCAB, ngrams=_OutOfBaseNext(), personal=personal, promote_after=2), config,
+                      personal=personal)
+    reply = promoted.handle(keystroke("I'd like to "))
+    assert reply.words == ("woggle",)
+    assert reply.origins == ("learned",)
 
 
 def test_the_list_is_never_longer_than_the_word_limit():

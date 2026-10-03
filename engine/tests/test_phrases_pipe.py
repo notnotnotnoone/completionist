@@ -47,8 +47,11 @@ def test_an_allow_listed_app_gets_a_phrase_pushed_after_a_pause():
 
     reply, messages = asyncio.run(scenario())
     assert reply["type"] == "words" and reply["phrase_mode"] == "auto" and "phrase" not in reply
+    assert reply["phrase_state"] == "scheduled" and reply["phrase_wait_ms"] > 0
     assert [m["type"] for m in messages] == ["phrase"] * len(messages)
-    assert messages[-1] == {"id": 1, "type": "phrase", "text": "ld is big", "done": True}
+    assert messages[-1]["id"] == 1 and messages[-1]["text"] == "ld is big" and messages[-1]["done"] is True
+    assert any(message["phrase_state"] == "working" for message in messages)
+    assert messages[-1]["phrase_state"] == "ready"
 
 
 def test_other_apps_only_get_phrases_on_the_hotkey():

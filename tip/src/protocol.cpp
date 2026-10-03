@@ -350,6 +350,45 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
     WordReply reply;
     reply.id = static_cast<std::uint32_t>(id->number);
 
+    auto optional_status = [&] {
+        if (const Json* state = document->Find("phrase_state")) {
+            if (state->type == Json::Type::String) {
+                const auto& value = state->string;
+                if (value == "off" || value == "manual" || value == "scheduled" || value == "working" ||
+                    value == "streaming" || value == "ready" || value == "unavailable")
+                    reply.phrase_state = value;
+                else
+                    reply.phrase_state = "unavailable";
+            } else {
+                reply.phrase_state = "unavailable";
+            }
+        }
+        auto duration = [&](const char* name, std::optional<int>* target) {
+            const Json* value = document->Find(name);
+            if (value && value->type == Json::Type::Number && std::isfinite(value->number) &&
+                value->number >= 0 && value->number <= 600000 && std::floor(value->number) == value->number)
+                *target = static_cast<int>(value->number);
+        };
+        duration("phrase_wait_ms", &reply.phrase_wait_ms);
+        duration("phrase_elapsed_ms", &reply.phrase_elapsed_ms);
+        if (const Json* reason = document->Find("trigger_reason"); reason && reason->type == Json::Type::String)
+            reply.trigger_reason = reason->string;
+        if (const Json* origins = document->Find("origins"); origins && origins->type == Json::Type::Array &&
+            origins->array.size() == reply.words.size()) {
+            std::vector<std::string> parsed;
+            parsed.reserve(origins->array.size());
+            bool valid = true;
+            for (const Json& origin : origins->array) {
+                if (origin.type != Json::Type::String || (origin.string != "local" && origin.string != "learned")) {
+                    valid = false;
+                    break;
+                }
+                parsed.push_back(origin.string);
+            }
+            if (valid) reply.origins = std::move(parsed);
+        }
+    };
+
     if (type->string == "phrase") {
         const Json* text = document->Find("text");
         const Json* done = document->Find("done");
@@ -357,6 +396,7 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
         reply.kind = ReplyKind::Phrase;
         reply.phrase = FromUtf8(text->string);
         reply.phrase_done = done->boolean;
+        optional_status();
         return reply;
     }
     if (type->string != "words") return std::nullopt;
@@ -429,6 +469,7 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
             return std::nullopt;
         reply.phrase_mode = mode->string;
     }
+    optional_status();
     return reply;
 }
 

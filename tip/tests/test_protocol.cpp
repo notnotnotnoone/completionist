@@ -271,6 +271,37 @@ TEST(malformed_marks_are_rejected) {
     CHECK(!ParseWordReply(R"({"id":1,"type":"words","replace":0,"words":["ab"],"marks":"x"})").has_value());          // not a list
 }
 
+TEST(optional_phrase_status_and_origins_are_parsed_without_affecting_words) {
+    auto reply = ParseWordReply(R"({"id":4,"type":"words","replace":3,"words":["Work","worldwide"],"phrase_state":"streaming","phrase_wait_ms":0,"phrase_elapsed_ms":123,"trigger_reason":"idle","origins":["local","learned"]})");
+    CHECK(reply.has_value());
+    CHECK_EQ(reply->phrase_state, std::string("streaming"));
+    CHECK(reply->phrase_wait_ms.has_value() && *reply->phrase_wait_ms == 0);
+    CHECK(reply->phrase_elapsed_ms.has_value() && *reply->phrase_elapsed_ms == 123);
+    CHECK_EQ(reply->trigger_reason, std::string("idle"));
+    CHECK_EQ(reply->origins.size(), 2u);
+    CHECK_EQ(reply->origins[1], std::string("learned"));
+
+    auto legacy = ParseWordReply(R"({"id":4,"type":"words","replace":3,"words":["world"]})");
+    CHECK(legacy.has_value() && legacy->origins.empty() && legacy->phrase_state.empty());
+    auto bad_origin_count = ParseWordReply(R"({"id":4,"type":"words","replace":3,"words":["world","work"],"origins":["learned"]})");
+    CHECK(bad_origin_count.has_value() && bad_origin_count->words.size() == 2 && bad_origin_count->origins.empty());
+    auto bad_origin_value = ParseWordReply(R"({"id":4,"type":"words","replace":3,"words":["world"],"origins":["ai"]})");
+    CHECK(bad_origin_value.has_value() && bad_origin_value->words.size() == 1 && bad_origin_value->origins.empty());
+}
+
+TEST(optional_status_rejects_invalid_durations_and_unknown_state_safely) {
+    for (const char* invalid : {"true", "-1", "600001", "1.5", "1e999"}) {
+        std::string body = R"({"id":4,"type":"words","replace":0,"words":["a"],"phrase_wait_ms":)" + std::string(invalid) + "}";
+        auto reply = ParseWordReply(body);
+        CHECK(reply.has_value() && reply->words.size() == 1 && !reply->phrase_wait_ms.has_value());
+    }
+    auto unknown = ParseWordReply(R"({"id":4,"type":"words","replace":0,"words":["a"],"phrase_state":"simulating"})");
+    CHECK(unknown.has_value() && unknown->phrase_state == "unavailable" && unknown->words.size() == 1);
+    auto push = ParseWordReply(R"({"id":9,"type":"phrase","text":"","done":false,"phrase_state":"working","phrase_elapsed_ms":88})");
+    CHECK(push.has_value() && push->kind == ReplyKind::Phrase && push->phrase_state == "working");
+    CHECK(push->phrase_elapsed_ms.has_value() && *push->phrase_elapsed_ms == 88);
+}
+
 TEST(an_accept_request_can_name_a_chunk_or_next_word) {
     for (const char* kind : {"chunk", "next"}) {
         Request request;

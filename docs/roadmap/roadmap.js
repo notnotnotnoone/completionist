@@ -2,7 +2,7 @@ window.COMPLETIONIST_ROADMAP = {
   "schema": 4,
   "project": "Completionist",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
-  "updated": "2026-10-02",
+  "updated": "2026-10-03",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
   "now": "Building toward 2.0.0: nine native desktop stages plus the viewer and scope tracks. Live soft-glass feasibility is next. Latest recorded shipped release is 1.1.14; tense-aware ranking targets 2.1.0 and the browser client targets 3.0.0.",
@@ -1280,6 +1280,18 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-03",
+      "text": "M10.15 engine lifecycle and candidate-origin metadata implemented; full engine suite passed (633 passed, 1 skipped); native parser runtime remains deferred."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "M10.15 engine lifecycle and candidate-origin metadata implemented; Python checks updated; native protocol execution remains pending owner clearance."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Started M10.15 toward 2.0.0."
+    },
     {
       "date": "2026-10-02",
       "text": "Task 1b safety follow-up: fixed fixture WIC row-stride versus total-buffer sizing with checked dimensions and compile-time layout cases; runtime remains unverified and M10.14 stays doing."
@@ -3714,7 +3726,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.15",
       "title": "Supply truthful AI lifecycle and suggestion origins",
-      "status": "todo",
+      "status": "doing",
       "area": "engine",
       "stories": [
         74

@@ -48,7 +48,8 @@ def test_keystroke_over_the_pipe_gets_a_word_reply():
             await client.close()
         return reply
 
-    assert asyncio.run(scenario()) == {"id": 1, "type": "words", "replace": 3, "words": ["work", "world", "worry"]}
+    assert asyncio.run(scenario()) == {"id": 1, "type": "words", "replace": 3, "words": ["work", "world", "worry"],
+                                       "origins": ["local", "local", "local"]}
 
 
 def test_one_connection_serves_many_requests_in_order():

@@ -5,7 +5,7 @@ Each frame is a 4-byte little-endian length followed by that many bytes of UTF-8
 
 import json
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal, get_args
 
 DEFAULT_PIPE_NAME = r"\\.\pipe\completionist-engine"
@@ -14,6 +14,7 @@ _HEADER = struct.Struct("<I")
 
 EventType = Literal["keystroke", "hotkey", "accept", "dismiss"]
 _EVENT_TYPES = frozenset(get_args(EventType))
+PhraseState = Literal["off", "manual", "scheduled", "working", "streaming", "ready", "unavailable"]
 
 
 class ProtocolError(Exception):
@@ -118,6 +119,11 @@ class WordReply:
     """"auto", "hotkey" or "off": whether phrases are available in this field."""
     popup: dict[str, Any] | None = None
     """Optional native popup appearance and shortcut preferences; older clients ignore this."""
+    phrase_state: PhraseState | None = None
+    phrase_wait_ms: int | None = None
+    phrase_elapsed_ms: int | None = None
+    trigger_reason: str | None = None
+    origins: tuple[str, ...] = field(default=(), compare=False)
 
     def to_message(self) -> dict[str, Any]:
         message: dict[str, Any] = {"id": self.id, "type": "words", "replace": self.replace, "words": list(self.words)}
@@ -132,6 +138,9 @@ class WordReply:
             message["phrase_done"] = self.phrase_done
         if self.popup is not None:
             message["popup"] = self.popup
+        _add_status(message, self.phrase_state, self.phrase_wait_ms, self.phrase_elapsed_ms, self.trigger_reason)
+        if len(self.origins) == len(self.words) and self.origins:
+            message["origins"] = list(self.origins)
         return message
 
 
@@ -142,6 +151,26 @@ class PhraseUpdate:
     id: int
     text: str
     done: bool
+    phrase_state: PhraseState | None = None
+    phrase_wait_ms: int | None = None
+    phrase_elapsed_ms: int | None = None
+    trigger_reason: str | None = None
 
     def to_message(self) -> dict[str, Any]:
-        return {"id": self.id, "type": "phrase", "text": self.text, "done": self.done}
+        message: dict[str, Any] = {"id": self.id, "type": "phrase", "text": self.text, "done": self.done}
+        _add_status(message, self.phrase_state, self.phrase_wait_ms, self.phrase_elapsed_ms, self.trigger_reason)
+        return message
+
+
+def _add_status(
+    message: dict[str, Any], state: PhraseState | None, wait_ms: int | None,
+    elapsed_ms: int | None, reason: str | None,
+) -> None:
+    if state is not None:
+        message["phrase_state"] = state
+    if wait_ms is not None:
+        message["phrase_wait_ms"] = wait_ms
+    if elapsed_ms is not None:
+        message["phrase_elapsed_ms"] = elapsed_ms
+    if reason is not None:
+        message["trigger_reason"] = reason

@@ -48,6 +48,11 @@ struct WordReply {
     std::wstring phrase;          // the phrase continuation to show, if any
     bool phrase_done = true;      // false while more phrase text may arrive
     std::string phrase_mode = "off";  // "auto", "hotkey" or "off": whether phrases are available here
+    std::string phrase_state;     // optional truthful AI lifecycle state
+    std::optional<int> phrase_wait_ms;
+    std::optional<int> phrase_elapsed_ms;
+    std::string trigger_reason;
+    std::vector<std::string> origins;  // optional one-per-word local/learned provenance
 };
 
 // Parses a frame body. Returns nothing for anything that isn't a well-formed words or phrase message.

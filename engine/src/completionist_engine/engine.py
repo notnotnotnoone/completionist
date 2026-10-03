@@ -166,7 +166,8 @@ class Session:
             self._words_open = self._phrase_open = False
             if self._phrase is not None:
                 self._phrase.on_dismiss()  # cancel a phrase still showing or streaming
-            return WordReply(id=request.id, replace=0, words=())
+            status = self._phrase.display_status() if self._phrase is not None else {}
+            return WordReply(id=request.id, replace=0, words=(), **status)
         if engine._personal is not None and config.learning:
             finished = self._learner.observe(request.before)
             if finished is not None:
@@ -175,19 +176,22 @@ class Session:
         else:
             self._learner.reset()
         completion = engine._completer.complete(request.before, limit=config.word_limit, typo_correction=config.typo_correction)
-        words, kinds = completion.words, ("word",) * len(completion.words)
+        words, kinds, origins = completion.words, ("word",) * len(completion.words), completion.origins
         marks: tuple[tuple[int, ...], ...] = completion.marks
         if config.next_words and not words:
             completion = engine._completer.next_words(
                 request.before, limit=config.word_limit, threshold=config.next_threshold
             )
             words, kinds = completion.words, ("next",) * len(completion.words)
+            origins = completion.origins
             marks = ()
         elif config.chunks and words:
-            chunks = engine._completer.chunks(request.before, seeds=completion.words).words
+            chunk_completion = engine._completer.chunks(request.before, seeds=completion.words)
+            chunks = chunk_completion.words
             words = (*chunks, *words)[: config.word_limit]
             kinds = (*("chunk",) * len(chunks), *("word",) * len(completion.words))[: config.word_limit]
             marks = (*(() for _ in chunks), *completion.marks)[: config.word_limit]
+            origins = (*chunk_completion.origins, *completion.origins)[: config.word_limit]
         if engine._metrics is not None and words and not request.quiet and not self._words_open:
             engine._metrics.record_shown(self._app, "word")
         self._words_open = bool(words) and not request.quiet
@@ -199,6 +203,9 @@ class Session:
             self._note_phrase(phrase)
             if engine._phrases is not None and engine._phrases.available:
                 phrase_mode = "hotkey" if config.phrase.preview_context and mode.phrase != "off" else mode.phrase
+            status = self._phrase.display_status()
+        else:
+            status = {}
         return WordReply(
             id=request.id,
             replace=completion.replace,
@@ -209,6 +216,8 @@ class Session:
             phrase_done=phrase_done,
             phrase_mode=phrase_mode,
             popup=self._popup_settings(),
+            origins=origins,
+            **status,
         )
 
     def _popup_settings(self) -> dict | None:

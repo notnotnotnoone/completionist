@@ -222,6 +222,9 @@ class PhraseSession:
             task.cancel()
         self._tasks.clear()
 
+    def display_status(self) -> dict[str, object]:
+        return self._scheduler.display_status(self._now())
+
     def suspend(self) -> None:
         """Cancel pending work without treating a privacy or settings change as a rejection."""
         self._service.cancel_preview(self)
@@ -294,7 +297,10 @@ class PhraseSession:
             return
         self._apply(update.actions)
         self._arm_timer()
-        self._push(PhraseUpdate(id=update.request_id, text=update.phrase, done=update.done))
+        self._push(PhraseUpdate(id=update.request_id, text=update.phrase, done=update.done, **self.display_status()))
+
+    def _push_status(self, request_id: int, text: str = "", done: bool = False) -> None:
+        self._push(PhraseUpdate(id=request_id, text=text, done=done, **self.display_status()))
 
     def _prepare(self, request: Request, config: PhraseConfig) -> tuple:
         context = self._service.accessible if config.context_source == "accessible" else self._service.screen
@@ -326,6 +332,11 @@ class PhraseSession:
 
         def event(kind: str, **detail) -> None:
             events.append({"ms": round((service.clock() - started) * 1000), "kind": kind, **detail})
+            if kind == "request_sent":
+                self._scheduler.provider_started(request.id, service.clock())
+            elif kind == "response_started" and self._scheduler.provider_is_active(request.id):
+                current_id = self._last_request_id if self._last_request_id is not None else request.id
+                self._push_status(current_id)
 
         event("started", trigger="manual" if request.event == "hotkey" else "automatic")
         event("context", source=config.context_source, screen_used=shot is not None,
@@ -344,19 +355,23 @@ class PhraseSession:
             stream = temporary_provider.stream(phrase_request, attempts, on_event=event) if temporary_provider else service._stream(phrase_request, attempts, on_event=event)
             emitted = ""
             async for text in stream:
+                if not self._scheduler.provider_chunk(request.id):
+                    outcome = "cancelled"
+                    return
                 if first is None:
                     first = service.clock() - started
                     event("first_text")
                 reply += text
                 event("text_chunk", text=text)
                 if config.avoid_phrases:
+                    self._push_status(self._last_request_id if self._last_request_id is not None else request.id)
                     continue  # buffer to avoid showing part of an excluded phrase across chunk boundaries
                 limited = limit_reply(reply, config)
                 if limited != reply:
                     event("output_limited", shown=limited)
                 delta = limited[len(emitted):]
                 if delta:
-                    self._emit(self._scheduler.chunk(delta, self._now()))
+                    self._emit(self._scheduler.chunk(delta, self._now(), origin_id=request.id))
                 emitted = limited
                 if limited != reply:
                     break
@@ -365,18 +380,18 @@ class PhraseSession:
                 if limited != reply:
                     event("output_limited", shown=limited)
                 if limited:
-                    self._emit(self._scheduler.chunk(limited, self._now()))
+                    self._emit(self._scheduler.chunk(limited, self._now(), origin_id=request.id))
             outcome = "failover" if any(not a.ok for a in attempts) else "ok"
             service.note_success()
             service.record_provider(first, service.clock() - started, True)
-            self._emit(self._scheduler.finished())
+            self._emit(self._scheduler.finished(request.id))
         except ProviderError as err:
             outcome = "failed"
             event("provider_error", error=str(err))
             logger.warning("phrase request failed: %s", err)
             service.note_failure()
             service.record_provider(first, None, False)
-            self._emit(self._scheduler.failed())
+            self._emit(self._scheduler.failed(request.id))
         finally:
             event("finished", outcome=outcome)
             if temporary_provider is not None:

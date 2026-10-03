@@ -48,8 +48,9 @@ def test_the_hotkey_streams_a_phrase_to_the_text_service():
             return pushes
 
     pushes = asyncio.run(scenario())
-    assert [p.text for p in pushes] == ["ld is", "ld is big", "ld is big"]
-    assert [p.done for p in pushes] == [False, False, True]
+    assert [p.text for p in pushes] == ["", "ld is", "ld is big", "ld is big"]
+    assert [p.phrase_state for p in pushes] == ["working", "streaming", "streaming", "ready"]
+    assert [p.done for p in pushes] == [False, False, False, True]
     assert {p.id for p in pushes} == {5}
 
 
@@ -145,7 +146,7 @@ def test_typing_along_trims_the_phrase_and_later_pushes_use_the_newest_request_i
             pushes: list[PhraseUpdate] = []
             session = service.open_session(pushes.append)
             session.on_hotkey(req(1, "Hello wor", event="hotkey"), "hotkey")
-            await settle(pushes, until=lambda p: bool(p))  # "ld" has arrived
+            await settle(pushes, until=lambda p: bool(p and p[-1].text))  # "ld" has arrived
             update = session.on_request(req(2, "Hello worl"), "auto")
             assert update.phrase == "d" and update.done is False
             await settle(pushes)

@@ -7,7 +7,7 @@ Ranking starts from how common each word is in English, then adjusts for the wor
 import re
 from bisect import bisect_left
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from heapq import nlargest
 
@@ -45,6 +45,8 @@ class Completion:
     words: tuple[str, ...]
     marks: tuple[tuple[int, ...], ...] = ()
     """Per word, the letter positions the typed fragment did not earn (guessed letters). Empty means none."""
+    origins: tuple[str, ...] = field(default=(), compare=False)
+    """Candidate provenance aligned with words."""
 
 
 def current_word(before: str) -> str:
@@ -114,13 +116,15 @@ class WordCompleter:
         if self._ngrams is None and self._personal is None and self._fuzzy is None:
             words = self._ranked(key, limit)  # frequency alone
             cased = tuple(dict.fromkeys(_match_case(word, prefix) for word in words))
-            return Completion(replace=len(prefix), words=cased)
+            return Completion(replace=len(prefix), words=cased, origins=("local",) * len(cased))
         words, marks = self._rerank(key, previous_words(before, 2), limit, typo_correction=typo_correction)
-        seen: dict[str, tuple[int, ...]] = {}
+        seen: dict[str, tuple[tuple[int, ...], str]] = {}
         for word, mark in zip(words, marks):
-            seen.setdefault(_match_case(word, prefix), mark)
+            seen.setdefault(_match_case(word, prefix), (mark, self._origin(word)))
         cased = tuple(seen)
-        return Completion(replace=len(prefix), words=cased, marks=tuple(seen.values()))
+        return Completion(replace=len(prefix), words=cased,
+                          marks=tuple(value[0] for value in seen.values()),
+                          origins=tuple(value[1] for value in seen.values()))
 
     def next_words(self, before: str, limit: int = 5, threshold: float = 0.05) -> Completion:
         """Likely words to follow the last one, offered after a space and before any letter is typed.
@@ -137,7 +141,8 @@ class WordCompleter:
         scores = self._next_scores(context)
         likely = [(p, w) for w, p in scores.items() if p > 0 and p >= threshold]
         likely.sort(key=lambda pair: (-pair[0], pair[1]))
-        return Completion(replace=0, words=tuple(_display(w) for _, w in likely[:limit]))
+        words = tuple(_display(w) for _, w in likely[:limit])
+        return Completion(replace=0, words=words, origins=tuple(self._origin(w) for _, w in likely[:limit]))
 
     def chunks(
         self, before: str, limit: int = 2, cutoff: float = 0.3, max_words: int = 3, seeds: tuple[str, ...] | None = None
@@ -154,6 +159,7 @@ class WordCompleter:
             return Completion(replace=0, words=())
         context = previous_words(before, 2)
         found: list[str] = []
+        origins: list[str] = []
         for seed in (seeds if seeds is not None else self.complete(before, limit=limit).words)[:limit]:
             chunk = [seed.lower()]
             while len(chunk) < max_words:
@@ -166,7 +172,16 @@ class WordCompleter:
                 chunk.pop()
             if len(chunk) > 1:
                 found.append(" ".join([seed, *(_display(w) for w in chunk[1:])]))
-        return Completion(replace=len(prefix), words=tuple(found))
+                origins.append(self._origin(seed))
+        return Completion(replace=len(prefix), words=tuple(found), origins=tuple(origins))
+
+    def _origin(self, word: str) -> str:
+        """Learned requires personal promotion; base words stay local despite personal boosts."""
+        key = word.lower()
+        if key in self._index or self._personal is None:
+            return "local"
+        promoted = self._personal.counts((), key).words.get(key, 0) >= self._promote_after
+        return "learned" if promoted else "local"
 
     def _next_scores(self, context: tuple[str, ...]) -> dict[str, float]:
         scores: dict[str, float] = {}
