@@ -289,6 +289,52 @@ TEST(optional_phrase_status_and_origins_are_parsed_without_affecting_words) {
     CHECK(bad_origin_value.has_value() && bad_origin_value->words.size() == 1 && bad_origin_value->origins.empty());
 }
 
+TEST(oversized_or_malformed_optional_metadata_does_not_discard_engine_words) {
+    std::string oversizedOrigins = R"({"id":4,"type":"words","replace":3,"words":["world"],"origins":[)";
+    for (int i = 0; i < 4097; ++i) {
+        if (i) oversizedOrigins.push_back(',');
+        oversizedOrigins += "\"learned\"";
+    }
+    oversizedOrigins += "]}";
+    auto oversized = ParseWordReply(oversizedOrigins);
+    CHECK(oversized.has_value());
+    CHECK_EQ(oversized->words.size(), 1u);
+    CHECK(oversized->origins.empty());
+
+    std::string malformedOrigins = R"({"id":5,"type":"words","replace":3,"words":["work"],"origins":[)";
+    for (int i = 0; i < 4097; ++i) {
+        if (i) malformedOrigins.push_back(',');
+        malformedOrigins += (i == 4096) ? "42" : "\"local\"";
+    }
+    malformedOrigins += "]}";
+    auto malformed = ParseWordReply(malformedOrigins);
+    CHECK(malformed.has_value());
+    CHECK_EQ(malformed->words.size(), 1u);
+    CHECK(malformed->origins.empty());
+
+    std::string unknownMetadata = R"({"id":6,"type":"words","replace":3,"words":["word"],"future":{"items":[)";
+    for (int i = 0; i < 4097; ++i) {
+        if (i) unknownMetadata.push_back(',');
+        unknownMetadata += "null";
+    }
+    unknownMetadata += "]}}";
+    auto unknown = ParseWordReply(unknownMetadata);
+    CHECK(unknown.has_value());
+    CHECK_EQ(unknown->words.size(), 1u);
+    CHECK(unknown->words[0] == L"word");
+
+    std::string oversizedUnknownObject = R"({"id":7,"type":"words","replace":3,"words":["words"],"future_object":{)";
+    for (int i = 0; i < 4097; ++i) {
+        if (i) oversizedUnknownObject.push_back(',');
+        oversizedUnknownObject += "\"field" + std::to_string(i) + "\":null";
+    }
+    oversizedUnknownObject += "}}";
+    auto unknownObject = ParseWordReply(oversizedUnknownObject);
+    CHECK(unknownObject.has_value());
+    CHECK_EQ(unknownObject->words.size(), 1u);
+    CHECK(unknownObject->words[0] == L"words");
+}
+
 TEST(optional_status_rejects_invalid_durations_and_unknown_state_safely) {
     for (const char* invalid : {"true", "-1", "600001", "1.5", "1e999"}) {
         std::string body = R"({"id":4,"type":"words","replace":0,"words":["a"],"phrase_wait_ms":)" + std::string(invalid) + "}";

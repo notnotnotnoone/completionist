@@ -5,10 +5,12 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
 namespace completionist::protocol::detail {
+constexpr std::size_t kMaxJsonBytes = 1u << 20;
 constexpr char32_t kReplacementJson = 0xFFFD;
 inline void AppendUtf8Json(std::string& out, char32_t cp) {
     if (cp < 0x80) out += static_cast<char>(cp);
@@ -25,6 +27,7 @@ struct Json {
     std::string string;
     std::vector<Json> array;
     std::vector<std::pair<std::string, Json>> object;
+    bool truncated = false;
 
     const Json* Find(std::string_view key) const {
         for (auto& [k, v] : object)
@@ -38,6 +41,7 @@ public:
     explicit Parser(std::string_view text) : text_(text) {}
 
     std::optional<Json> ParseDocument() {
+        if (text_.size() > kMaxJsonBytes) return std::nullopt;
         auto value = ParseValue(0);
         SkipSpace();
         if (!value || pos_ != text_.size()) return std::nullopt;
@@ -68,7 +72,7 @@ private:
         return true;
     }
 
-    std::optional<Json> ParseValue(int depth) {
+    std::optional<Json> ParseValue(int depth, bool retain = true) {
         if (depth > kMaxDepth) return std::nullopt;
         SkipSpace();
         if (pos_ >= text_.size()) return std::nullopt;
@@ -78,15 +82,17 @@ private:
             ++pos_;
             value.type = Json::Type::Object;
             if (Consume('}')) return value;
+            std::unordered_set<std::string> seenKeys;
             for (;;) {
                 SkipSpace();
                 auto key = ParseString();
                 if (!key || !Consume(':')) return std::nullopt;
-                if (value.object.size() >= kMaxContainerItems) return std::nullopt;
-                for (const auto& item : value.object) if (item.first == *key) return std::nullopt;
-                auto member = ParseValue(depth + 1);
+                if (!seenKeys.emplace(*key).second) return std::nullopt;
+                const bool keepMember = retain && value.object.size() < kMaxContainerItems;
+                if (retain && !keepMember) value.truncated = true;
+                auto member = ParseValue(depth + 1, keepMember);
                 if (!member) return std::nullopt;
-                value.object.emplace_back(std::move(*key), std::move(*member));
+                if (keepMember) value.object.emplace_back(std::move(*key), std::move(*member));
                 if (Consume(',')) continue;
                 if (Consume('}')) return value;
                 return std::nullopt;
@@ -97,10 +103,11 @@ private:
             value.type = Json::Type::Array;
             if (Consume(']')) return value;
             for (;;) {
-                auto element = ParseValue(depth + 1);
+                const bool keepElement = retain && value.array.size() < kMaxContainerItems;
+                if (retain && !keepElement) value.truncated = true;
+                auto element = ParseValue(depth + 1, keepElement);
                 if (!element) return std::nullopt;
-                if (value.array.size() >= kMaxContainerItems) return std::nullopt;
-                value.array.push_back(std::move(*element));
+                if (keepElement) value.array.push_back(std::move(*element));
                 if (Consume(',')) continue;
                 if (Consume(']')) return value;
                 return std::nullopt;

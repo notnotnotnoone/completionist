@@ -119,6 +119,19 @@ TEST(render_parser_enforces_frame_and_bounded_array_limits) {
     body.replace(start, end - start + 1, many);
     CHECK(!ParseShow(body).has_value());
 
+    std::string beyondParserCap = "[";
+    for (std::size_t i = 0; i <= 4096; ++i) {
+        if (i) beyondParserCap.push_back(',');
+        beyondParserCap += R"({"text":"x","origin":"local","marks":[]})";
+    }
+    beyondParserCap.push_back(']');
+    auto oversizedBody = Body(EncodeShow(Sample()));
+    const auto oversizedWords = oversizedBody.find("\"words\":[");
+    const auto oversizedStart = oversizedWords + 8;
+    const auto oversizedEnd = oversizedBody.find(']', oversizedStart);
+    oversizedBody.replace(oversizedStart, oversizedEnd - oversizedStart + 1, beyondParserCap);
+    CHECK(!ParseShow(oversizedBody).has_value());
+
     Snapshot tooManyMarks = Sample();
     tooManyMarks.words = {{L"x", "local", {}}};
     for (std::size_t i = 0; i < kMaxMarksPerCandidate + 1; ++i) tooManyMarks.words[0].marks.push_back(static_cast<int>(i));

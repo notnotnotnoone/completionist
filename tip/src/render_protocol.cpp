@@ -233,7 +233,7 @@ std::optional<Snapshot> ParseShow(std::string_view body) {
         *coords[i] = static_cast<int32_t>(coord);
     }
     const Json* words = document->Find("words");
-    if (!words || words->type != Json::Type::Array || words->array.size() > kMaxCandidates) return std::nullopt;
+    if (!words || words->type != Json::Type::Array || words->truncated || words->array.size() > kMaxCandidates) return std::nullopt;
     for (const Json& item : words->array) {
         if (item.type != Json::Type::Object) return std::nullopt;
         std::string text, origin;
@@ -241,7 +241,7 @@ std::optional<Snapshot> ParseShow(std::string_view body) {
             (origin != "local" && origin != "learned")) return std::nullopt;
         Candidate candidate{completionist::protocol::FromUtf8(text), std::move(origin), {}};
         const Json* marks = item.Find("marks");
-        if (!marks || marks->type != Json::Type::Array || marks->array.size() > kMaxMarksPerCandidate) return std::nullopt;
+        if (!marks || marks->type != Json::Type::Array || marks->truncated || marks->array.size() > kMaxMarksPerCandidate) return std::nullopt;
         int previous = -1;
         for (const Json& mark : marks->array) {
             int64_t position = 0;

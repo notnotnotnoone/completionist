@@ -191,7 +191,7 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
         duration("phrase_elapsed_ms", &reply.phrase_elapsed_ms);
         if (const Json* reason = document->Find("trigger_reason"); reason && reason->type == Json::Type::String)
             reply.trigger_reason = reason->string;
-        if (const Json* origins = document->Find("origins"); origins && origins->type == Json::Type::Array &&
+        if (const Json* origins = document->Find("origins"); origins && origins->type == Json::Type::Array && !origins->truncated &&
             origins->array.size() == reply.words.size()) {
             std::vector<std::string> parsed;
             parsed.reserve(origins->array.size());
@@ -221,7 +221,7 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
 
     // Optional preferences must never discard useful suggestions. Each bad field independently
     // keeps its default; an old engine with no popup object resets to the original behavior.
-    if (const Json* popup = document->Find("popup"); popup && popup->type == Json::Type::Object) {
+    if (const Json* popup = document->Find("popup"); popup && popup->type == Json::Type::Object && !popup->truncated) {
         if (const Json* font = popup->Find("font_size"); font && font->type == Json::Type::Number &&
             std::isfinite(font->number) && font->number >= 7 && font->number <= 24 &&
             std::floor(font->number) == font->number)
@@ -242,14 +242,14 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
     const Json* replace = document->Find("replace");
     const Json* words = document->Find("words");
     if (!replace || replace->type != Json::Type::Number || replace->number < 0 || replace->number > 100000) return std::nullopt;
-    if (!words || words->type != Json::Type::Array) return std::nullopt;
+    if (!words || words->type != Json::Type::Array || words->truncated) return std::nullopt;
     reply.replace = static_cast<int>(replace->number);
     for (const Json& word : words->array) {
         if (word.type != Json::Type::String) return std::nullopt;
         reply.words.push_back(FromUtf8(word.string));
     }
     if (const Json* kinds = document->Find("kinds")) {
-        if (kinds->type != Json::Type::Array || kinds->array.size() != reply.words.size()) return std::nullopt;
+        if (kinds->type != Json::Type::Array || kinds->truncated || kinds->array.size() != reply.words.size()) return std::nullopt;
         for (const Json& kind : kinds->array) {
             if (kind.type != Json::Type::String || (kind.string != "word" && kind.string != "chunk" && kind.string != "next"))
                 return std::nullopt;
@@ -259,7 +259,7 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
         reply.kinds.assign(reply.words.size(), "word");
     }
     if (const Json* marks = document->Find("marks")) {
-        if (marks->type != Json::Type::Array || marks->array.size() != reply.words.size()) return std::nullopt;
+        if (marks->type != Json::Type::Array || marks->truncated || marks->array.size() != reply.words.size()) return std::nullopt;
         for (std::size_t i = 0; i < marks->array.size(); ++i) {
             const Json& row = marks->array[i];
             if (row.type != Json::Type::Array) return std::nullopt;

@@ -59,3 +59,25 @@ exit=0
 ## Unverified limits
 
 Native assertion runtime RED/GREEN status is **UNRUN** by owner instruction. No native executable, fixture, test harness, debugger, window or live-capture path was launched. Win32 named-pipe ACL enforcement, actual token queries, HWND/foreground validation and hook delivery/cleanup are compile-reviewed but not runtime-verified. The prerequisite Stage 1 live gate is also unverified. The OS helpers remain inert until renderer integration. The current source does not add the asynchronous `RenderClient` queue; renderer publication, acknowledgement dispatch and end-to-end pipe lifecycle remain later integration work.
+
+## Review round 1 correction
+
+The shared JSON parser now materializes at most 4096 elements per container, marks a container truncated at that boundary, and continues syntax validation while skipping further values. It also caps a document at 1 MiB. The existing engine parser ignores a truncated optional `origins` array or truncated optional `popup` object, and unknown oversized metadata is skipped without discarding valid words. Truncated required engine `words`/`kinds`/`marks` arrays and required renderer `words`/`marks` arrays remain rejected.
+
+Authored regression source includes `oversized_or_malformed_optional_metadata_does_not_discard_engine_words` in `tip/tests/test_protocol.cpp` for an oversized origins array, malformed origins member and oversized unknown array/object. `render_parser_enforces_frame_and_bounded_array_limits` in `tip/tests/test_render_protocol.cpp` retains candidate-limit coverage and now also supplies more than the shared parser's 4096-entry materialization limit, which `ParseShow` must reject because `words` is required.
+
+The host protocol source and test executable were compile-checked only; the assertions remain **UNRUN**:
+
+```text
+& .\tip\test.cmd --compile-only; $code=$LASTEXITCODE; Write-Output "exit=$code"; exit $code
+test_main.cpp
+test_popup_model.cpp
+test_protocol.cpp
+test_render_protocol.cpp
+protocol.cpp
+render_protocol.cpp
+Generating Code...
+exit=0
+```
+
+No renderer compile-only rerun or native runtime run was performed for this correction. M10.16 remains `doing`; its runtime, Win32 and Stage 1 gates remain unverified.
