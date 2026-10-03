@@ -105,7 +105,13 @@ The pre-existing `tip/out/CompletionistTip.dll` was preserved with SHA-256 `9AFC
 
 ### Rollback procedure for a later owner-approved install
 
-`scripts/install.ps1` saves the prior pair under `tip/out/rollback/` before replacing either artifact and restores it if activation fails. After a successful install, restore that saved pair from the checkout root, then restart affected apps (and the engine if it is running):
+`scripts/install.ps1` saves the prior pair under `tip/out/rollback/` before replacing either artifact and restores it if activation fails. For a later manual rollback, release file locks before copying anything:
+
+1. Close apps with the TSF DLL loaded.
+2. Stop the engine normally so it can stop its owned renderer; close the renderer normally if it is still running.
+3. Confirm those processes have exited and the DLL/renderer files are unlocked. If either file remains locked, wait or close the remaining owning app and retry; do not force replacement.
+4. From the checkout root, restore the saved pair using the commands below.
+5. Relaunch the engine and affected apps.
 
 ```powershell
 $rollback = 'tip/out/rollback'
@@ -121,4 +127,4 @@ if (Test-Path "$rollback/CompletionistRenderer.exe") {
 }
 ```
 
-This task did not install or register the staged pair. Registration, keyboard settings and any future install remain owner-run; restart apps so they release any loaded DLL before replacing files.
+This task did not install or register the staged pair. Registration, keyboard settings and any future install remain owner-run. Restart apps only after restoring the pair so they load the restored DLL.

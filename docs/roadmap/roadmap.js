@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Task 9 review fix: rollback instructions now release TSF/engine/renderer file locks before restoring artifacts, then relaunch apps. No rollback commands were run."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Task 9 validation: full engine suite and synthetic viewer browser suite passed; isolated x64 host/renderer assertions compiled and paired review artifacts staged. Native runtime/live/performance acceptance remains pending."
     },
     {
