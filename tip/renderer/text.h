@@ -22,6 +22,8 @@ enum class Surface { Menu, Dock };
 Utf16Range NormalizeUtf16Range(const std::wstring& text, UINT32 begin, UINT32 length);
 std::vector<UINT32> ValidCorrectionMarks(const std::wstring& text, const std::vector<int>& marks);
 Utf16Range PhraseAcceptanceRange(const completionist::render::Snapshot& snapshot);
+bool HitTestRangeRects(IDWriteTextLayout* textLayout, Utf16Range range, float originX, float originY,
+                       std::vector<D2D1_RECT_F>* out);
 
 struct PreparedText {
     completionist::layout::ContentMetrics metrics;

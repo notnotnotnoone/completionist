@@ -94,8 +94,8 @@ bool savePng(const std::wstring& path, ID3D11DeviceContext* context, ID3D11Textu
 }
 }
 
-bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark) {
-    if (outputPath.empty() || dpi < 96) return false;
+bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark, int fontSizePoints) {
+    if (outputPath.empty() || dpi < 96 || fontSizePoints < 7 || fontSizePoints > 24) return false;
     const UINT width = kBaseWidth * dpi / 96;
     const UINT height = kBaseHeight * dpi / 96;
     ComApartment apartment;
@@ -177,7 +177,7 @@ bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark) {
     snapshot.ai = completionist::render::AiState::Streaming;
     snapshot.elapsedMs = 800;
     snapshot.engineConnected = true;
-    snapshot.settings.font_size = 12;
+    snapshot.settings.font_size = fontSizePoints;
     completionist::layout::WorkArea work{{0, 0, static_cast<LONG>(width), static_cast<LONG>(height)}, dpi};
     renderer::text::TextRenderer textRenderer(writeFactory.Get());
     renderer::text::PreparedText prepared;
@@ -225,7 +225,10 @@ bool renderFixtureMatrix(const std::wstring& outputDirectory) {
         for (bool dark : {false, true}) {
             const auto name = std::wstring(L"completionist-") + std::to_wstring(dpi) +
                 (dark ? L"-dark.png" : L"-light.png");
-            if (!renderFixture((directory / name).wstring(), dpi, dark)) return false;
+            if (!renderFixture((directory / name).wstring(), dpi, dark, 12)) return false;
+            const auto largestFontName = std::wstring(L"completionist-") + std::to_wstring(dpi) +
+                (dark ? L"-dark-24pt.png" : L"-light-24pt.png");
+            if (!renderFixture((directory / largestFontName).wstring(), dpi, dark, 24)) return false;
         }
     }
     return true;

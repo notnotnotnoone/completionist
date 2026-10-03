@@ -3,6 +3,7 @@
 #include "../renderer/text.h"
 #include "../src/popup_layout.h"
 
+#include <algorithm>
 #include <cmath>
 
 using completionist::render::Rect;
@@ -179,4 +180,43 @@ TEST(PartialAcceptanceRangeTracksDisplayedPhraseWithoutChangingInsertionText) {
     CHECK(range.begin == 9);
     CHECK(range.length == 5);
     CHECK(snapshot.phrase == L"\U0001F600 house at the end");
+}
+
+TEST(PartialAcceptanceHitTestAppliesNonzeroOriginExactlyOnce) {
+    Microsoft::WRL::ComPtr<IDWriteFactory> factory;
+    CHECK(SUCCEEDED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
+        reinterpret_cast<IUnknown**>(factory.GetAddressOf()))));
+    if (!factory) return;
+    Microsoft::WRL::ComPtr<IDWriteTextFormat> format;
+    Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
+    CHECK(SUCCEEDED(factory->CreateTextFormat(L"Segoe UI", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
+        DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 16.0f, L"en-us", &format)));
+    if (!format) return;
+    const std::wstring text = L"hello accepted phrase";
+    CHECK(SUCCEEDED(factory->CreateTextLayout(text.data(), static_cast<UINT32>(text.size()), format.Get(),
+        300.0f, 40.0f, &layout)));
+    if (!layout) return;
+
+    const renderer::text::Utf16Range range{6, 8};
+    UINT32 count = 0;
+    const HRESULT countResult = layout->HitTestTextRange(range.begin, range.length, 0.0f, 0.0f,
+                                                          nullptr, 0, &count);
+    CHECK(countResult == E_NOT_SUFFICIENT_BUFFER || SUCCEEDED(countResult));
+    if (FAILED(countResult) && countResult != E_NOT_SUFFICIENT_BUFFER) return;
+    std::vector<DWRITE_HIT_TEST_METRICS> base(count);
+    if (count == 0 || FAILED(layout->HitTestTextRange(range.begin, range.length, 0.0f, 0.0f,
+                                                      base.data(), count, &count))) return;
+
+    constexpr float originX = 41.0f;
+    constexpr float originY = 23.0f;
+    std::vector<D2D1_RECT_F> actual;
+    CHECK(renderer::text::HitTestRangeRects(layout.Get(), range, originX, originY, &actual));
+    CHECK(actual.size() == base.size());
+    const std::size_t compared = std::min(actual.size(), base.size());
+    for (std::size_t i = 0; i < compared; ++i) {
+        CHECK(std::abs(actual[i].left - (originX + base[i].left)) < 0.01f);
+        CHECK(std::abs(actual[i].top - (originY + base[i].top)) < 0.01f);
+        CHECK(std::abs(actual[i].right - (originX + base[i].left + base[i].width)) < 0.01f);
+        CHECK(std::abs(actual[i].bottom - (originY + base[i].top + base[i].height)) < 0.01f);
+    }
 }

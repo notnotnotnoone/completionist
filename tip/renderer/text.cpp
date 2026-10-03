@@ -98,18 +98,14 @@ D2D1_RECT_F Rect(const DipRect& value) { return D2D1::RectF(value.left, value.to
 bool DrawDottedRange(ID2D1DeviceContext* context, IDWriteTextLayout* textLayout, Utf16Range range,
                      float originX, float originY, palette::Color color) {
     if (!range.length) return true;
-    UINT32 count = 0;
-    HRESULT hr = textLayout->HitTestTextRange(range.begin, range.length, originX, originY, nullptr, 0, &count);
-    if (hr != E_NOT_SUFFICIENT_BUFFER && FAILED(hr)) return false;
-    if (!count) return true;
-    std::vector<DWRITE_HIT_TEST_METRICS> metrics(count);
-    if (FAILED(textLayout->HitTestTextRange(range.begin, range.length, originX, originY,
-                                            metrics.data(), count, &count))) return false;
+    std::vector<D2D1_RECT_F> rects;
+    if (!HitTestRangeRects(textLayout, range, originX, originY, &rects)) return false;
+    if (rects.empty()) return true;
     ComPtr<ID2D1SolidColorBrush> brush;
     if (!MakeBrush(context, color, &brush)) return false;
-    for (const auto& part : metrics) {
-        const float end = part.left + part.width;
-        const float y = part.top + std::max(1.0f, part.height - 2.0f);
+    for (const auto& part : rects) {
+        const float end = part.right;
+        const float y = part.top + std::max(1.0f, (part.bottom - part.top) - 2.0f);
         for (float x = part.left + 0.5f; x < end; x += 3.0f)
             context->FillEllipse(D2D1::Ellipse(D2D1::Point2F(x, y), 0.7f, 0.7f), brush.Get());
     }
@@ -172,6 +168,29 @@ std::vector<UINT32> ValidCorrectionMarks(const std::wstring& text, const std::ve
 Utf16Range PhraseAcceptanceRange(const completionist::render::Snapshot& snapshot) {
     const std::wstring displayed = snapshot.phraseLead + snapshot.phrase;
     return NormalizeUtf16Range(displayed, snapshot.partialBegin, snapshot.partialLength);
+}
+
+bool HitTestRangeRects(IDWriteTextLayout* textLayout, Utf16Range range, float originX, float originY,
+                       std::vector<D2D1_RECT_F>* out) {
+    if (!out) return false;
+    out->clear();
+    if (!range.length) return true;
+    if (!textLayout) return false;
+    UINT32 count = 0;
+    const HRESULT countResult = textLayout->HitTestTextRange(range.begin, range.length, 0.0f, 0.0f,
+                                                              nullptr, 0, &count);
+    if (countResult != E_NOT_SUFFICIENT_BUFFER && FAILED(countResult)) return false;
+    if (!count) return true;
+    std::vector<DWRITE_HIT_TEST_METRICS> metrics(count);
+    if (FAILED(textLayout->HitTestTextRange(range.begin, range.length, 0.0f, 0.0f,
+                                            metrics.data(), count, &count))) return false;
+    out->reserve(count);
+    for (const auto& metric : metrics) {
+        out->push_back(D2D1::RectF(originX + metric.left, originY + metric.top,
+                                   originX + metric.left + metric.width,
+                                   originY + metric.top + metric.height));
+    }
+    return true;
 }
 
 bool TextRenderer::Prepare(const Snapshot& snapshot, float availableWidthDip, PreparedText* out) const {
