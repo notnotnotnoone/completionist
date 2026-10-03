@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Recorded Task8 one-review supervision and uninstall preflight fix throughd6b9d37; nine fake tests and actual extracted helper fixture passed."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Task8 review fix: uninstall preflights/waits on the verified renderer artifact before unregistering keyboard or DLL; locked renderer leaves registration intact."
     },
     {
