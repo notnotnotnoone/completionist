@@ -4,13 +4,64 @@
 #include <algorithm>
 #include <cmath>
 #include <cwchar>
+#include <windowsx.h>
 
 namespace renderer {
 namespace {
 using Microsoft::WRL::ComPtr;
+SurfaceWindows* gSurfaceWindows = nullptr;
+bool gDockPressed = false;
 LRESULT CALLBACK windowProc(HWND w, UINT m, WPARAM a, LPARAM b) {
     if (m == WM_MOUSEACTIVATE) return MA_NOACTIVATE;
-    if (m == WM_NCHITTEST) return HTTRANSPARENT;
+    if (m == WM_GETOBJECT && b == UiaRootObjectId && gSurfaceWindows) {
+        IRawElementProviderSimple* provider=w==gSurfaceWindows->dockPanel.window?gSurfaceWindows->accessibility_.dock:gSurfaceWindows->accessibility_.menu;
+        if(provider)return UiaReturnRawElementProvider(w,a,b,provider);
+    }
+    if (m == WM_APP+90 && gSurfaceWindows && w==gSurfaceWindows->dockPanel.window) {
+        gSurfaceWindows->dockExpandedRequest_=static_cast<int>(a);
+        gSurfaceWindows->dockToggleRequested_=true;
+        return 0;
+    }
+    if (m == WM_NCHITTEST) {
+        if (gSurfaceWindows && w == gSurfaceWindows->dockPanel.window) {
+            RECT bounds{};
+            if (GetWindowRect(w, &bounds)) {
+                const LONG x = GET_X_LPARAM(b) - bounds.left;
+                const LONG y = GET_Y_LPARAM(b) - bounds.top;
+                const LONG dpi=static_cast<LONG>(GetDpiForWindow(w));
+                const LONG button = MulDiv(36,dpi,96);
+                const LONG shell = MulDiv(32,dpi,96);
+                const double progress=gSurfaceWindows->dockState_.Sample(GetTickCount64());
+                const LONG top=static_cast<LONG>((1.0-progress)*std::max(0L,bounds.bottom-bounds.top-shell));
+                if (x >= bounds.right - bounds.left - button && x < bounds.right - bounds.left && y >= top && y < top+button)
+                    return HTCLIENT;
+            }
+        }
+        return HTTRANSPARENT;
+    }
+    if (m == WM_LBUTTONDOWN && gSurfaceWindows && w == gSurfaceWindows->dockPanel.window) {
+        gDockPressed = true;
+        SetCapture(w);
+        return 0;
+    }
+    if (m == WM_LBUTTONUP && gSurfaceWindows && w == gSurfaceWindows->dockPanel.window) {
+        const bool pressed = gDockPressed;
+        gDockPressed = false;
+        if (GetCapture() == w) ReleaseCapture();
+        RECT bounds{}; POINT point{}; GetCursorPos(&point); GetWindowRect(w, &bounds);
+        const LONG dpi=static_cast<LONG>(GetDpiForWindow(w));
+        const LONG button = MulDiv(36,dpi,96);
+        const LONG shell = MulDiv(32,dpi,96);
+        const double progress=gSurfaceWindows->dockState_.Sample(GetTickCount64());
+        const LONG top=static_cast<LONG>((1.0-progress)*std::max(0L,bounds.bottom-bounds.top-shell));
+        if (pressed && point.x >= bounds.right-button && point.x < bounds.right &&
+            point.y >= bounds.top+top && point.y < bounds.top+top+button) gSurfaceWindows->dockToggleRequested_ = true;
+        return 0;
+    }
+    if (m == WM_CANCELMODE || m == WM_CAPTURECHANGED) {
+        if (m == WM_CANCELMODE) gDockPressed = false;
+        if (GetCapture() == w) ReleaseCapture();
+    }
     if (m == WM_ERASEBKGND) return 1;
     return DefWindowProcW(w, m, a, b);
 }
@@ -38,6 +89,9 @@ bool makePanel(ID3D11Device* device, ID2D1Device* d2d, IDCompositionDevice* comp
     if (FAILED(factory->CreateSwapChainForComposition(device, &desc, nullptr, &panel.swapChain)) ||
         FAILED(composition->CreateTargetForHwnd(window, TRUE, &panel.target)) ||
         FAILED(composition->CreateVisual(&panel.visual)) ||
+        FAILED(composition->CreateEffectGroup(&panel.opacity)) ||
+        FAILED(panel.opacity->SetOpacity(1.0f)) ||
+        FAILED(panel.visual->SetEffect(panel.opacity.Get())) ||
         FAILED(panel.visual->SetContent(panel.swapChain.Get())) ||
         FAILED(panel.target->SetRoot(panel.visual.Get())) ||
         FAILED(d2d->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &panel.drawing))) return false;
@@ -77,10 +131,15 @@ bool SurfaceWindows::create(HINSTANCE instance, ID3D11Device* device) {
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     if (!RegisterClassExW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
     constexpr DWORD style = WS_POPUP;
-    constexpr DWORD ex = WS_EX_NOACTIVATE | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_TOPMOST;
-    menuPanel.window = CreateWindowExW(ex, wc.lpszClassName, L"Completionist menu", style,
+    constexpr DWORD menuEx = WS_EX_NOACTIVATE | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_TOPMOST;
+    constexpr DWORD dockEx = WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST;
+    gSurfaceWindows=this;
+    BOOL clientAnimations=TRUE;
+    SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION,0,&clientAnimations,0);
+    dockState_.SetReducedMotion(!clientAnimations,GetTickCount64());
+    menuPanel.window = CreateWindowExW(menuEx, wc.lpszClassName, L"Completionist suggestion menu", style,
                                       0, 0, 1, 1, nullptr, nullptr, instance, nullptr);
-    dockPanel.window = CreateWindowExW(ex, wc.lpszClassName, L"Completionist dock", style,
+    dockPanel.window = CreateWindowExW(dockEx, wc.lpszClassName, L"Completionist information dock", style,
                                       0, 0, 1, 1, nullptr, nullptr, instance, nullptr);
     if (!menuPanel.window || !dockPanel.window) { destroy(); return false; }
     const bool menuExcluded=SetWindowDisplayAffinity(menuPanel.window,WDA_EXCLUDEFROMCAPTURE)!=FALSE;
@@ -169,6 +228,15 @@ bool SurfaceWindows::presentGlass(Panel& panel,const RECT& bounds,ID3D11Texture2
     panel.drawing->DrawBitmap(glassSourceBitmap.Get(),destination,1.0f,D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,&sourceRect);
     panel.drawing->SetTransform(D2D1::Matrix3x2F::Identity());
     const bool ready=textRenderer.Draw(panel.drawing.Get(),snapshot,layout,prepared,colors,surface);
+    if (ready && surface==text::Surface::Dock) {
+        ComPtr<ID2D1SolidColorBrush> button;
+        const palette::Color iconColor=colors.muted;
+        if (SUCCEEDED(panel.drawing->CreateSolidColorBrush(D2D1::ColorF(iconColor.r/255.0f,iconColor.g/255.0f,
+                iconColor.b/255.0f,1.0f),&button))) {
+            const float right=panelWidthDip-12.0f, centerY=12.0f;
+            panel.drawing->DrawLine(D2D1::Point2F(right-4.0f,centerY),D2D1::Point2F(right+4.0f,centerY),button.Get(),1.4f);
+        }
+    }
     const HRESULT drawn=panel.drawing->EndDraw();
     panel.drawing->SetTarget(nullptr);
     if (!ready || FAILED(drawn) || FAILED(panel.swapChain->Present(1,0))) return false;
@@ -189,7 +257,78 @@ bool SurfaceWindows::showGlassSnapshot(const completionist::render::Snapshot& sn
         hide();
         return false;
     }
+    const double progress=dockState_.Sample(GetTickCount64());
+    const double opacity=dockState_.Opacity(GetTickCount64());
+    if (!ApplyDockMotion(progress,opacity,dpi)) return false;
+    accessibility::Release(&accessibility_);
+    accessibility_=accessibility::CreateTrees(menuPanel.window,dockPanel.window,snapshot,layout,
+        static_cast<unsigned>(dpi),progress>=1.0);
+    return accessibility_.menu&&accessibility_.dock;
+}
+
+bool SurfaceWindows::ApplyDockMotion(double expandedProgress,double bodyOpacity,float dpi) {
+    if (!composition || !dockPanel.visual || dpi<48.0f || dpi>768.0f) return false;
+    const auto height=dockPanel.bitmap ? dockPanel.bitmap->GetPixelSize().height : 0;
+    const float heightDip=static_cast<float>(height)*96.0f/dpi;
+    const float collapsedDip=32.0f;
+    const float progress=static_cast<float>(std::clamp(expandedProgress,0.0,1.0));
+    const float opacity=static_cast<float>(std::clamp(bodyOpacity,0.0,1.0));
+    const float shift=(1.0f-progress)*std::max(0.0f,heightDip-collapsedDip);
+    if (FAILED(dockPanel.visual->SetOffsetY(shift)) || FAILED(dockPanel.opacity->SetOpacity(opacity))) return false;
     return SUCCEEDED(composition->Commit());
+}
+
+bool SurfaceWindows::showOpaqueSnapshot(const completionist::render::Snapshot& snapshot,
+                                  const completionist::layout::Layout& layout,const text::PreparedText& prepared,
+                                  text::TextRenderer& textRenderer,bool systemColors,float dpi) {
+    palette::Theme colors=palette::kLight;
+    D2D1_COLOR_F fill=D2D1::ColorF(0x0A5A3D);
+    if (systemColors) {
+        const COLORREF background=GetSysColor(COLOR_WINDOW), foreground=GetSysColor(COLOR_WINDOWTEXT);
+        fill=D2D1::ColorF(GetRValue(background)/255.0f,GetGValue(background)/255.0f,GetBValue(background)/255.0f,1.0f);
+        const palette::Color ink{GetRValue(foreground),GetGValue(foreground),GetBValue(foreground)};
+        colors.ink=colors.muted=colors.ghost=colors.signInk=ink;
+        const COLORREF highlight=GetSysColor(COLOR_HIGHLIGHT),highlightText=GetSysColor(COLOR_HIGHLIGHTTEXT);
+        colors.accent={GetRValue(highlight),GetGValue(highlight),GetBValue(highlight)};
+        colors.onAccent={GetRValue(highlightText),GetGValue(highlightText),GetBValue(highlightText)};
+    } else {
+        colors.ink=palette::kLight.signInk;
+        colors.muted=colors.ghost=palette::kLight.signDim;
+        colors.ok=palette::kLight.signInk;
+        colors.lineStrong=palette::kLight.signInk;
+    }
+    const auto presentOpaque=[&](Panel& panel,const RECT& bounds,text::Surface surface) {
+        const LONG width=bounds.right-bounds.left,height=bounds.bottom-bounds.top;
+        if (!panel.window || !panel.swapChain || !panel.drawing || width<=0 || height<=0) return false;
+        if (!panel.bitmap || static_cast<UINT>(width)!=panel.bitmap->GetPixelSize().width ||
+            static_cast<UINT>(height)!=panel.bitmap->GetPixelSize().height) {
+            if (!resizePanel(panel,panel.drawing.Get(),static_cast<UINT>(width),static_cast<UINT>(height),dpi)) return false;
+        }
+        panel.drawing->SetTarget(panel.bitmap.Get()); panel.drawing->SetDpi(dpi,dpi); panel.drawing->BeginDraw();
+        panel.drawing->Clear(fill);
+        ComPtr<ID2D1SolidColorBrush> background;
+        const bool brushReady=SUCCEEDED(panel.drawing->CreateSolidColorBrush(fill,&background));
+        if (brushReady) {
+            const float radius=surface==text::Surface::Menu ? 14.0f : 10.0f;
+            panel.drawing->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(0,0,width*96.0f/dpi,height*96.0f/dpi),radius,radius),background.Get());
+        }
+        const bool drawn=brushReady && textRenderer.Draw(panel.drawing.Get(),snapshot,layout,prepared,colors,surface);
+        const HRESULT end=panel.drawing->EndDraw(); panel.drawing->SetTarget(nullptr);
+        if (!drawn || FAILED(end) || FAILED(panel.swapChain->Present(1,0))) return false;
+        SetWindowPos(panel.window,HWND_TOPMOST,bounds.left,bounds.top,width,height,SWP_NOACTIVATE|SWP_SHOWWINDOW);
+        return true;
+    };
+    const auto rect=[](const completionist::render::Rect& r){return RECT{r.left,r.top,r.right,r.bottom};};
+    hide();
+    if (!presentOpaque(menuPanel,rect(layout.menuBounds),text::Surface::Menu) ||
+        !presentOpaque(dockPanel,rect(layout.dockBounds),text::Surface::Dock)) { hide(); return false; }
+    const double progress=dockState_.Sample(GetTickCount64());
+    const double opacity=dockState_.Opacity(GetTickCount64());
+    if (!ApplyDockMotion(progress,opacity,dpi)) return false;
+    accessibility::Release(&accessibility_);
+    accessibility_=accessibility::CreateTrees(menuPanel.window,dockPanel.window,snapshot,layout,
+        static_cast<unsigned>(dpi),progress>=1.0);
+    return accessibility_.menu&&accessibility_.dock;
 }
 
 bool SurfaceWindows::showDemo(const RECT& menuBounds, const RECT& dockBounds, float dpi, bool systemColors) {
@@ -210,6 +349,7 @@ void SurfaceWindows::hide() {
     if (menuPanel.window) ShowWindow(menuPanel.window, SW_HIDE);
     if (dockPanel.window) ShowWindow(dockPanel.window, SW_HIDE);
     clearBackdrop();
+    accessibility::Release(&accessibility_);
 }
 
 void SurfaceWindows::clearBackdrop() {
@@ -219,10 +359,14 @@ void SurfaceWindows::clearBackdrop() {
 void SurfaceWindows::destroy() {
     hide();
     if (composition) { composition->Commit(); composition.Reset(); }
-    menuPanel.bitmap.Reset(); menuPanel.drawing.Reset(); menuPanel.visual.Reset(); menuPanel.target.Reset(); menuPanel.swapChain.Reset();
-    dockPanel.bitmap.Reset(); dockPanel.drawing.Reset(); dockPanel.visual.Reset(); dockPanel.target.Reset(); dockPanel.swapChain.Reset();
+    menuPanel.bitmap.Reset(); menuPanel.drawing.Reset(); menuPanel.opacity.Reset(); menuPanel.visual.Reset(); menuPanel.target.Reset(); menuPanel.swapChain.Reset();
+    dockPanel.bitmap.Reset(); dockPanel.drawing.Reset(); dockPanel.opacity.Reset(); dockPanel.visual.Reset(); dockPanel.target.Reset(); dockPanel.swapChain.Reset();
     if (menuPanel.window) { DestroyWindow(menuPanel.window); menuPanel.window = nullptr; }
     if (dockPanel.window) { DestroyWindow(dockPanel.window); dockPanel.window = nullptr; }
+    if (gSurfaceWindows==this) gSurfaceWindows=nullptr;
+    gDockPressed=false;
+    dockToggleRequested_=false;
+    dockExpandedRequest_=-1;
     d2dDevice.Reset(); writeFactory.Reset(); d2dFactory.Reset();
     clearBackdrop();
     captureExcluded_=false;

@@ -32,11 +32,14 @@ struct Snapshot {
     bool engineConnected; completionist::PopupSettings settings;
 };
 struct Ack { Identity owner; uint64_t revision; bool presented; };
+struct CommandMessage { Command command; Identity owner; uint64_t revision = 0; };
 
 // EncodeShow returns a complete 4-byte little-endian length-prefixed frame.
 std::string EncodeShow(const Snapshot& snapshot);
 std::optional<Snapshot> ParseShow(std::string_view body);
 std::optional<Ack> ParseAck(std::string_view body);
+std::optional<CommandMessage> ParseCommand(std::string_view body);
+std::string EncodeAck(const Ack& ack); // complete length-prefixed frame
 bool IsCurrentAck(const Snapshot& current, const Ack& ack);
 bool SameIdentity(const Identity& left, const Identity& right);
 

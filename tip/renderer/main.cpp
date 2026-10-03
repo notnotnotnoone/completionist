@@ -3,6 +3,7 @@
 #include "fixture.h"
 #include "fault_dialogs.h"
 #include "live_fixture.h"
+#include "production_service.h"
 #include <shellapi.h>
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
@@ -15,6 +16,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         if (!renderer::renderFixtureMatrix(args[2])) result = ERROR_GEN_FAILURE;
     } else if (count == 2 && lstrcmpW(args[1], L"--live") == 0) {
         result = renderer::runLiveFixture();
+    } else if (count == 2 && lstrcmpW(args[1], L"--serve") == 0) {
+        result = renderer::runProductionService();
     } else if (count != 1) {
         result = ERROR_INVALID_PARAMETER;
     }

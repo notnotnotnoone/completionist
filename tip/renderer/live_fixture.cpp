@@ -182,9 +182,19 @@ void GraphicsWorker(HostState* host,HINSTANCE instance) {
             BOOL compositionEnabled=FALSE;
             const bool highContrast=SystemParametersInfoW(SPI_GETHIGHCONTRAST,sizeof(contrast),&contrast,0) &&
                 (contrast.dwFlags&HCF_HIGHCONTRASTON)!=0;
-            const bool opaqueOnly=highContrast || GetSystemMetrics(SM_REMOTESESSION)!=0 ||
-                FAILED(DwmIsCompositionEnabled(&compositionEnabled)) || !compositionEnabled || !surfaces.captureExcluded();
-            if (disabled || opaqueOnly || !capture.initialize(device.Get(),adapter.Get(),outputIndex)) {
+            const bool compositionAvailable=SUCCEEDED(DwmIsCompositionEnabled(&compositionEnabled)) && compositionEnabled;
+            MaterialConditions materialConditions{};
+            materialConditions.visible=true;
+            materialConditions.highContrast=highContrast;
+            materialConditions.transparencyEnabled=compositionAvailable;
+            materialConditions.supportedSession=GetSystemMetrics(SM_REMOTESESSION)==0;
+            materialConditions.windowsExcluded=surfaces.captureExcluded();
+            MaterialMode materialMode=disabled ? MaterialMode::Opaque
+                : ApplyMaterialMode(MaterialMode::Hidden,materialConditions,[] {});
+            const bool captureReady=materialMode==MaterialMode::Glass && capture.initialize(device.Get(),adapter.Get(),outputIndex);
+            materialConditions.captureAvailable=captureReady;
+            materialMode=ApplyMaterialMode(materialMode,materialConditions,[] {});
+            if (materialMode!=MaterialMode::Glass) {
                 systemColors=highContrast;
                 activeMonitor=monitor; ready=true; disabled=true; hasPresented=false; opaqueRevision=UINT64_MAX;
                 continue;

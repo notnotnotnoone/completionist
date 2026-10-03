@@ -8,6 +8,8 @@
 #include <dwrite.h>
 #include <wrl/client.h>
 #include "text.h"
+#include "dock_state.h"
+#include "accessibility.h"
 
 namespace renderer {
 struct SurfaceWindows {
@@ -23,10 +25,15 @@ struct SurfaceWindows {
         Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
         Microsoft::WRL::ComPtr<IDCompositionTarget> target;
         Microsoft::WRL::ComPtr<IDCompositionVisual> visual;
+        Microsoft::WRL::ComPtr<IDCompositionEffectGroup> opacity;
         Microsoft::WRL::ComPtr<ID2D1DeviceContext> drawing;
         Microsoft::WRL::ComPtr<ID2D1Bitmap1> bitmap;
     } menuPanel, dockPanel;
     bool captureExcluded_=false;
+    bool dockToggleRequested_=false;
+    int dockExpandedRequest_=-1;
+    dock::State dockState_;
+    accessibility::Trees accessibility_{};
     bool create(HINSTANCE instance, ID3D11Device* device);
     static bool CaptureExcluded(bool menu, bool dock) { return menu && dock; }
     bool captureExcluded() const { return captureExcluded_; }
@@ -44,7 +51,18 @@ struct SurfaceWindows {
                        text::TextRenderer& textRenderer, const palette::Theme& colors,
                        ID3D11Texture2D* glass, const RECT& menuSource, const RECT& dockSource,
                        float dpi, DXGI_MODE_ROTATION rotation);
+    bool showOpaqueSnapshot(const completionist::render::Snapshot& snapshot,
+                       const completionist::layout::Layout& layout, const text::PreparedText& prepared,
+                       text::TextRenderer& textRenderer, bool systemColors, float dpi);
+    bool ApplyDockMotion(double expandedProgress,double bodyOpacity,float dpi);
     bool showDemo(const RECT& menuBounds, const RECT& dockBounds, float dpi, bool systemColors = false);
+    bool ConsumeDockToggleRequest() {
+        const bool value=dockToggleRequested_; dockToggleRequested_=false;
+        if (dockExpandedRequest_>=0) { dockState_.SetExpanded(dockExpandedRequest_!=0,GetTickCount64()); dockExpandedRequest_=-1; }
+        else if (value) dockState_.Toggle(GetTickCount64());
+        return value;
+    }
+    dock::State& DockState() { return dockState_; }
     void hide();
     void clearBackdrop();
     void destroy();

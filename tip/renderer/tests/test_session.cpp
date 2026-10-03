@@ -64,6 +64,18 @@ TEST(disconnect_revokes_surfaces_and_content_and_new_owner_takes_over_when_eligi
     CHECK_EQ(session.current()->owner.pid, 200u);
 }
 
+TEST(stale_peer_disconnect_cannot_revoke_a_new_foreground_owner) {
+    renderer::Session session;
+    auto oldPeer = Make(100, 2, 8);
+    auto newPeer = Make(200, 1, 1, "B");
+    CHECK(session.Accept(oldPeer, 100, 0));
+    CHECK(session.RevokeIfCurrent(oldPeer.owner));
+    CHECK(session.Accept(newPeer, 200, 1));
+    CHECK(!session.RevokeIfCurrent(oldPeer.owner));
+    CHECK(session.visible());
+    CHECK_EQ(session.current()->owner.pid, 200u);
+}
+
 TEST(acknowledgement_must_match_the_live_snapshot) {
     renderer::Session session;
     auto a = Make(100, 2, 8);

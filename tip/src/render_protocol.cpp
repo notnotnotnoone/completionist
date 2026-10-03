@@ -148,7 +148,7 @@ std::optional<Json> Document(std::string_view body) {
     auto value = Parser(body).ParseDocument({
         "schema", "type", "owner", "revision", "caret", "words", "selection", "typed_fragment", "phrase",
         "phrase_lead", "partial_begin", "partial_length", "ai", "wait_ms", "elapsed_ms", "trigger_reason",
-        "engine_connected", "settings", "presented"});
+        "engine_connected", "settings", "presented", "command"});
     if (!value || value->type != Json::Type::Object) return std::nullopt;
     return value;
 }
@@ -294,6 +294,35 @@ std::optional<Ack> ParseAck(std::string_view body) {
     if (!Integer(document->Find("revision"), 1, UINT64_MAX, &result.revision)) return std::nullopt;
     if (!Boolean(document->Find("presented"), &result.presented)) return std::nullopt;
     return result;
+}
+
+std::optional<CommandMessage> ParseCommand(std::string_view body) {
+    auto document = Document(body);
+    if (!document) return std::nullopt;
+    uint64_t schema = 0;
+    std::string command;
+    if (!Integer(document->Find("schema"), 1, 1, &schema) ||
+        !String(document->Find("command"), &command, 16)) return std::nullopt;
+    CommandMessage result{};
+    if (command == "hide") result.command = Command::Hide;
+    else if (command == "heartbeat") result.command = Command::Heartbeat;
+    else return std::nullopt;
+    if (!ParseIdentity(document->Find("owner"), &result.owner)) return std::nullopt;
+    if (result.command == Command::Hide &&
+        !Integer(document->Find("revision"), 1, UINT64_MAX, &result.revision)) return std::nullopt;
+    if (result.command == Command::Heartbeat && document->Find("revision")) return std::nullopt;
+    return result;
+}
+
+std::string EncodeAck(const Ack& ack) {
+    if (!ack.owner.pid || !ack.owner.hostHwnd || ack.owner.session.empty() ||
+        ack.owner.session.size() > kMaxSessionBytes || !ack.owner.generation || !ack.revision) return {};
+    std::string body = "{\"schema\":1,\"type\":\"ack\",\"owner\":";
+    AddIdentity(body, ack.owner);
+    body += ",\"revision\":" + std::to_string(ack.revision) +
+            std::string(",\"presented\":") + (ack.presented ? "true" : "false") + "}";
+    std::string frame;
+    return Frame(std::move(body), &frame) ? frame : std::string{};
 }
 
 bool IsCurrentAck(const Snapshot& current, const Ack& ack) {

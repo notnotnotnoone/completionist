@@ -1282,6 +1282,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Implemented Task 5 gated production renderer service with current-owner pipe handling, presentation recovery, dock motion and UIA; compile-only gates pass; native runtime acceptance remains unrun."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Started M10.18 toward 2.0.0."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Record reviewed standalone material source and correct V2 scope notes; live/runtime acceptance remains open."
     },
     {
@@ -3866,7 +3874,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.18",
       "title": "Complete glass windows, dock motion and recovery",
-      "status": "todo",
+      "status": "doing",
       "area": "dll",
       "stories": [
         74

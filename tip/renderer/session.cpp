@@ -68,4 +68,10 @@ void Session::Revoke() {
     active_ = false;
 }
 
+bool Session::RevokeIfCurrent(const completionist::render::Identity& owner) {
+    if (!active_ || !completionist::render::SameIdentity(snapshot_.owner, owner)) return false;
+    Revoke();
+    return true;
+}
+
 }  // namespace renderer

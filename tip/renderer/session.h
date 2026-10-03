@@ -20,6 +20,7 @@ public:
                       const completionist::render::Ack& ack) const;
     void Expire(uint64_t nowMs);
     void Revoke();
+    bool RevokeIfCurrent(const completionist::render::Identity& owner);
     bool visible() const { return active_; }
     const completionist::render::Snapshot* current() const { return active_ ? &snapshot_ : nullptr; }
 

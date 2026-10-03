@@ -197,3 +197,30 @@ TEST(render_selection_supports_phrase_only_and_empty_pending_shelf) {
     shelf.selection = 0;
     CHECK(EncodeShow(shelf).empty());
 }
+
+TEST(render_hide_and_heartbeat_commands_are_validated) {
+    auto hide = ParseCommand(R"({"schema":1,"command":"hide","owner":{"pid":42,"hwnd":4660,"session":"test-session","generation":2},"revision":9})");
+    CHECK(hide.has_value());
+    CHECK(hide->command == Command::Hide);
+    CHECK_EQ(hide->revision, 9u);
+    auto heartbeat = ParseCommand(R"({"schema":1,"command":"heartbeat","owner":{"pid":42,"hwnd":4660,"session":"test-session","generation":2}})");
+    CHECK(heartbeat.has_value());
+    CHECK(heartbeat->command == Command::Heartbeat);
+    CHECK(!ParseCommand(R"({"schema":1,"command":"hide","owner":{"pid":42,"hwnd":4660,"session":"test-session","generation":2}})").has_value());
+    CHECK(!ParseCommand(R"({"schema":2,"command":"heartbeat","owner":{"pid":42,"hwnd":4660,"session":"test-session","generation":2}})").has_value());
+    CHECK(!ParseCommand(R"({"schema":1,"command":"show","owner":{"pid":42,"hwnd":4660,"session":"test-session","generation":2}})").has_value());
+}
+
+TEST(render_ack_encoder_emits_bounded_valid_framed_acknowledgement) {
+    Ack ack{Sample().owner, 8, true};
+    const auto frame = EncodeAck(ack);
+    CHECK(frame.size() > 4);
+    uint32_t size = 0;
+    for (unsigned i = 0; i < 4; ++i) size |= static_cast<uint32_t>(static_cast<unsigned char>(frame[i])) << (i * 8);
+    CHECK_EQ(size, frame.size() - 4);
+    auto parsed = ParseAck(Body(frame));
+    CHECK(parsed.has_value());
+    CHECK(IsCurrentAck(Sample(), *parsed));
+    ack.owner.pid = 0;
+    CHECK(EncodeAck(ack).empty());
+}
