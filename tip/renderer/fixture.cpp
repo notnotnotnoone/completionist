@@ -2,6 +2,7 @@
 #include "fixture.h"
 #include "material.h"
 #include "shaders.h"
+#include "wic_layout.h"
 
 #include <windows.h>
 #include <d2d1_1.h>
@@ -17,6 +18,19 @@ using Microsoft::WRL::ComPtr;
 constexpr UINT kWidth = 640;
 constexpr UINT kHeight = 360;
 
+struct TextureMapGuard final {
+    ID3D11DeviceContext* context;
+    ID3D11Resource* resource;
+    bool active = true;
+    ~TextureMapGuard() { unmap(); }
+    void unmap() {
+        if (active) {
+            context->Unmap(resource, 0);
+            active = false;
+        }
+    }
+};
+
 class ComApartment final {
 public:
     ComApartment() : result_(CoInitializeEx(nullptr, COINIT_MULTITHREADED)) {}
@@ -29,6 +43,7 @@ private:
 bool savePng(const std::wstring& path, ID3D11DeviceContext* context, ID3D11Texture2D* texture) {
     D3D11_TEXTURE2D_DESC desc{};
     texture->GetDesc(&desc);
+    if (desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) return false;
     desc.Usage = D3D11_USAGE_STAGING;
     desc.BindFlags = 0;
     desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
@@ -41,27 +56,37 @@ bool savePng(const std::wstring& path, ID3D11DeviceContext* context, ID3D11Textu
     context->Flush();
     D3D11_MAPPED_SUBRESOURCE mapped{};
     if (FAILED(context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped))) return false;
-    ComPtr<IWICImagingFactory> factory;
-    ComPtr<IWICStream> stream;
-    ComPtr<IWICBitmapEncoder> encoder;
-    ComPtr<IWICBitmapFrameEncode> frame;
-    ComPtr<IPropertyBag2> properties;
-    ComPtr<IWICBitmap> bitmap;
-    WICPixelFormatGUID pixelFormat = GUID_WICPixelFormat32bppBGRA;
-    const bool created = SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
-                                         IID_PPV_ARGS(&factory))) &&
-        SUCCEEDED(factory->CreateBitmapFromMemory(kWidth, kHeight, GUID_WICPixelFormat32bppBGRA,
-             mapped.RowPitch * kHeight, mapped.RowPitch * kHeight,
-             static_cast<BYTE*>(mapped.pData), &bitmap)) &&
-        SUCCEEDED(factory->CreateStream(&stream)) && SUCCEEDED(stream->InitializeFromFilename(path.c_str(), GENERIC_WRITE)) &&
-        SUCCEEDED(factory->CreateEncoder(GUID_ContainerFormatPng, nullptr, &encoder)) &&
-        SUCCEEDED(encoder->Initialize(stream.Get(), WICBitmapEncoderNoCache)) &&
-        SUCCEEDED(encoder->CreateNewFrame(&frame, &properties)) &&
-        true;
-    const bool ok = created && SUCCEEDED(frame->Initialize(properties.Get())) && SUCCEEDED(frame->SetSize(kWidth, kHeight)) &&
-        SUCCEEDED(frame->SetPixelFormat(&pixelFormat)) && SUCCEEDED(frame->WriteSource(bitmap.Get(), nullptr)) &&
-        SUCCEEDED(frame->Commit()) && SUCCEEDED(encoder->Commit());
-    context->Unmap(staging.Get(), 0);
+    TextureMapGuard mapGuard{context, staging.Get()};
+    const std::size_t rowPitch = mapped.RowPitch;
+    constexpr std::size_t maxSize = std::numeric_limits<std::size_t>::max();
+    if (rowPitch == 0 || static_cast<std::size_t>(desc.Height) > maxSize / rowPitch) return false;
+    const std::size_t availableBytes = rowPitch * static_cast<std::size_t>(desc.Height);
+    WicMemoryLayout layout{};
+    if (!makeWicMemoryLayout(desc.Width, desc.Height, mapped.RowPitch, availableBytes, layout)) return false;
+
+    bool ok = false;
+    {
+        ComPtr<IWICImagingFactory> factory;
+        ComPtr<IWICStream> stream;
+        ComPtr<IWICBitmapEncoder> encoder;
+        ComPtr<IWICBitmapFrameEncode> frame;
+        ComPtr<IPropertyBag2> properties;
+        ComPtr<IWICBitmap> bitmap;
+        WICPixelFormatGUID pixelFormat = GUID_WICPixelFormat32bppBGRA;
+        const bool created = SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+                                             IID_PPV_ARGS(&factory))) &&
+            SUCCEEDED(factory->CreateBitmapFromMemory(desc.Width, desc.Height, GUID_WICPixelFormat32bppBGRA,
+                 layout.strideBytes, layout.bufferSizeBytes, static_cast<BYTE*>(mapped.pData), &bitmap)) &&
+            SUCCEEDED(factory->CreateStream(&stream)) && SUCCEEDED(stream->InitializeFromFilename(path.c_str(), GENERIC_WRITE)) &&
+            SUCCEEDED(factory->CreateEncoder(GUID_ContainerFormatPng, nullptr, &encoder)) &&
+            SUCCEEDED(encoder->Initialize(stream.Get(), WICBitmapEncoderNoCache)) &&
+            SUCCEEDED(encoder->CreateNewFrame(&frame, &properties));
+        ok = created && SUCCEEDED(frame->Initialize(properties.Get())) &&
+            SUCCEEDED(frame->SetSize(desc.Width, desc.Height)) && SUCCEEDED(frame->SetPixelFormat(&pixelFormat)) &&
+            SUCCEEDED(frame->WriteSource(bitmap.Get(), nullptr)) && SUCCEEDED(frame->Commit()) &&
+            SUCCEEDED(encoder->Commit());
+    }
+    mapGuard.unmap();
     return ok;
 }
 }

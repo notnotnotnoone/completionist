@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-02",
+      "text": "Task 1b safety follow-up: fixed fixture WIC row-stride versus total-buffer sizing with checked dimensions and compile-time layout cases; runtime remains unverified and M10.14 stays doing."
+    },
+    {
+      "date": "2026-10-02",
       "text": "Task 1b: added process-local crash-dialog suppression and DirectComposition presentation scaffolding; fixture WIC runtime fault is unverified after compile-only COM lifetime fix; M10.14 remains doing."
     },
     {
