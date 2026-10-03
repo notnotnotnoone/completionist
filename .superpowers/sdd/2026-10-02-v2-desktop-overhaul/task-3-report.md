@@ -81,3 +81,25 @@ exit=0
 ```
 
 No renderer compile-only rerun or native runtime run was performed for this correction. M10.16 remains `doing`; its runtime, Win32 and Stage 1 gates remain unverified.
+
+## Review round 2 correction
+
+`Parser::ParseDocument` now accepts a fixed caller-provided set of known root keys. Once the root object reaches its 4096 retained-member limit, it still materializes those known protocol fields wherever they occur, while validating and skipping other excess member values. The 1 MiB input cap, per-container retention cap, nesting cap and duplicate-key detection remain in force; the priority set is a fixed list at each parser call site, so it does not make root retention unbounded. Engine and renderer call sites list their required fields and recognized optional metadata.
+
+Authored `engine_required_fields_after_many_unknown_root_fields_are_preserved` in `tip/tests/test_protocol.cpp` places 4100 unknown members before `id`, `type`, `replace`, `words` and `origins`, then checks the parsed words and origin. The same source test adds a duplicate `id` after the retention boundary and expects rejection. Required renderer array limit coverage remains in `render_parser_enforces_frame_and_bounded_array_limits` in `tip/tests/test_render_protocol.cpp`.
+
+Only the host protocol compile target was rerun after this correction; the test executable was not launched and assertions remain **UNRUN**:
+
+```text
+& .\tip\test.cmd --compile-only; $code=$LASTEXITCODE; Write-Output "exit=$code"; exit $code
+test_main.cpp
+test_popup_model.cpp
+test_protocol.cpp
+test_render_protocol.cpp
+protocol.cpp
+render_protocol.cpp
+Generating Code...
+exit=0
+```
+
+M10.16 remains `doing`. Runtime assertions, Win32 behavior and the prerequisite Stage 1 live gate remain unverified.

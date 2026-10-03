@@ -2,6 +2,7 @@
 #pragma once
 #include <cstdint>
 #include <cstdlib>
+#include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -40,9 +41,9 @@ class Parser {
 public:
     explicit Parser(std::string_view text) : text_(text) {}
 
-    std::optional<Json> ParseDocument() {
+    std::optional<Json> ParseDocument(std::initializer_list<std::string_view> priorityRootKeys = {}) {
         if (text_.size() > kMaxJsonBytes) return std::nullopt;
-        auto value = ParseValue(0);
+        auto value = ParseValue(0, true, priorityRootKeys);
         SkipSpace();
         if (!value || pos_ != text_.size()) return std::nullopt;
         return value;
@@ -72,7 +73,8 @@ private:
         return true;
     }
 
-    std::optional<Json> ParseValue(int depth, bool retain = true) {
+    std::optional<Json> ParseValue(int depth, bool retain = true,
+                                   std::initializer_list<std::string_view> priorityRootKeys = {}) {
         if (depth > kMaxDepth) return std::nullopt;
         SkipSpace();
         if (pos_ >= text_.size()) return std::nullopt;
@@ -88,7 +90,16 @@ private:
                 auto key = ParseString();
                 if (!key || !Consume(':')) return std::nullopt;
                 if (!seenKeys.emplace(*key).second) return std::nullopt;
-                const bool keepMember = retain && value.object.size() < kMaxContainerItems;
+                bool priorityRootMember = false;
+                if (depth == 0) {
+                    for (std::string_view priorityKey : priorityRootKeys) {
+                        if (*key == priorityKey) {
+                            priorityRootMember = true;
+                            break;
+                        }
+                    }
+                }
+                const bool keepMember = retain && (value.object.size() < kMaxContainerItems || priorityRootMember);
                 if (retain && !keepMember) value.truncated = true;
                 auto member = ParseValue(depth + 1, keepMember);
                 if (!member) return std::nullopt;

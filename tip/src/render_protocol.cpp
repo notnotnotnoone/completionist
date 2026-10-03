@@ -145,7 +145,10 @@ bool ParseSettings(const Json* value, completionist::PopupSettings* out) {
 
 std::optional<Json> Document(std::string_view body) {
     if (body.size() > kMaxFrameBytes) return std::nullopt;
-    auto value = Parser(body).ParseDocument();
+    auto value = Parser(body).ParseDocument({
+        "schema", "type", "owner", "revision", "caret", "words", "selection", "typed_fragment", "phrase",
+        "phrase_lead", "partial_begin", "partial_length", "ai", "wait_ms", "elapsed_ms", "trigger_reason",
+        "engine_connected", "settings", "presented"});
     if (!value || value->type != Json::Type::Object) return std::nullopt;
     return value;
 }

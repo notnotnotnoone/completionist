@@ -335,6 +335,26 @@ TEST(oversized_or_malformed_optional_metadata_does_not_discard_engine_words) {
     CHECK(unknownObject->words[0] == L"words");
 }
 
+TEST(engine_required_fields_after_many_unknown_root_fields_are_preserved) {
+    std::string body = "{";
+    for (int i = 0; i < 4100; ++i) {
+        if (i) body.push_back(',');
+        body += "\"unknown" + std::to_string(i) + "\":null";
+    }
+    body += R"(,"id":17,"type":"words","replace":2,"words":["after"],"origins":["learned"]})";
+
+    auto reply = ParseWordReply(body);
+    CHECK(reply.has_value());
+    CHECK_EQ(reply->id, 17u);
+    CHECK_EQ(reply->words.size(), 1u);
+    CHECK(reply->words[0] == L"after");
+    CHECK_EQ(reply->origins.size(), 1u);
+    CHECK_EQ(reply->origins[0], std::string("learned"));
+
+    body.insert(body.size() - 1, R"(,"id":18)");
+    CHECK(!ParseWordReply(body).has_value());
+}
+
 TEST(optional_status_rejects_invalid_durations_and_unknown_state_safely) {
     for (const char* invalid : {"true", "-1", "600001", "1.5", "1e999"}) {
         std::string body = R"({"id":4,"type":"words","replace":0,"words":["a"],"phrase_wait_ms":)" + std::string(invalid) + "}";

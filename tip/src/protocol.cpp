@@ -158,7 +158,9 @@ std::string EncodeRequest(const Request& r) {
 }
 
 std::optional<WordReply> ParseWordReply(std::string_view body) {
-    auto document = detail::Parser(body).ParseDocument();
+    auto document = detail::Parser(body).ParseDocument({
+        "id", "type", "replace", "words", "popup", "kinds", "marks", "phrase", "phrase_done", "phrase_mode",
+        "phrase_state", "phrase_wait_ms", "phrase_elapsed_ms", "trigger_reason", "origins", "text", "done"});
     if (!document || document->type != Json::Type::Object) return std::nullopt;
     const Json* type = document->Find("type");
     const Json* id = document->Find("id");

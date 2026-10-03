@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Task 3 review round 2 fix: parser now selectively retains bounded known engine/renderer root fields even after 4096 unknown members, while skipping other excess members with syntax validation and duplicate-key detection. Added >4096 unknown root keys before id/type/replace/words/origins regression plus duplicate-id rejection. Host protocol compile-only exited 0; runtime remains UNRUN and M10.16 stays doing."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Task 3 review round 1 fix: shared JSON parsing now materializes at most 4096 items per container and syntax-validates/skips excess values; optional engine origins/popup and unknown oversized metadata preserve useful words, while truncated required engine/renderer arrays are rejected. Added oversized/malformed optional metadata and >4096 renderer-array regression sources. Host protocol compile-only exited 0; all native runtime gates remain UNRUN and M10.16 stays doing."
     },
     {
