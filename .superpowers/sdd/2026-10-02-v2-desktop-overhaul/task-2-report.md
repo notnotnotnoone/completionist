@@ -62,7 +62,21 @@ The produced executable was not launched, and `tip/test.cmd` was not run. Native
 
 - Engine lifecycle and wire metadata: `engine/src/completionist_engine/phrase_scheduler.py`, `phrases.py`, `protocol.py`, `words.py`, and `engine.py`.
 - Native optional metadata parsing: `tip/src/protocol.h`, `tip/src/protocol.cpp`.
-- Tests: new `engine/tests/test_phrase_scheduler.py`; updates to `test_engine.py`, `test_phrases.py`, `test_phrases_pipe.py`, `test_protocol.py`, `test_server.py`, and `tip/tests/test_protocol.cpp`.
+- Tests: new `engine/tests/test_phrase_scheduler.py`; updates to `test_engine.py`, `test_phrases.py`, `test_phrases_pipe.py`, `test_protocol.py`, `test_server.py`, `tests/fake_provider.py`, and `tip/tests/test_protocol.cpp`.
 - Roadmap: M10.15 is marked doing and the implementation/pending-runtime note is logged.
 
-The named native runtime checks and the final full engine result still need verification. The timing-sensitive p95 test failed on the latest two runs and should be assessed under a quiet machine.
+The final full engine suite passed. Earlier focused runs showed transient p95 timing failures, but the complete rerun passed that check. Native parser runtime assertions remain compile-only and unverified pending owner clearance.
+
+## Follow-up fix: publish the provider-start transition
+
+The working push now happens immediately when the current provider origin emits `request_sent` and `provider_started` accepts that origin. It carries the latest keystroke id. Duplicate request-start events and stale origins do not publish; `response_started` no longer delays or duplicates the working transition.
+
+A delayed fake-provider test holds HTTP response headers for 500 ms. It confirms the client receives `working` while the provider has accepted the request but has not responded, then types a continuation and verifies the current-id reply remains `working`. Subsequent streaming and ready pushes use the continued request id and contain no duplicate working push.
+
+Command:
+
+```text
+./engine/.venv/Scripts/python.exe -m pytest engine/tests/test_phrases_pipe.py engine/tests/test_phrases.py engine/tests/test_phrase_scheduler.py --basetemp=.superpowers/pytest-task2-fix1 -p no:cacheprovider
+```
+
+Result: **41 passed in 6.35s**. No native runtime executable or Windows UI was launched. M10.15 remains doing until native protocol runtime verification is cleared and completed.

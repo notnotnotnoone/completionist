@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "M10.15 follow-up: publish truthful working status at provider request start; delayed-provider/current-id focused checks passed; native runtime gate remains pending."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Record native renderer safety fixes and deferred runtime gates after disruptive crash dialogs"
     },
     {

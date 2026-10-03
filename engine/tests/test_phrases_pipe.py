@@ -34,6 +34,14 @@ def keystroke(request_id: int, before: str, app: str = "notepad.exe") -> dict:
     return {"id": request_id, "event": "keystroke", "app": app, "before": before}
 
 
+async def wait_for_provider_request(received, timeout: float = 2.0) -> bool:
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while not received and loop.time() < deadline:
+        await asyncio.sleep(0.005)
+    return bool(received)
+
+
 def test_an_allow_listed_app_gets_a_phrase_pushed_after_a_pause():
     async def scenario():
         async with fake_provider(Script(chunks=["ld is", " big"])) as (url, _), serving_phrases(url) as (name, _service):
@@ -52,6 +60,37 @@ def test_an_allow_listed_app_gets_a_phrase_pushed_after_a_pause():
     assert messages[-1]["id"] == 1 and messages[-1]["text"] == "ld is big" and messages[-1]["done"] is True
     assert any(message["phrase_state"] == "working" for message in messages)
     assert messages[-1]["phrase_state"] == "ready"
+
+
+def test_working_is_pushed_at_request_start_during_provider_latency_and_current_id_is_preserved():
+    async def scenario():
+        script = Script(chunks=["ld is big"], response_delay=0.5)
+        async with fake_provider(script) as (url, received), serving_phrases(url) as (name, _service):
+            client = await EngineClient.connect(name)
+            await client.request(keystroke(1, "Hello wor"))
+            await client.send({"id": 1, "event": "hotkey", "app": "notepad.exe", "before": "Hello wor"})
+
+            assert await wait_for_provider_request(received)
+            assert len(received) == 1
+            working = await client.receive(timeout=3.0)
+            assert working["phrase_state"] == "working" and working["id"] == 1
+            assert not received[0].response_started.is_set()
+
+            continued = await client.request(keystroke(2, "Hello worl"))
+            assert continued["phrase_state"] == "working"
+            assert continued["phrase_elapsed_ms"] >= working["phrase_elapsed_ms"]
+            assert not received[0].response_started.is_set()
+
+            messages = []
+            while not messages or not messages[-1]["done"]:
+                messages.append(await client.receive(timeout=3.0))
+            await client.close()
+            return working, messages
+
+    working, messages = asyncio.run(scenario())
+    assert working["id"] == 1
+    assert [message["phrase_state"] for message in messages] == ["streaming", "ready"]
+    assert all(message["id"] == 2 for message in messages)
 
 
 def test_other_apps_only_get_phrases_on_the_hotkey():
@@ -111,6 +150,7 @@ def test_disconnecting_cancels_the_running_request():
             client = await EngineClient.connect(name)
             await client.request(keystroke(1, "Hello wor"))
             await client.receive(timeout=3.0)
+            assert await wait_for_provider_request(received)
             await client.close()
             await asyncio.sleep(0.3)
             return len(received)
@@ -139,6 +179,7 @@ def test_the_hotkey_ignores_quiet():
             await client.request({**keystroke(1, "Hello wor"), "quiet": True})
             await client.send({"id": 1, "event": "hotkey", "app": "notepad.exe", "before": "Hello wor"})
             push = await client.receive(timeout=3.0)
+            assert await wait_for_provider_request(received)
             await client.close()
             return push, len(received)
 

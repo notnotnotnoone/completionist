@@ -12,6 +12,7 @@ class Received:
     path: str
     headers: dict[str, str]
     body: dict
+    response_started: asyncio.Event = field(default_factory=asyncio.Event)
 
 
 @dataclass
@@ -23,6 +24,7 @@ class Script:
         default_factory=lambda: {"prompt_cache_hit_tokens": 80, "prompt_cache_miss_tokens": 20, "completion_tokens": 2}
     )
     status: int = 200
+    response_delay: float = 0.0  # seconds between receiving the request and sending HTTP headers
     delay: float = 0.0  # seconds before each chunk
     hang: bool = False  # never answer
     error_body: str = '{"error": "boom"}'
@@ -54,6 +56,8 @@ async def fake_provider(script: Script | Callable[[Received], Script] | None = N
             if current.hang:
                 await asyncio.sleep(30)
                 return
+            if current.response_delay:
+                await asyncio.sleep(current.response_delay)
             if current.status != 200:
                 data = current.error_body.encode()
                 writer.write(
@@ -62,8 +66,11 @@ async def fake_provider(script: Script | Callable[[Received], Script] | None = N
                     + data
                 )
                 await writer.drain()
+                request.response_started.set()
                 return
             writer.write(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\n")
+            await writer.drain()
+            request.response_started.set()
             for i, text in enumerate(current.chunks):
                 if current.finish_after is not None and i >= current.finish_after:
                     return

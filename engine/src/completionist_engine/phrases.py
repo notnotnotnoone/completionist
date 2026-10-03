@@ -332,9 +332,7 @@ class PhraseSession:
 
         def event(kind: str, **detail) -> None:
             events.append({"ms": round((service.clock() - started) * 1000), "kind": kind, **detail})
-            if kind == "request_sent":
-                self._scheduler.provider_started(request.id, service.clock())
-            elif kind == "response_started" and self._scheduler.provider_is_active(request.id):
+            if kind == "request_sent" and self._scheduler.provider_started(request.id, service.clock()):
                 current_id = self._last_request_id if self._last_request_id is not None else request.id
                 self._push_status(current_id)
 
