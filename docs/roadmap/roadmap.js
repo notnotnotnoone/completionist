@@ -1282,6 +1282,18 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-02",
+      "text": "Added partial D3D11 Gaussian blur and WARP fixture foundation for M10.14; live composition and acceptance remain pending."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "V2 execution started on codex/v2-overhaul with Luna subagents; native live acceptance stays pending and viewer scope is documented separately."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Started M10.14 toward 2.0.0."
+    },
+    {
+      "date": "2026-10-02",
       "text": "Commit label readability fix and push codex/roadmap-release-atlas to origin as requested; includes previously committed release atlas and V2 prototype work."
     },
     {
@@ -3668,7 +3680,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.14",
       "title": "Prove live soft glass in a standalone native renderer",
-      "status": "next",
+      "status": "doing",
       "area": "dll",
       "stories": [
         74
