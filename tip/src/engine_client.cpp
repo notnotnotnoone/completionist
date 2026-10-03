@@ -1,5 +1,6 @@
 #include "engine_client.h"
 
+#include <algorithm>
 #include <atomic>
 #include <deque>
 #include <map>
@@ -68,6 +69,7 @@ struct EngineClient::State {
     std::mutex lock;       // guards outgoing and pending
     std::deque<std::string> outgoing;
     std::map<std::uint32_t, HWND> pending;
+    std::vector<HWND> observers;
     std::wstring pipeName = kDefaultPipe;
     HANDLE stopEvent = nullptr;
     HANDLE wakeEvent = nullptr;
@@ -134,6 +136,34 @@ void EngineClient::Send(protocol::Request request, HWND replyTo) {
     if (state_->wakeEvent) SetEvent(state_->wakeEvent);
 }
 
+void EngineClient::RegisterWindow(HWND window) {
+    if (!window) return;
+    {
+        std::lock_guard<std::mutex> guard(state_->lock);
+        if (std::find(state_->observers.begin(), state_->observers.end(), window) == state_->observers.end())
+            state_->observers.push_back(window);
+    }
+    PostMessageW(window, WM_COMPLETIONIST_CONNECTION, connected() ? 1 : 0, 0);
+}
+
+void EngineClient::UnregisterWindow(HWND window) {
+    std::lock_guard<std::mutex> guard(state_->lock);
+    state_->observers.erase(std::remove(state_->observers.begin(), state_->observers.end(), window),
+                            state_->observers.end());
+}
+
+void EngineClient::NotifyConnection(bool connected) {
+    std::vector<HWND> observers;
+    {
+        std::lock_guard<std::mutex> guard(state_->lock);
+        observers = state_->observers;
+    }
+    for (HWND window : observers) {
+        if (!PostMessageW(window, WM_COMPLETIONIST_CONNECTION, connected ? 1 : 0, 0))
+            UnregisterWindow(window);
+    }
+}
+
 void EngineClient::DropQueued() {
     std::lock_guard<std::mutex> guard(state_->lock);
     state_->outgoing.clear();
@@ -151,10 +181,10 @@ void EngineClient::Run() {
             continue;
         }
         backoff = kFirstBackoffMs;
-        InterlockedExchange(&connected_, 1);
+        if (InterlockedExchange(&connected_, 1) == 0) NotifyConnection(true);
         LogDebug(L"connected to the engine");
         bool reconnect = Session(pipe);
-        InterlockedExchange(&connected_, 0);
+        if (InterlockedExchange(&connected_, 0) != 0) NotifyConnection(false);
         CloseHandle(pipe);
         DropQueued();
         LogDebug(L"disconnected from the engine");

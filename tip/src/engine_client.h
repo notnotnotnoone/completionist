@@ -19,6 +19,7 @@
 namespace completionist {
 
 constexpr UINT WM_COMPLETIONIST_REPLY = WM_APP + 0x41;
+constexpr UINT WM_COMPLETIONIST_CONNECTION = WM_APP + 0x42;
 
 class EngineClient {
 public:
@@ -32,6 +33,10 @@ public:
 
     // Queues `request`. When `replyTo` is set, the engine's reply is posted to it as WM_COMPLETIONIST_REPLY.
     void Send(protocol::Request request, HWND replyTo);
+
+    // Connection transitions are posted to registered popup windows; the worker never calls UI code.
+    void RegisterWindow(HWND window);
+    void UnregisterWindow(HWND window);
 
     bool connected() const { return connected_; }
 
@@ -47,6 +52,7 @@ private:
     HANDLE TryConnect();
     void DispatchReply(const std::string& body);
     void DropQueued();
+    void NotifyConnection(bool connected);
 
     State* state_ = nullptr;
     volatile LONG connected_ = 0;

@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include "popup_settings.h"
+#include "render_protocol.h"
 
 namespace completionist {
 
@@ -17,8 +18,14 @@ struct PopupContent {
     std::vector<std::wstring> words;
     int typedChars = 0;        // the first typedChars characters of each word are drawn as already typed
     std::vector<std::vector<int>> marks;  // one per word: letter positions the typed fragment did not earn (guessed letters)
+    std::vector<std::string> origins;  // optional truthful local/learned provenance
     std::wstring phrase;       // continuation shown as the top row (empty: no phrase row)
     std::wstring phraseLead;   // what's already typed of the current word, drawn before the phrase
+    render::AiState ai = render::AiState::Off;
+    std::uint32_t phraseWaitMs = 0;
+    std::uint32_t phraseElapsedMs = 0;
+    std::string triggerReason;
+    bool engineConnected = false;
 };
 
 class Popup {
@@ -44,7 +51,6 @@ private:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     void Paint();
     void EnsureFont(UINT dpi);
-    int RowHeight(HDC dc) const;
 
     HWND hwnd_ = nullptr;
     HINSTANCE module_ = nullptr;

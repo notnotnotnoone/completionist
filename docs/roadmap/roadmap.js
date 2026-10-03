@@ -1282,6 +1282,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Host fallback now advances scheduled/working status from monotonic receipt time and preserves explicit hide behavior on focus or disallowed scopes; validation remains compile-only."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Integrated the host GDI fallback with shared layout, Evergreen colors, truthful status and connection events; compiled alternate DLL and native regressions without running native UI."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Recorded Task5 single-review source fixes and compile-only evidence through81741fc; native runtime gates remain unrun."
     },
     {

@@ -1,27 +1,20 @@
 #include "popup.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cwctype>
+#include <string>
+#include <winreg.h>
 
 #include "log.h"
+#include "popup_layout.h"
+#include "popup_palette.h"
 
 namespace completionist {
 
 namespace {
 
 constexpr wchar_t kClassName[] = L"CompletionistPopup";
-
-constexpr COLORREF kBackground = RGB(31, 34, 42);
-constexpr COLORREF kBorder = RGB(66, 71, 84);
-constexpr COLORREF kText = RGB(226, 229, 236);
-constexpr COLORREF kTyped = RGB(122, 162, 255);
-constexpr COLORREF kGhost = RGB(146, 154, 172);
-constexpr COLORREF kHighlight = RGB(38, 79, 176);
-constexpr COLORREF kHighlightText = RGB(255, 255, 255);
-constexpr COLORREF kHighlightTyped = RGB(190, 214, 255);
-constexpr COLORREF kHighlightGhost = RGB(214, 224, 244);
-constexpr COLORREF kGuessed = RGB(255, 203, 107);  // amber: guessed letters of a typo correction
-constexpr COLORREF kHighlightGuessed = RGB(255, 225, 160);  // amber on the highlighted row
-constexpr int kMaxPhraseWidth = 520;  // at 96 DPI
 
 const std::vector<int> kNoMarks;  // empty default when a reply carries no marks
 
@@ -37,6 +30,37 @@ std::wstring OneLine(const std::wstring& text) {
     for (wchar_t& c : out)
         if (c == L'\r' || c == L'\n' || c == L'\t') c = L' ';
     return out;
+}
+
+COLORREF Color(renderer::palette::Color c) { return RGB(c.r, c.g, c.b); }
+
+bool HasStatus(render::AiState state) {
+    return state == render::AiState::Manual || state == render::AiState::Scheduled ||
+           state == render::AiState::Working || state == render::AiState::Streaming ||
+           state == render::AiState::Unavailable;
+}
+
+std::wstring AiStatus(const PopupContent& content) {
+    const wchar_t* reason = content.triggerReason == "idle" ? L" · Idle pause" :
+                            content.triggerReason == "manual" ? L" · Manual shortcut" :
+                            content.triggerReason == "paused" ? L" · Paused" :
+                            content.triggerReason == "unavailable" ? L" · Unavailable" : L"";
+    switch (content.ai) {
+        case render::AiState::Manual: return L"Ctrl+Space to request a phrase" + std::wstring(reason);
+        case render::AiState::Scheduled:
+            return std::to_wstring(static_cast<double>(content.phraseWaitMs) / 1000.0).substr(0, 3) + L"s until AI" + reason;
+        case render::AiState::Working:
+            return L"Working · " + std::to_wstring(static_cast<double>(content.phraseElapsedMs) / 1000.0).substr(0, 3) + L"s" + reason;
+        case render::AiState::Streaming: return L"Streaming phrase" + std::wstring(reason);
+        case render::AiState::Unavailable: return L"AI unavailable";
+        default: return {};
+    }
+}
+
+int Px(float dip, UINT dpi) { return static_cast<int>(std::lround(dip * (dpi ? dpi : 96) / 96.0)); }
+
+RECT RectPx(const layout::DipRect& rect, UINT dpi) {
+    return {Px(rect.left, dpi), Px(rect.top, dpi), Px(rect.right, dpi), Px(rect.bottom, dpi)};
 }
 
 }  // namespace
@@ -91,14 +115,8 @@ void Popup::SetSettings(const PopupSettings& settings) {
     settings_ = settings;
 }
 
-int Popup::RowHeight(HDC dc) const {
-    TEXTMETRICW metrics = {};
-    GetTextMetricsW(dc, &metrics);
-    return metrics.tmHeight + Scale(8, dpi_);
-}
-
 void Popup::Show(const PopupContent& content, int selection, const RECT& caret) {
-    if (!hwnd_ || (content.words.empty() && content.phrase.empty())) {
+    if (!hwnd_ || (content.words.empty() && content.phrase.empty() && !HasStatus(content.ai))) {
         Hide();
         return;
     }
@@ -113,37 +131,58 @@ void Popup::Show(const PopupContent& content, int selection, const RECT& caret) 
 
     HDC dc = GetDC(hwnd_);
     HGDIOBJ old = SelectObject(dc, font_);
-    int rowHeight = RowHeight(dc);
-    int widest = 0;
-    for (const std::wstring& word : content_.words) {
-        SIZE size = {};
-        GetTextExtentPoint32W(dc, word.c_str(), static_cast<int>(word.size()), &size);
-        widest = std::max(widest, static_cast<int>(size.cx));
+    TEXTMETRICW metrics = {};
+    GetTextMetricsW(dc, &metrics);
+    const float scale = static_cast<float>(dpi_) / 96.0f;
+    layout::ContentMetrics measured{};
+    measured.fontSizeDip = static_cast<float>(settings_.font_size) * 96.0f / 72.0f;
+    measured.rowGapDip = 2.0f;
+    const int rowHeight = metrics.tmHeight + Scale(12, dpi_);
+    measured.phraseHeightDip = static_cast<float>(rowHeight) / scale;
+    measured.statusHeightDip = HasStatus(content_.ai) ? static_cast<float>((metrics.tmHeight + Scale(4, dpi_)) *
+        (content_.words.empty() && content_.phrase.empty() ? 1 : 2)) / scale : 0.0f;
+    render::Snapshot snapshot{};
+    snapshot.settings = settings_;
+    snapshot.ai = content_.ai;
+    snapshot.phrase = content_.phrase;
+    snapshot.phraseLead = content_.phraseLead;
+    snapshot.typedFragment = content_.phraseLead;
+    snapshot.selection = selection;
+    for (std::size_t i = 0; i < content_.words.size(); ++i) {
+        render::Candidate candidate{};
+        candidate.text = content_.words[i];
+        if (i < content_.origins.size()) candidate.origin = content_.origins[i];
+        snapshot.words.push_back(std::move(candidate));
+        std::wstring label = content_.words[i];
+        if (i < content_.origins.size()) {
+            if (content_.origins[i] == "local") label += L"  Local";
+            else if (content_.origins[i] == "learned") label += L"  Learned";
+        }
+        SIZE size{};
+        GetTextExtentPoint32W(dc, label.c_str(), static_cast<int>(label.size()), &size);
+        measured.rows.push_back({static_cast<float>(size.cx) / scale, static_cast<float>(rowHeight) / scale});
+        measured.measuredContentWidthDip = std::max(measured.measuredContentWidthDip, static_cast<float>(size.cx) / scale);
     }
-    if (!content_.phrase.empty()) {
-        std::wstring row = content_.phraseLead + content_.phrase;
-        SIZE size = {};
-        GetTextExtentPoint32W(dc, row.c_str(), static_cast<int>(row.size()), &size);
-        widest = std::max(widest, std::min(static_cast<int>(size.cx), Scale(kMaxPhraseWidth, dpi_)));
-    }
+    std::wstring phraseText = content_.phraseLead + content_.phrase;
+    SIZE phraseSize{};
+    if (!phraseText.empty()) GetTextExtentPoint32W(dc, phraseText.c_str(), static_cast<int>(phraseText.size()), &phraseSize);
+    measured.measuredContentWidthDip = std::max(measured.measuredContentWidthDip, static_cast<float>(phraseSize.cx) / scale);
     SelectObject(dc, old);
     ReleaseDC(hwnd_, dc);
 
-    int rows = static_cast<int>(content_.words.size()) + (content_.phrase.empty() ? 0 : 1);
-    int width = static_cast<int>(std::max(widest + Scale(24, dpi_), Scale(120, dpi_)) * settings_.width_scale);
-    int height = rowHeight * rows + 2;  // +2 for the border
-
-    RECT work = {0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
+    RECT work = {GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN),
+                 GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CXVIRTUALSCREEN),
+                 GetSystemMetrics(SM_YVIRTUALSCREEN) + GetSystemMetrics(SM_CYVIRTUALSCREEN)};
     MONITORINFO monitor = {sizeof(monitor)};
     if (GetMonitorInfoW(MonitorFromRect(&caret, MONITOR_DEFAULTTONEAREST), &monitor)) work = monitor.rcWork;
-    width = std::min(width, static_cast<int>(work.right - work.left));
-
-    int x = caret.left;
-    int y = caret.bottom + Scale(2, dpi_);
-    if (y + height > work.bottom) y = caret.top - height - Scale(2, dpi_);  // no room below: open above
-    x = std::min<int>(x, work.right - width);
-    x = std::max<int>(x, work.left);
-    y = std::max<int>(y, work.top);
+    render::Rect workBounds{work.left, work.top, work.right, work.bottom};
+    snapshot.caret = {caret.left, caret.top, caret.right, caret.bottom};
+    layout::WorkArea workArea{workBounds, dpi_};
+    layout::Layout placed = layout::Place(snapshot, workArea, measured);
+    const int x = placed.menuBounds.left;
+    const int y = placed.menuBounds.top;
+    const int width = placed.menuBounds.right - x;
+    const int height = placed.menuBounds.bottom - y;
 
     LogDebug(L"popup at %d,%d size %dx%d (caret %ld,%ld-%ld,%ld, dpi %u)", x, y, width, height, caret.left, caret.top, caret.right, caret.bottom, dpi_);
     SetWindowPos(hwnd_, HWND_TOPMOST, x, y, width, height, SWP_NOACTIVATE | SWP_SHOWWINDOW);
@@ -177,44 +216,143 @@ void Popup::Paint() {
     HGDIOBJ oldFont = SelectObject(dc, font_ ? font_ : GetStockObject(DEFAULT_GUI_FONT));
     SetBkMode(dc, TRANSPARENT);
 
-    HBRUSH border = CreateSolidBrush(kBorder);
+    HIGHCONTRASTW contrast{sizeof(contrast)};
+    const bool highContrast = SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0) &&
+                              (contrast.dwFlags & HCF_HIGHCONTRASTON) != 0;
+    DWORD useLightTheme = 1;
+    DWORD valueBytes = sizeof(useLightTheme);
+    RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                 L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &useLightTheme, &valueBytes);
+    const bool dark = useLightTheme == 0;
+    const auto& theme = dark ? renderer::palette::kDark : renderer::palette::kLight;
+    const COLORREF backgroundColor = highContrast ? GetSysColor(COLOR_WINDOW) : Color(theme.surface);
+    const COLORREF borderColor = highContrast ? GetSysColor(COLOR_WINDOWTEXT) : Color(theme.line);
+    const COLORREF textColor = highContrast ? GetSysColor(COLOR_WINDOWTEXT) : Color(theme.ink);
+    const COLORREF mutedColor = highContrast ? GetSysColor(COLOR_GRAYTEXT) : Color(theme.muted);
+    const COLORREF typedColor = highContrast ? textColor : Color(theme.sign);
+    const COLORREF ghostColor = highContrast ? mutedColor : Color(theme.ghost);
+    const COLORREF selectedColor = highContrast ? GetSysColor(COLOR_HIGHLIGHT) : Color(theme.accent);
+    const COLORREF selectedText = highContrast ? GetSysColor(COLOR_HIGHLIGHTTEXT) : Color(theme.onAccent);
+    const COLORREF guessedColor = highContrast ? textColor : Color(theme.warn);
+
+    HBRUSH border = CreateSolidBrush(borderColor);
     FillRect(dc, &client, border);
     DeleteObject(border);
     RECT inner = {1, 1, width - 1, height - 1};
-    HBRUSH background = CreateSolidBrush(kBackground);
+    HBRUSH background = CreateSolidBrush(backgroundColor);
     FillRect(dc, &inner, background);
     DeleteObject(background);
 
     TEXTMETRICW metrics = {};
     GetTextMetricsW(dc, &metrics);
-    int rowHeight = metrics.tmHeight + Scale(8, dpi_);
-    int pad = Scale(10, dpi_);
-    bool hasPhrase = !content_.phrase.empty();
-    int rows = static_cast<int>(content_.words.size()) + (hasPhrase ? 1 : 0);
+    const int pad = Scale(15, dpi_);
+    const bool hasStatus = HasStatus(content_.ai);
+    const float scale = static_cast<float>(dpi_) / 96.0f;
+    layout::ContentMetrics measured{};
+    measured.fontSizeDip = static_cast<float>(settings_.font_size) * 96.0f / 72.0f;
+    measured.phraseHeightDip = static_cast<float>(metrics.tmHeight + Scale(12, dpi_)) / scale;
+    measured.statusHeightDip = hasStatus ? static_cast<float>((metrics.tmHeight + Scale(4, dpi_)) *
+        (content_.words.empty() && content_.phrase.empty() ? 1 : 2)) / scale : 0.0f;
+    render::Snapshot snapshot{};
+    snapshot.settings = settings_;
+    snapshot.ai = content_.ai;
+    snapshot.phrase = content_.phrase;
+    snapshot.caret = {};
+    snapshot.selection = selection_;
+    for (std::size_t i = 0; i < content_.words.size(); ++i) {
+        snapshot.words.push_back({content_.words[i], i < content_.origins.size() ? content_.origins[i] : "", {}});
+        measured.rows.push_back({0, measured.phraseHeightDip});
+    }
+    layout::WorkArea work{{0, 0, width, height}, dpi_};
+    auto placed = layout::Place(snapshot, work, measured);
 
-    for (int r = 0; r < rows; ++r) {
-        RECT row = {1, 1 + r * rowHeight, width - 1, 1 + (r + 1) * rowHeight};
-        bool isPhrase = hasPhrase && r == 0;
-        int wordIndex = r - (hasPhrase ? 1 : 0);
-        bool selected = isPhrase ? selection_ == -1 : selection_ == wordIndex;
+    if (hasStatus) {
+        const RECT statusBounds = RectPx(placed.statusClip, dpi_);
+        RECT status = statusBounds;
+        const std::wstring statusText = AiStatus(content_);
+        SetTextColor(dc, mutedColor);
+        const int line = metrics.tmHeight + Scale(4, dpi_);
+        status.right -= Scale(12, dpi_);
+        status.bottom = std::min(status.bottom, status.top + line);
+        DrawTextW(dc, statusText.c_str(), static_cast<int>(statusText.size()), &status,
+                  DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+        std::wstring correction;
+        const int selectedWord = selection_ >= 0 ? selection_ : -1;
+        if (selectedWord >= 0 && selectedWord < static_cast<int>(content_.words.size()) &&
+            selectedWord < static_cast<int>(content_.marks.size()) && !content_.marks[selectedWord].empty()) {
+            correction = content_.phraseLead + L" → " + content_.words[selectedWord];
+        }
+        if (!correction.empty()) {
+            RECT compare = status;
+            compare.top = statusBounds.top + line;
+            compare.bottom = statusBounds.bottom;
+            SetTextColor(dc, typedColor);
+            DrawTextW(dc, correction.c_str(), static_cast<int>(correction.size()), &compare,
+                      DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+        }
+        const int diameter = std::max(1, Scale(6, dpi_));
+        const int dotRight = statusBounds.right - Scale(2, dpi_);
+        const int dotLeft = dotRight - diameter;
+        const int dotTop = statusBounds.top + (line - diameter) / 2;
+        const COLORREF connectionColor = highContrast ? GetSysColor(COLOR_WINDOWTEXT) : Color(theme.engine);
+        HBRUSH dotBrush = CreateSolidBrush(content_.engineConnected ? connectionColor : backgroundColor);
+        HPEN dotPen = CreatePen(PS_SOLID, std::max(1, Scale(1, dpi_)), connectionColor);
+        HGDIOBJ oldBrush = SelectObject(dc, dotBrush);
+        HGDIOBJ oldPen = SelectObject(dc, dotPen);
+        Ellipse(dc, dotLeft, dotTop, dotRight, dotTop + diameter);
+        SelectObject(dc, oldBrush);
+        SelectObject(dc, oldPen);
+        DeleteObject(dotBrush);
+        DeleteObject(dotPen);
+    }
+
+    for (const auto& rowLayout : placed.rowOrder) {
+        RECT row = RectPx(rowLayout.bounds, dpi_);
+        row.left += 1; row.right += 1; row.top += 1; row.bottom += 1;
+        const bool isPhrase = rowLayout.kind == layout::RowKind::Phrase;
+        const int wordIndex = static_cast<int>(rowLayout.wordIndex);
+        const bool selected = isPhrase ? selection_ == -1 : selection_ == wordIndex;
         if (selected) {
-            HBRUSH fill = CreateSolidBrush(kHighlight);
+            HBRUSH fill = CreateSolidBrush(selectedColor);
             FillRect(dc, &row, fill);
             DeleteObject(fill);
         }
-        int y = row.top + (rowHeight - metrics.tmHeight) / 2;
+        int y = row.top + (row.bottom - row.top - metrics.tmHeight) / 2;
         int x = row.left + pad;
+        const int textState = SaveDC(dc);
+        IntersectClipRect(dc, x, row.top, row.right - pad, row.bottom);
 
         if (isPhrase) {
             // The typed part of the word, then the phrase as ghost text.
             SIZE size = {};
             const std::wstring& lead = content_.phraseLead;
-            SetTextColor(dc, selected ? kHighlightTyped : kTyped);
+            SetTextColor(dc, selected ? selectedText : typedColor);
             TextOutW(dc, x, y, lead.c_str(), static_cast<int>(lead.size()));
             GetTextExtentPoint32W(dc, lead.c_str(), static_cast<int>(lead.size()), &size);
             RECT text = {x + size.cx, y, row.right - pad, y + metrics.tmHeight};
-            SetTextColor(dc, selected ? kHighlightGhost : kGhost);
+            SetTextColor(dc, selected ? selectedText : ghostColor);
             DrawTextW(dc, content_.phrase.c_str(), -1, &text, DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+            std::size_t underlineEnd = 0;
+            while (underlineEnd < content_.phrase.size() && iswspace(content_.phrase[underlineEnd])) ++underlineEnd;
+            while (underlineEnd < content_.phrase.size() && !iswspace(content_.phrase[underlineEnd])) ++underlineEnd;
+            if (underlineEnd > 0) {
+                SIZE advance{};
+                GetTextExtentPoint32W(dc, content_.phrase.c_str(), static_cast<int>(underlineEnd), &advance);
+                int leadWidth = 0;
+                GetTextExtentPoint32W(dc, lead.c_str(), static_cast<int>(lead.size()), &size);
+                leadWidth = static_cast<int>(size.cx);
+                const int underlineLeft = x + leadWidth;
+                const int underlineRight = std::min(row.right - pad, underlineLeft + advance.cx);
+                if (underlineRight > underlineLeft) {
+                    HPEN pen = CreatePen(PS_SOLID, std::max(1, Scale(1, dpi_)), selected ? selectedText : typedColor);
+                    HGDIOBJ oldPen = SelectObject(dc, pen);
+                    MoveToEx(dc, underlineLeft, y + metrics.tmHeight - 1, nullptr);
+                    LineTo(dc, underlineRight, y + metrics.tmHeight - 1);
+                    SelectObject(dc, oldPen);
+                    DeleteObject(pen);
+                }
+            }
+            RestoreDC(dc, textState);
             continue;
         }
 
@@ -241,22 +379,31 @@ void Popup::Paint() {
                 ++m;
                 continue;
             }
-            flush(pos, kTyped, kHighlightTyped);
-            flush(pos + 1, kGuessed, kHighlightGuessed);
+            flush(pos, typedColor, selectedText);
+            flush(pos + 1, guessedColor, selectedText);
             ++m;
         }
-        flush(typed, kTyped, kHighlightTyped);
+        flush(typed, typedColor, selectedText);
         while (m < marked.size()) {
             int pos = marked[m];
             if (pos < cursor || pos >= static_cast<int>(word.size())) {
                 ++m;
                 continue;
             }
-            flush(pos, kText, kHighlightText);
-            flush(pos + 1, kGuessed, kHighlightGuessed);
+            flush(pos, textColor, selectedText);
+            flush(pos + 1, guessedColor, selectedText);
             ++m;
         }
-        flush(static_cast<int>(word.size()), kText, kHighlightText);
+        flush(static_cast<int>(word.size()), textColor, selectedText);
+        if (wordIndex < static_cast<int>(content_.origins.size())) {
+            const std::string& origin = content_.origins[wordIndex];
+            const wchar_t* label = origin == "local" ? L"  Local" : origin == "learned" ? L"  Learned" : nullptr;
+            if (label) {
+                SetTextColor(dc, selected ? selectedText : mutedColor);
+                TextOutW(dc, x, y, label, static_cast<int>(wcslen(label)));
+            }
+        }
+        RestoreDC(dc, textState);
     }
 
     BitBlt(screen, 0, 0, width, height, dc, 0, 0, SRCCOPY);
@@ -276,6 +423,10 @@ LRESULT CALLBACK Popup::WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
             return HTTRANSPARENT;  // clicks fall through to whatever is underneath
         case WM_ERASEBKGND:
             return 1;
+        case WM_SETTINGCHANGE:
+        case WM_THEMECHANGED:
+            if (popup) InvalidateRect(hwnd, nullptr, FALSE);
+            break;
         case WM_PAINT:
             if (popup) popup->Paint();
             else ValidateRect(hwnd, nullptr);

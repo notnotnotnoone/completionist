@@ -59,6 +59,7 @@ constexpr LONG kBeforeChars = 8000;  // how much text before the caret goes to t
 constexpr LONG kAfterChars = 2000;
 constexpr UINT_PTR kRetryTimer = 1;
 constexpr UINT_PTR kArmTimer = 2;  // fires when the phrase row becomes the highlighted one
+constexpr UINT_PTR kStatusTimer = 3;  // advances only a visible scheduled/working status
 constexpr UINT kRetryDelayMs = 40;
 constexpr int kMaxRetries = 3;
 
@@ -92,6 +93,17 @@ bool OnlyWordChars(const std::wstring& text, size_t from) {
     for (size_t i = from; i < text.size(); ++i)
         if (!(iswalnum(text[i]) || text[i] == L'\'')) return false;
     return true;
+}
+
+completionist::render::AiState AiStateFromWire(const std::string& state) {
+    using completionist::render::AiState;
+    if (state == "manual") return AiState::Manual;
+    if (state == "scheduled") return AiState::Scheduled;
+    if (state == "working") return AiState::Working;
+    if (state == "streaming") return AiState::Streaming;
+    if (state == "ready") return AiState::Ready;
+    if (state == "unavailable") return AiState::Unavailable;
+    return AiState::Off;
 }
 
 bool EqualsIgnoreCase(const std::wstring& a, const std::wstring& b) {
@@ -326,6 +338,7 @@ public:
             keystrokes->Release();
         }
         if (!popup_.Create(g_module, &CompletionistService::PopupHook, this)) LogError(L"could not create the popup window");
+        if (popup_.hwnd()) EngineClient::Instance().RegisterWindow(popup_.hwnd());
         EngineClient::Instance().Acquire();
         acquired_ = true;
         LogDebug(L"activate flags=0x%lx keysink=0x%08lx app=%s", flags, keyHr, app_.c_str());
@@ -359,6 +372,7 @@ public:
             threadMgr_ = nullptr;
         }
         HideAll();
+        EngineClient::Instance().UnregisterWindow(popup_.hwnd());
         popup_.Destroy();
         if (acquired_) {
             EngineClient::Instance().Release();
@@ -479,17 +493,32 @@ private:
         model_.Close();
         model_.SetPhraseAvailable(false);  // no request goes out from here, so Ctrl+Space isn't ours to take
         phrase_.clear();
+        origins_.clear();
+        aiState_ = completionist::render::AiState::Off;
+        phraseWaitMs_ = phraseElapsedMs_ = 0;
+        statusReceivedAt_ = 0;
+        triggerReason_.clear();
+        wordsAllowed_ = phraseAllowed_ = false;
         latestId_ = 0;
         hotkeyPending_ = false;
-        if (popup_.hwnd()) KillTimer(popup_.hwnd(), kArmTimer);
+        if (popup_.hwnd()) {
+            KillTimer(popup_.hwnd(), kArmTimer);
+            KillTimer(popup_.hwnd(), kStatusTimer);
+        }
     }
 
     // Draws the popup for the current model state, and arranges a redraw when the phrase row becomes
     // the highlighted one.
     void Render() {
-        if (!model_.visible()) {
+        const bool hasStatus = aiState_ == completionist::render::AiState::Manual ||
+            aiState_ == completionist::render::AiState::Scheduled || aiState_ == completionist::render::AiState::Working ||
+            aiState_ == completionist::render::AiState::Streaming || aiState_ == completionist::render::AiState::Unavailable;
+        if (!model_.visible() && !hasStatus) {
             popup_.Hide();
-            if (popup_.hwnd()) KillTimer(popup_.hwnd(), kArmTimer);
+            if (popup_.hwnd()) {
+                KillTimer(popup_.hwnd(), kArmTimer);
+                KillTimer(popup_.hwnd(), kStatusTimer);
+            }
             return;
         }
         std::uint64_t now = NowMs();
@@ -497,13 +526,25 @@ private:
         content.words = words_;
         content.typedChars = static_cast<int>(promptWord_.size());
         content.marks = marks_;
+        content.origins = origins_;
         content.phrase = phrase_;
         content.phraseLead = promptWord_;
+        content.ai = aiState_;
+        const std::uint64_t statusDelta = statusReceivedAt_ ? now - statusReceivedAt_ : 0;
+        content.phraseWaitMs = aiState_ == completionist::render::AiState::Scheduled
+            ? static_cast<std::uint32_t>(statusDelta >= phraseWaitMs_ ? 0 : phraseWaitMs_ - statusDelta) : phraseWaitMs_;
+        content.phraseElapsedMs = aiState_ == completionist::render::AiState::Working
+            ? static_cast<std::uint32_t>(std::min<std::uint64_t>(600000, phraseElapsedMs_ + statusDelta)) : phraseElapsedMs_;
+        content.triggerReason = triggerReason_;
+        content.engineConnected = engineConnected_;
         popup_.Show(content, model_.selection(now), caret_);
         if (popup_.hwnd()) {
             std::uint64_t armedAt = model_.armed_at(now);
             if (armedAt) SetTimer(popup_.hwnd(), kArmTimer, static_cast<UINT>(armedAt - now + 5), nullptr);
             else KillTimer(popup_.hwnd(), kArmTimer);
+            if (aiState_ == completionist::render::AiState::Scheduled || aiState_ == completionist::render::AiState::Working)
+                SetTimer(popup_.hwnd(), kStatusTimer, 100, nullptr);
+            else KillTimer(popup_.hwnd(), kStatusTimer);
         }
     }
 
@@ -666,6 +707,11 @@ private:
         request.quiet = !phraseAllowed_;  // no point paying for a phrase nobody will see
 
         latestId_ = request.id;
+        aiState_ = completionist::render::AiState::Off;
+        phraseWaitMs_ = phraseElapsedMs_ = 0;
+        statusReceivedAt_ = 0;
+        triggerReason_.clear();
+        origins_.clear();
         promptWord_ = word;
         promptBefore_ = before;
         caret_ = caret;
@@ -688,6 +734,12 @@ private:
     void OnReply(const completionist::protocol::WordReply& reply) {
         LogDebug(L"reply id=%u latest=%u words=%zu replace=%d typed=%zu wordsAllowed=%d", reply.id, latestId_, reply.words.size(), reply.replace, promptWord_.size(), wordsAllowed_);
         if (reply.id != latestId_) return;  // for text that has since changed
+        if (phraseAllowed_ && !reply.phrase_state.empty()) aiState_ = AiStateFromWire(reply.phrase_state);
+        else if (!phraseAllowed_) aiState_ = completionist::render::AiState::Off;
+        phraseWaitMs_ = phraseAllowed_ && reply.phrase_wait_ms ? static_cast<std::uint32_t>(*reply.phrase_wait_ms) : 0;
+        phraseElapsedMs_ = phraseAllowed_ && reply.phrase_elapsed_ms ? static_cast<std::uint32_t>(*reply.phrase_elapsed_ms) : 0;
+        triggerReason_ = phraseAllowed_ ? reply.trigger_reason : std::string();
+        statusReceivedAt_ = NowMs();
         if (reply.kind == completionist::protocol::ReplyKind::Phrase) {
             phrase_ = phraseAllowed_ ? reply.phrase : std::wstring();
             model_.SetPhrase(!phrase_.empty(), NowMs());
@@ -709,6 +761,7 @@ private:
         words_ = useWords ? reply.words : std::vector<std::wstring>();
         kinds_ = useWords ? reply.kinds : std::vector<std::string>();
         marks_ = useWords && reply.marks.size() == reply.words.size() ? reply.marks : std::vector<std::vector<int>>();
+        origins_ = useWords && reply.origins.size() == reply.words.size() ? reply.origins : std::vector<std::string>();
         phrase_ = phraseAllowed_ ? reply.phrase : std::wstring();
         model_.Open(words_.size(), /*highlightFirst=*/!(useWords && allNext));  // next words: Tab stays the app's until Down
         model_.SetPhrase(!phrase_.empty(), NowMs());
@@ -878,6 +931,11 @@ private:
                 if (reply) service->OnReply(*reply);
                 return true;
             }
+            if (message == completionist::WM_COMPLETIONIST_CONNECTION) {
+                service->engineConnected_ = wParam != 0;
+                service->Render();
+                return true;
+            }
             if (message == WM_TIMER && wParam == kRetryTimer) {
                 KillTimer(service->popup_.hwnd(), kRetryTimer);
                 if (service->watched_) service->QueueInspect(service->watched_);
@@ -886,6 +944,10 @@ private:
             if (message == WM_TIMER && wParam == kArmTimer) {
                 KillTimer(service->popup_.hwnd(), kArmTimer);
                 service->Render();  // the phrase row is now the highlighted one
+                return true;
+            }
+            if (message == WM_TIMER && wParam == kStatusTimer) {
+                service->Render();
                 return true;
             }
         } catch (...) {
@@ -909,7 +971,14 @@ private:
     std::vector<std::wstring> words_;
     std::vector<std::string> kinds_;  // what each of words_ is: "word", "chunk" or "next"
     std::vector<std::vector<int>> marks_;  // guessed letter positions per word (a typo correction's marks)
+    std::vector<std::string> origins_;
     std::wstring phrase_;  // the phrase continuation on screen (what's left of it)
+    completionist::render::AiState aiState_ = completionist::render::AiState::Off;
+    std::uint32_t phraseWaitMs_ = 0;
+    std::uint32_t phraseElapsedMs_ = 0;
+    std::uint64_t statusReceivedAt_ = 0;
+    std::string triggerReason_;
+    bool engineConnected_ = false;
     WPARAM eatenKey_ = 0;
 
     bool inspectQueued_ = false;

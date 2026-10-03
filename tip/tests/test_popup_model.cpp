@@ -45,6 +45,14 @@ TEST(opening_with_no_words_and_no_phrase_leaves_it_closed) {
     CHECK(!model.OnKey(Key::Tab, kNone).consume);
 }
 
+TEST(status_only_presentation_has_no_selectable_popup_rows) {
+    // Status is presentation metadata owned by Popup; the keyboard authority still sees a closed model.
+    PopupModel model;
+    CHECK(!model.visible());
+    CHECK(!model.OnKey(Key::Tab, kNone).consume);
+    CHECK(!model.OnKey(Key::Enter, kNone).consume);
+}
+
 TEST(enter_is_never_consumed_in_any_state) {
     PopupModel model = WithPhrase(3);
     model.SetPhraseAvailable(true);

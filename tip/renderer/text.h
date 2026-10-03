@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "popup_palette.h"
+#include "../src/popup_palette.h"
 #include "../src/popup_layout.h"
 
 namespace renderer::text {
