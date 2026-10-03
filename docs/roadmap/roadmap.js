@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Recorded Task7 single-review client source and encoder parity fix through9d725e7; alternate DLL compiled, native/DPI gates unrun."
+    },
+    {
+      "date": "2026-10-03",
       "text": "M10.20 Task 7 review follow-up: EncodeShow now rejects wait/elapsed durations above the parser's 600000 ms cap; host native assertions compile only and runtime gates remain UNRUN."
     },
     {
