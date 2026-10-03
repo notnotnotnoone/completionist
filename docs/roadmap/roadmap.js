@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Record reviewed viewer clear-race verification and renderer protocol source gates; native runtime remains unrun."
+    },
+    {
+      "date": "2026-10-03",
       "text": "M10.17: add compile-only physical/DIP popup placement, measured DirectWrite text and Evergreen palette parity; runtime and fixture gates remain unrun."
     },
     {
