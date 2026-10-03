@@ -22,6 +22,8 @@
 #include "surfaces.h"
 #include "text.h"
 #include "live_policy.h"
+#include "output_color_space.h"
+#include "system_change.h"
 
 namespace renderer {
 namespace {
@@ -72,11 +74,12 @@ public:
         conditions.visible=true;
         conditions.highContrast=highContrast;
         conditions.transparencyEnabled=composition;
+        conditions.outputColorSpace=outputColorSpace_;
         conditions.supportedSession=GetSystemMetrics(SM_REMOTESESSION)==0;
         conditions.windowsExcluded=surfaces_.captureExcluded();
         conditions.captureAvailable=captureReady_;
 
-        if (!captureReady_ && !highContrast && composition && GetSystemMetrics(SM_REMOTESESSION)==0 &&
+        if (!captureReady_ && outputColorSpace_==OutputColorSpace::Sdr709 && !highContrast && composition && GetSystemMetrics(SM_REMOTESESSION)==0 &&
             surfaces_.captureExcluded()) {
             captureReady_=capture_.initialize(device_.Get(),adapter_.Get(),outputIndex_);
             conditions.captureAvailable=captureReady_;
@@ -111,6 +114,7 @@ public:
     }
 
     void Hide() {
+        if (surfaces_.dockPanel.window) KillTimer(surfaces_.dockPanel.window,kAnimationTimer);
         surfaces_.hide();
         RetireCapture();
         prepared_.Reset();
@@ -127,13 +131,13 @@ public:
 
     void TickAnimation() {
         if (!hasCurrent_) { KillTimer(surfaces_.dockPanel.window,kAnimationTimer); return; }
-        if (!surfaces_.DockState().NeedsFrame()) { KillTimer(surfaces_.dockPanel.window,kAnimationTimer); Present(current_); return; }
-        Present(current_);
+        if (!Present(current_)) KillTimer(surfaces_.dockPanel.window,kAnimationTimer);
     }
 
-    void OnSystemChange() {
+    void OnSystemChange(UINT message) {
         BOOL animations=TRUE;
         SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION,0,&animations,0);
+        dock::ApplySystemChange(surfaces_.DockState(),message,GetTickCount64());
         surfaces_.DockState().SetReducedMotion(!animations,GetTickCount64());
         if (hasCurrent_) Present(current_);
     }
@@ -162,6 +166,7 @@ private:
                 if (FAILED(D3D11CreateDevice(adapter.Get(),D3D_DRIVER_TYPE_UNKNOWN,nullptr,
                     D3D11_CREATE_DEVICE_BGRA_SUPPORT,nullptr,0,D3D11_SDK_VERSION,&device_,&level,&context_))) return false;
                 adapter_=adapter; outputIndex_=oi; activeMonitor_=monitor;
+                outputColorSpace_=QueryOutputColorSpace(adapter_.Get(),outputIndex_);
                 if (!surfaces_.create(GetModuleHandleW(nullptr),device_.Get())) { ResetGraphics(); return false; }
                 graphicsReady_=true;
                 return true;
@@ -185,7 +190,12 @@ private:
         UpdateDockGeometry(layout);
         RetireCapture();
         current_=snapshot; hasCurrent_=true;
-        return surfaces_.showOpaqueSnapshot(snapshot,layout,prepared_,renderer,highContrast,static_cast<float>(dpi));
+        const double pulse=surfaces_.DockState().Frame(GetTickCount64(),true,snapshot.engineConnected).connectionOpacity;
+        const bool shown=surfaces_.showOpaqueSnapshot(snapshot,layout,prepared_,renderer,highContrast,
+            static_cast<float>(dpi),static_cast<float>(pulse));
+        if (shown) ScheduleDockFrames();
+        else KillTimer(surfaces_.dockPanel.window,kAnimationTimer);
+        return shown;
     }
 
     bool PresentGlass(const completionist::render::Snapshot& snapshot,const completionist::layout::Layout& layout,
@@ -213,9 +223,19 @@ private:
         context_->Flush();
         current_=snapshot; hasCurrent_=true;
         const bool shown=surfaces_.showGlassSnapshot(snapshot,layout,prepared_,renderer,palette::kLight,
-            material_.glassTexture.Get(),menuSource,dockSource,static_cast<float>(dpi),capture_.rotation);
+            material_.glassTexture.Get(),menuSource,dockSource,static_cast<float>(dpi),capture_.rotation,
+            static_cast<float>(surfaces_.DockState().Frame(GetTickCount64(),true,snapshot.engineConnected).connectionOpacity));
         if (shown) captureReady_=true;
+        if (shown) ScheduleDockFrames();
+        else KillTimer(surfaces_.dockPanel.window,kAnimationTimer);
         return shown;
+    }
+
+    void ScheduleDockFrames() {
+        if (!surfaces_.dockPanel.window || !hasCurrent_) return;
+        const auto frame=surfaces_.DockState().Frame(GetTickCount64(),true,current_.engineConnected);
+        if (frame.nextFrameMs) SetTimer(surfaces_.dockPanel.window,kAnimationTimer,frame.nextFrameMs,nullptr);
+        else KillTimer(surfaces_.dockPanel.window,kAnimationTimer);
     }
 
     void UpdateDockGeometry(const completionist::layout::Layout& layout) {
@@ -241,7 +261,7 @@ private:
         RetireCapture();
         prepared_.Reset();
         context_.Reset(); device_.Reset(); adapter_.Reset();
-        activeMonitor_=nullptr; graphicsReady_=false;
+        activeMonitor_=nullptr; outputColorSpace_=OutputColorSpace::Unknown; graphicsReady_=false;
     }
 
     ComPtr<ID3D11Device> device_;
@@ -254,6 +274,7 @@ private:
     text::PreparedText prepared_;
     HMONITOR activeMonitor_=nullptr;
     UINT outputIndex_=0;
+    OutputColorSpace outputColorSpace_=OutputColorSpace::Unknown;
     bool graphicsReady_=false, captureReady_=false, deviceRecreationUsed_=false;
     MaterialMode currentMode_=MaterialMode::Hidden;
     bool dockGeometryReady_=false, lastAutoCollapsed_=false;
@@ -314,7 +335,7 @@ int runProductionService() {
             request->completed.set_value(drawn);
         } else if (message.message==WM_TIMER && message.wParam==kAnimationTimer) host.TickAnimation();
         else if (message.message==WM_SETTINGCHANGE || message.message==WM_DISPLAYCHANGE || message.message==WM_DPICHANGED || message.message==WM_THEMECHANGED)
-            host.OnSystemChange();
+            host.OnSystemChange(message.message);
         else { TranslateMessage(&message); DispatchMessageW(&message); }
         host.ToggleDock();
     }

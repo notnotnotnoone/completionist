@@ -45,15 +45,16 @@ struct SurfaceWindows {
                      const completionist::render::Snapshot& snapshot,
                      const completionist::layout::Layout& layout,
                      const text::PreparedText& prepared,text::TextRenderer& textRenderer,
-                     const palette::Theme& colors,text::Surface surface);
+                     const palette::Theme& colors,text::Surface surface,float connectionOpacity = 1.0f);
     bool showGlassSnapshot(const completionist::render::Snapshot& snapshot,
                        const completionist::layout::Layout& layout, const text::PreparedText& prepared,
                        text::TextRenderer& textRenderer, const palette::Theme& colors,
                        ID3D11Texture2D* glass, const RECT& menuSource, const RECT& dockSource,
-                       float dpi, DXGI_MODE_ROTATION rotation);
+                       float dpi, DXGI_MODE_ROTATION rotation,float connectionOpacity = 1.0f);
     bool showOpaqueSnapshot(const completionist::render::Snapshot& snapshot,
                        const completionist::layout::Layout& layout, const text::PreparedText& prepared,
-                       text::TextRenderer& textRenderer, bool systemColors, float dpi);
+                       text::TextRenderer& textRenderer, bool systemColors, float dpi,
+                       float connectionOpacity = 1.0f);
     bool ApplyDockMotion(double expandedProgress,double bodyOpacity,float dpi);
     bool showDemo(const RECT& menuBounds, const RECT& dockBounds, float dpi, bool systemColors = false);
     bool ConsumeDockToggleRequest() {

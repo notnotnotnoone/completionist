@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Addressed Task 5 review findings: fail-closed selected output color space, visible connected dock pulse scheduling, and immediate motion completion on theme/DPI/display changes; renderer compile-only passed."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Implemented Task 5 gated production renderer service with current-owner pipe handling, presentation recovery, dock motion and UIA; compile-only gates pass; native runtime acceptance remains unrun."
     },
     {

@@ -276,7 +276,7 @@ bool TextRenderer::Prepare(const Snapshot& snapshot, float availableWidthDip, Pr
 
 bool TextRenderer::Draw(ID2D1DeviceContext* context, const Snapshot& snapshot,
                         const completionist::layout::Layout& layout, const PreparedText& prepared,
-                        const palette::Theme& colors, Surface surface) const {
+                        const palette::Theme& colors, Surface surface, float connectionOpacity) const {
     if (!context || !factory_) return false;
     ComPtr<ID2D1SolidColorBrush> ink, muted, ghost, accent, accentInk, onAccent, connected, outline;
     if (!MakeBrush(context, colors.ink, &ink) || !MakeBrush(context, colors.muted, &muted) ||
@@ -366,7 +366,10 @@ bool TextRenderer::Draw(ID2D1DeviceContext* context, const Snapshot& snapshot,
         const float dockY = layout.dockContent.top;
         const D2D1_ELLIPSE connectionMark = D2D1::Ellipse(
             D2D1::Point2F(layout.dockContent.left + 3.0f, dockY + 7.0f), 3.0f, 3.0f);
-        if (snapshot.engineConnected) context->FillEllipse(connectionMark, connected.Get());
+        if (snapshot.engineConnected) {
+            connected->SetOpacity(std::clamp(connectionOpacity,0.0f,1.0f));
+            context->FillEllipse(connectionMark, connected.Get());
+        }
         else context->DrawEllipse(connectionMark, outline.Get(), 1.4f);
         DrawLayout(context, prepared.connection.Get(), layout.dockContent.left + 12.0f, dockY,
                    snapshot.engineConnected ? accentInk.Get() : muted.Get(), Rect(layout.dockContent));

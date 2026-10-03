@@ -6,6 +6,11 @@
 
 namespace renderer::dock {
 
+struct PresentationFrame {
+    double connectionOpacity = 1.0;
+    unsigned nextFrameMs = 0;
+};
+
 // Progress is the amount of expanded body currently visible: 0 collapsed, 1 expanded.
 // Manual preference is session-only and always wins over geometry-driven auto collapse.
 class State {
@@ -56,6 +61,13 @@ public:
         startedAtMs_ = nowMs;
     }
 
+    void CompleteImmediately(uint64_t nowMs) {
+        progress_ = targetExpanded_ ? 1.0 : 0.0;
+        opacity_ = progress_;
+        moving_ = false;
+        startedAtMs_ = nowMs;
+    }
+
     double Sample(uint64_t nowMs) {
         if (!moving_) return progress_;
         const uint64_t elapsed = nowMs >= startedAtMs_ ? nowMs - startedAtMs_ : 0;
@@ -74,6 +86,12 @@ public:
     bool ManuallyControlled() const { return manualMinimized_; }
     bool BodyHitTestable(uint64_t nowMs) { return Sample(nowMs) >= 1.0; }
     bool NeedsFrame() const { return moving_; }
+    bool ReducedMotion() const { return reduced_; }
+    PresentationFrame Frame(uint64_t nowMs, bool visible, bool connected) const {
+        const bool pulseActive = visible && connected && !reduced_;
+        return {ConnectionPulse(nowMs, visible, connected, reduced_),
+                moving_ ? 16U : (pulseActive ? 33U : 0U)};
+    }
     double Opacity(uint64_t nowMs) {
         Sample(nowMs);
         return opacity_;

@@ -59,7 +59,8 @@ public:
     // Draws crisp foreground text and selection shapes over a material surface.
     bool Draw(ID2D1DeviceContext* context, const completionist::render::Snapshot& snapshot,
               const completionist::layout::Layout& layout, const PreparedText& prepared,
-              const palette::Theme& colors, Surface surface = Surface::Menu) const;
+              const palette::Theme& colors, Surface surface = Surface::Menu,
+              float connectionOpacity = 1.0f) const;
 
 private:
     IDWriteFactory* factory_ = nullptr;  // owned by the renderer surface lifetime

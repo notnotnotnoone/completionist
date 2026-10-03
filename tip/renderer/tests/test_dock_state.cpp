@@ -1,4 +1,5 @@
 #include "../dock_state.h"
+#include "../system_change.h"
 #include "../../tests/test_harness.h"
 
 TEST(dock_geometry_auto_minimize_restores_when_space_returns) {
@@ -55,4 +56,35 @@ TEST(connection_pulse_runs_only_for_visible_connected_reduced_motion_enabled_doc
     CHECK(renderer::dock::State::ConnectionPulse(600, false, true, false) == 1.0);
     CHECK(renderer::dock::State::ConnectionPulse(600, true, false, false) == 1.0);
     CHECK(renderer::dock::State::ConnectionPulse(600, true, true, true) == 1.0);
+}
+
+TEST(production_dock_frame_plan_pulses_and_schedules_only_visible_connected_status) {
+    renderer::dock::State state;
+    const auto active = state.Frame(600, true, true);
+    CHECK(active.connectionOpacity < 1.0);
+    CHECK_EQ(active.nextFrameMs, 33u);
+    const auto hidden = state.Frame(600, false, true);
+    CHECK_EQ(hidden.connectionOpacity, 1.0);
+    CHECK_EQ(hidden.nextFrameMs, 0u);
+    const auto disconnected = state.Frame(600, true, false);
+    CHECK_EQ(disconnected.connectionOpacity, 1.0);
+    CHECK_EQ(disconnected.nextFrameMs, 0u);
+
+    state.SetReducedMotion(true, 700);
+    const auto reduced = state.Frame(1200, true, true);
+    CHECK_EQ(reduced.connectionOpacity, 1.0);
+    CHECK_EQ(reduced.nextFrameMs, 0u);
+}
+
+TEST(production_theme_dpi_and_display_changes_finish_dock_motion_immediately) {
+    const UINT changes[]{WM_THEMECHANGED, WM_DPICHANGED, WM_DISPLAYCHANGE};
+    for (const UINT message : changes) {
+        renderer::dock::State state;
+        state.Toggle(0);
+        CHECK(state.NeedsFrame());
+        renderer::dock::ApplySystemChange(state, message, 40);
+        CHECK(!state.NeedsFrame());
+        CHECK_EQ(state.Sample(40), 0.0);
+        CHECK_EQ(state.Frame(40, true, false).nextFrameMs, 0u);
+    }
 }

@@ -3,12 +3,17 @@
 namespace renderer {
 
 enum class MaterialMode { Hidden, Opaque, Glass };
+enum class OutputColorSpace { Unknown, Sdr709, Unsupported };
+constexpr OutputColorSpace ClassifyOutputColorSpace(bool descriptorAvailable, bool supportedSdr709) {
+    if (!descriptorAvailable) return OutputColorSpace::Unknown;
+    return supportedSdr709 ? OutputColorSpace::Sdr709 : OutputColorSpace::Unsupported;
+}
 struct MaterialConditions {
     bool visible = false;
     bool locked = false;
     bool highContrast = false;
     bool transparencyEnabled = true;
-    bool supportedHdr = false;
+    OutputColorSpace outputColorSpace = OutputColorSpace::Unknown;
     bool supportedSession = true;
     bool captureAvailable = true;
     bool windowsExcluded = true;
@@ -16,7 +21,7 @@ struct MaterialConditions {
 
 constexpr MaterialMode ChooseMaterialMode(const MaterialConditions& c) {
     if (!c.visible || c.locked) return MaterialMode::Hidden;
-    if (c.highContrast || !c.transparencyEnabled || c.supportedHdr || !c.supportedSession ||
+    if (c.highContrast || !c.transparencyEnabled || c.outputColorSpace != OutputColorSpace::Sdr709 || !c.supportedSession ||
         !c.captureAvailable || !c.windowsExcluded) return MaterialMode::Opaque;
     return MaterialMode::Glass;
 }

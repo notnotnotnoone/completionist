@@ -193,7 +193,8 @@ bool SurfaceWindows::presentGlass(Panel& panel,const RECT& bounds,ID3D11Texture2
                                   float dpi,DXGI_MODE_ROTATION rotation,
                                   const completionist::render::Snapshot& snapshot,
                                   const completionist::layout::Layout& layout,const text::PreparedText& prepared,
-                                  text::TextRenderer& textRenderer,const palette::Theme& colors,text::Surface surface) {
+                                  text::TextRenderer& textRenderer,const palette::Theme& colors,text::Surface surface,
+                                  float connectionOpacity) {
     if (!panel.window || !panel.swapChain || !panel.drawing || !glass) return false;
     const LONG width=bounds.right-bounds.left, height=bounds.bottom-bounds.top;
     if (width<=0 || height<=0 || source.right<=source.left || source.bottom<=source.top) return false;
@@ -227,7 +228,7 @@ bool SurfaceWindows::presentGlass(Panel& panel,const RECT& bounds,ID3D11Texture2
         static_cast<float>(source.right),static_cast<float>(source.bottom));
     panel.drawing->DrawBitmap(glassSourceBitmap.Get(),destination,1.0f,D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,&sourceRect);
     panel.drawing->SetTransform(D2D1::Matrix3x2F::Identity());
-    const bool ready=textRenderer.Draw(panel.drawing.Get(),snapshot,layout,prepared,colors,surface);
+    const bool ready=textRenderer.Draw(panel.drawing.Get(),snapshot,layout,prepared,colors,surface,connectionOpacity);
     if (ready && surface==text::Surface::Dock) {
         ComPtr<ID2D1SolidColorBrush> button;
         const palette::Color iconColor=colors.muted;
@@ -248,12 +249,12 @@ bool SurfaceWindows::showGlassSnapshot(const completionist::render::Snapshot& sn
                                   const completionist::layout::Layout& layout,const text::PreparedText& prepared,
                                   text::TextRenderer& textRenderer,const palette::Theme& colors,
                                   ID3D11Texture2D* glass,const RECT& menuSource,const RECT& dockSource,
-                                  float dpi,DXGI_MODE_ROTATION rotation) {
+                                  float dpi,DXGI_MODE_ROTATION rotation,float connectionOpacity) {
     const auto rect=[](const completionist::render::Rect& r) { return RECT{r.left,r.top,r.right,r.bottom}; };
     if (!presentGlass(menuPanel,rect(layout.menuBounds),glass,menuSource,dpi,rotation,snapshot,layout,prepared,
                       textRenderer,colors,text::Surface::Menu) ||
         !presentGlass(dockPanel,rect(layout.dockBounds),glass,dockSource,dpi,rotation,snapshot,layout,prepared,
-                      textRenderer,colors,text::Surface::Dock)) {
+                      textRenderer,colors,text::Surface::Dock,connectionOpacity)) {
         hide();
         return false;
     }
@@ -280,7 +281,7 @@ bool SurfaceWindows::ApplyDockMotion(double expandedProgress,double bodyOpacity,
 
 bool SurfaceWindows::showOpaqueSnapshot(const completionist::render::Snapshot& snapshot,
                                   const completionist::layout::Layout& layout,const text::PreparedText& prepared,
-                                  text::TextRenderer& textRenderer,bool systemColors,float dpi) {
+                                  text::TextRenderer& textRenderer,bool systemColors,float dpi,float connectionOpacity) {
     palette::Theme colors=palette::kLight;
     D2D1_COLOR_F fill=D2D1::ColorF(0x0A5A3D);
     if (systemColors) {
@@ -312,7 +313,8 @@ bool SurfaceWindows::showOpaqueSnapshot(const completionist::render::Snapshot& s
             const float radius=surface==text::Surface::Menu ? 14.0f : 10.0f;
             panel.drawing->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(0,0,width*96.0f/dpi,height*96.0f/dpi),radius,radius),background.Get());
         }
-        const bool drawn=brushReady && textRenderer.Draw(panel.drawing.Get(),snapshot,layout,prepared,colors,surface);
+        const bool drawn=brushReady && textRenderer.Draw(panel.drawing.Get(),snapshot,layout,prepared,colors,surface,
+            surface==text::Surface::Dock ? connectionOpacity : 1.0f);
         const HRESULT end=panel.drawing->EndDraw(); panel.drawing->SetTarget(nullptr);
         if (!drawn || FAILED(end) || FAILED(panel.swapChain->Present(1,0))) return false;
         SetWindowPos(panel.window,HWND_TOPMOST,bounds.left,bounds.top,width,height,SWP_NOACTIVATE|SWP_SHOWWINDOW);

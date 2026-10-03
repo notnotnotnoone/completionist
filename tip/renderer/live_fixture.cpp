@@ -17,6 +17,7 @@
 #include "surfaces.h"
 #include "session.h"
 #include "live_policy.h"
+#include "output_color_space.h"
 #include "resource_lifetime.h"
 
 namespace renderer {
@@ -187,6 +188,7 @@ void GraphicsWorker(HostState* host,HINSTANCE instance) {
             materialConditions.visible=true;
             materialConditions.highContrast=highContrast;
             materialConditions.transparencyEnabled=compositionAvailable;
+            materialConditions.outputColorSpace=QueryOutputColorSpace(adapter.Get(),outputIndex);
             materialConditions.supportedSession=GetSystemMetrics(SM_REMOTESESSION)==0;
             materialConditions.windowsExcluded=surfaces.captureExcluded();
             MaterialMode materialMode=disabled ? MaterialMode::Opaque
