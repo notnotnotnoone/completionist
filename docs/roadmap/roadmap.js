@@ -1282,6 +1282,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Task8 review fix: uninstall preflights/waits on the verified renderer artifact before unregistering keyboard or DLL; locked renderer leaves registration intact."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Task8 review fix: preflight the checkout-owned renderer for removability before uninstall changes; abort clearly while preserving keyboard/DLL registration when still locked."
+    },
+    {
+      "date": "2026-10-03",
       "text": "M10.21 adds opt-in renderer supervision, bounded owned-child shutdown, fake-only tests, and paired DLL/renderer rollback; native and live acceptance stay UNRUN."
     },
     {
