@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Record reviewed native layout fixes and compile-only gates; retain local SDD reports outside tracked artifacts."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Fixed partial-accept underline origin handling with a nonzero-origin regression and added 24-point fixtures across the DPI/theme matrix; native runtime and image acceptance remain unrun."
     },
     {
