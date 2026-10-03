@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Recorded Task5 single-review source fixes and compile-only evidence through81741fc; native runtime gates remain unrun."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Addressed Task 5 review findings: fail-closed selected output color space, visible connected dock pulse scheduling, and immediate motion completion on theme/DPI/display changes; renderer compile-only passed."
     },
     {
