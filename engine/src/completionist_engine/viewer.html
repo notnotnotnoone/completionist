@@ -68,6 +68,7 @@ button { touch-action: manipulation; }
 }
 .tab[aria-selected="true"] { background: var(--paper); color: var(--ink); font-weight: 600; }
 @media (hover: hover) and (pointer: fine) { .tab[aria-selected="false"]:hover { background: rgb(255 255 255 / .12); color: var(--sign-ink); } }
+.tab:focus-visible { position: relative; z-index: 1; }
 
 /* ---- page */
 main { max-width: 920px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) 120px max(16px, env(safe-area-inset-left)); outline: none; }
@@ -123,12 +124,13 @@ select.field { padding-right: 8px; cursor: pointer; }
 .rm.armed { background: var(--bad); color: #fff; font-weight: 600; }
 @media (hover: hover) and (pointer: fine) { .rm.armed:hover { background: var(--bad); color: #fff; } }
 .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--muted); font-size: .875rem; }
+.result-count { align-self: center; color: var(--muted); font-size: .8125rem; }
 .empty { padding: 40px 24px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 14px; }
 .empty strong { display: block; color: var(--ink); margin-bottom: 4px; }
 @media (max-width: 560px) { .row { grid-template-columns: minmax(0, 1fr) minmax(4ch, max-content) auto; } .row .meter { display: none; } .local { display: none; } }
 
 /* ---- stats */
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 12px; margin-bottom: 24px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; animation: rise 240ms var(--enter) both; animation-delay: var(--d, 0ms); }
 .card b { display: block; font-size: 1.75rem; line-height: 1.2; letter-spacing: -.01em; }
 .card span { color: var(--muted); font-size: .8125rem; }
@@ -150,8 +152,10 @@ th { background: var(--paper-2); font-size: .8125rem; font-weight: 600; color: v
 th.n, td.n { text-align: right; font-variant-numeric: tabular-nums; }
 tr:last-child td { border-bottom: 0; }
 .scroll { overflow-x: auto; border-radius: 14px; }
+.scroll-hint { display: none; color: var(--muted); font-size: .75rem; padding: 4px 8px; }
+@media (max-width: 640px) { .scroll-hint { display: block; } }
 details.more { margin-top: 8px; }
-details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32px; display: inline-flex; align-items: center; }
+details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 44px; display: inline-flex; align-items: center; }
 
 /* ---- settings */
 .group { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px 8px; margin: 0 0 16px; min-width: 0; }
@@ -163,8 +167,8 @@ details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32
 .set:first-of-type { border-top: 0; }
 .set .t { font-weight: 500; }
 .set .t small { display: block; font-weight: 400; color: var(--muted); font-size: .8125rem; margin-top: 2px; }
-.set .ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-start; }
-.set .ctl .field { flex: 1 1 160px; }
+.set .ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-start; min-width: 0; }
+.set .ctl .field { flex: 1 1 160px; min-width: 0; }
 .switch { appearance: none; -webkit-appearance: none; position: relative; width: 48px; height: 28px; border-radius: 99px; background: var(--line-strong); cursor: pointer; flex: none; margin: 0; transition: background-color 160ms ease; }
 .switch::before { content: ""; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .3); transition: transform 180ms var(--enter); }
 .switch:checked { background: var(--bar); }
@@ -197,7 +201,7 @@ details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32
 .tile > p, .profile-note { color: var(--muted); font-size: .8125rem; }
 .profiles { grid-column: 1 / -1; }
 .profile { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 12px 0; }
-.profile-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.profile-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
 .profile-fields label { display: grid; gap: 4px; font-size: .875rem; }
 .profile-fields .field { width: 100%; min-width: 0; }
 .runtime { margin-bottom: 16px; }
@@ -206,6 +210,7 @@ details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32
 
 /* ---- requests log */
 .toolbar .live { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: var(--muted); font-size: .8125rem; }
+.privacy-note { flex: 1 0 100%; color: var(--muted); font-size: .8125rem; }
 .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--bar); }
 .live.paused i { background: var(--line-strong); }
 .log td, .log th { white-space: nowrap; }
@@ -214,7 +219,7 @@ details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32
 @media (hover: hover) and (pointer: fine) { .log tbody tr:hover { background: var(--paper-2); } }
 .log tbody tr.in { animation: rise 200ms var(--enter) both; }
 .log td.reply { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
-.rowbtn { border: 0; background: transparent; padding: 0; min-height: 32px; cursor: pointer; font: inherit; color: inherit; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.rowbtn { border: 0; background: transparent; padding: 0; min-height: 44px; cursor: pointer; font: inherit; color: inherit; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
 .outcome { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: .75rem; font-weight: 600; letter-spacing: .02em; background: var(--paper-2); color: var(--muted); }
 .outcome-ok { background: var(--ok-soft); color: var(--ok); }
 .outcome-failover { background: var(--accent-soft); color: var(--accent-ink); }
@@ -233,6 +238,7 @@ details.more summary { cursor: pointer; color: var(--accent-ink); min-height: 32
 .sheet .line { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin-bottom: 4px; }
 .sheet .line span:not(.outcome) { color: var(--muted); font-size: .8125rem; }
 .sheet .line b { font-weight: 600; }
+.sheet-status { margin: 12px 0; }
 .sheet h4 { margin: 20px 0 6px; font-size: .8125rem; font-weight: 600; color: var(--muted); letter-spacing: .02em; text-transform: uppercase; }
 .text { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); font: .8125rem/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40vh; overflow-y: auto; }
 .text.none { color: var(--muted); font-family: var(--font); }
@@ -254,6 +260,7 @@ body.has-savebar .toast { bottom: 96px; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 @media (max-width: 640px) { .set { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .sheet { width: 100%; border-left: 0; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); } }
 </style>
 </head>
 <body>
@@ -284,9 +291,10 @@ body.has-savebar .toast { bottom: 96px; }
       <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input class="field" type="search" id="words-q" name="q" autocomplete="off" spellcheck="false" placeholder="Search words…" aria-label="Search words"></div>
       <select class="field" id="words-sort" name="sort" aria-label="Sort words"><option value="count">Most Used</option><option value="alpha">A to Z</option></select>
+      <span class="result-count" id="words-count" aria-live="polite"></span>
     </div>
     <div id="words-body"></div>
-    <div class="foot"><span id="words-count" aria-live="polite"></span><button class="btn" id="words-more" type="button" hidden>Show More</button></div>
+    <div class="foot"><span></span><button class="btn" id="words-more" type="button" hidden>Show More</button></div>
   </section>
 
   <section class="panel" id="panel-phrases" role="tabpanel" aria-labelledby="tab-phrases" hidden>
@@ -295,22 +303,24 @@ body.has-savebar .toast { bottom: 96px; }
       <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input class="field" type="search" id="phrases-q" name="q" autocomplete="off" spellcheck="false" placeholder="Search phrases…" aria-label="Search phrases"></div>
       <select class="field" id="phrases-sort" name="sort" aria-label="Sort phrases"><option value="count">Most Used</option><option value="alpha">A to Z</option></select>
+      <span class="result-count" id="phrases-count" aria-live="polite"></span>
     </div>
     <div id="phrases-body"></div>
-    <div class="foot"><span id="phrases-count" aria-live="polite"></span><button class="btn" id="phrases-more" type="button" hidden>Show More</button></div>
+    <div class="foot"><span></span><button class="btn" id="phrases-more" type="button" hidden>Show More</button></div>
   </section>
 
   <section class="panel" id="panel-requests" role="tabpanel" aria-labelledby="tab-requests" hidden>
-    <div class="head"><h2>Phrase Requests</h2><p>The latest cloud phrase requests, newest first. Unlike the rest of this viewer, this shows the text that was sent, what came back, and the screenshot and screen text each request was shown. It is kept in memory only (never saved to disk), holds the last 200, and is gone when Completionist stops.</p></div>
+    <div class="head"><h2>Phrase Requests</h2><p>Recent cloud phrase requests, newest first. Open a request to see the text, window context, model attempts, result, and timing.</p></div>
     <div class="toolbar">
       <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input class="field" type="search" id="requests-q" name="q" autocomplete="off" spellcheck="false" placeholder="Search app, text or model…" aria-label="Search requests"></div>
       <select class="field" id="requests-result" name="result" aria-label="Filter by result"><option value="">Any Result</option><option value="ok">OK</option><option value="failover">Failover</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option></select>
       <button class="btn quiet" id="requests-clear" type="button">Clear Log</button>
+      <span class="result-count" id="requests-count" aria-live="polite"></span>
       <span class="live" id="requests-live"><i></i>Live</span>
+      <p class="privacy-note">This log is kept in memory only, holds the last 200, and is gone when Completionist stops.</p>
     </div>
     <div id="requests-body"></div>
-    <div class="foot"><span id="requests-count" aria-live="polite"></span></div>
   </section>
 
   <section class="panel" id="panel-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
@@ -320,7 +330,7 @@ body.has-savebar .toast { bottom: 96px; }
   </section>
 
   <section class="panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
-    <div class="head"><h2>Settings</h2><p>Saved into your settings file, with your comments kept. Changes apply within a couple of seconds.</p></div>
+    <div class="head"><h2>Settings</h2><p>Saved configuration stays in your settings file, with your comments kept. Changes apply within a couple of seconds; session actions take effect immediately.</p></div>
     <form id="form" novalidate autocomplete="off"></form>
   </section>
 </main>
@@ -328,7 +338,7 @@ body.has-savebar .toast { bottom: 96px; }
 <div class="scrim" id="scrim"></div>
 <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" aria-hidden="true">
   <div class="sheet-head">
-    <div><h2 id="sheet-title">Request</h2><p>What was sent, the screen it was shown, what came back, and which models were tried.</p></div>
+    <div><h2 id="sheet-title" aria-live="polite">Request receipt</h2><p>Text sent, screen context read and sent, the result, and each model attempt.</p></div>
     <button class="btn" id="sheet-close" type="button" aria-label="Close request">Close</button>
   </div>
   <div id="sheet-body"></div>
@@ -413,16 +423,16 @@ function show(name, animate = true) {
   }
   if (location.hash !== "#" + name) history.replaceState(null, "", location.pathname + "#" + name);
   updateBar();
-  setPoll(name === "requests");
+  setPoll(name === "requests" && !document.hidden);
   ({ words: () => lists.words.load(animate), phrases: () => lists.phrases.load(animate), requests: () => loadRequests(true), stats: loadStats, settings: loadSettings })[name]();
 }
 for (const n of NAMES) {
   $("tab-" + n).addEventListener("click", (ev) => show(n, ev.detail !== 0));  // a keyboard activation doesn't animate
   $("tab-" + n).addEventListener("keydown", (ev) => {
     const i = NAMES.indexOf(n), move = { ArrowRight: 1, ArrowLeft: -1 }[ev.key];
-    if (move) { ev.preventDefault(); const next = NAMES[(i + move + NAMES.length) % NAMES.length]; $("tab-" + next).focus(); show(next, false); }
-    if (ev.key === "Home") { ev.preventDefault(); $("tab-words").focus(); show("words", false); }
-    if (ev.key === "End") { ev.preventDefault(); $("tab-settings").focus(); show("settings", false); }
+    if (move) { ev.preventDefault(); const next = NAMES[(i + move + NAMES.length) % NAMES.length]; $("tab-" + next).focus(); show(next, false); $("tab-" + next).scrollIntoView({ block: "nearest", inline: "nearest" }); }
+    if (ev.key === "Home") { ev.preventDefault(); $("tab-words").focus(); show("words", false); $("tab-words").scrollIntoView({ block: "nearest", inline: "nearest" }); }
+    if (ev.key === "End") { ev.preventDefault(); $("tab-settings").focus(); show("settings", false); $("tab-settings").scrollIntoView({ block: "nearest", inline: "nearest" }); }
   });
 }
 
@@ -486,7 +496,7 @@ const lists = {
 };
 
 // ---- requests log
-const reqs = { seen: new Set(), sig: "", fresh: true, timer: null, opener: null };
+const reqs = { seen: new Set(), sig: "", fresh: true, timer: null, opener: null, openerId: "", listSeq: 0, detailSeq: 0, screenshotSeq: 0 };
 const clock = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" });
 const WORDS = { ok: "OK", failover: "Failover", failed: "Failed", cancelled: "Cancelled" };
 const ms = (v) => (v == null ? "–" : v >= 1000 ? (v / 1000).toFixed(1) + " s" : nf.format(v) + " ms");
@@ -494,14 +504,17 @@ const outcome = (o) => el("span", { className: "outcome outcome-" + o, textConte
 function requestFilters() { return { q: $("requests-q").value.trim(), result: $("requests-result").value }; }
 async function loadRequests(reset = false) {
   if (reset) { reqs.fresh = true; reqs.sig = ""; }
+  const mine = ++reqs.listSeq;
   const f = requestFilters(), box = $("requests-body");
   let data;
-  try { data = await api("/api/requests?" + new URLSearchParams({ ...f, limit: 100 })); } catch (e) { if (!e.shown) banner(e.message); return; }
+  try { data = await api("/api/requests?" + new URLSearchParams({ ...f, limit: 100 })); }
+  catch (e) { if (mine === reqs.listSeq && current === "requests" && !document.hidden && !e.shown) banner(e.message); return; }
+  if (mine !== reqs.listSeq || current !== "requests" || document.hidden) return;
   if (!data.available) { box.replaceChildren(el("div", { className: "empty" }, el("strong", { textContent: "Nothing is logging" }), el("span", { textContent: "Cloud phrases are not running, so there are no requests." }))); $("requests-count").textContent = ""; return; }
   const sig = data.requests.map((r) => r.id).join(",") + "|" + data.total;
+  $("requests-count").textContent = data.total ? `${nf.format(data.total)} ${data.total === 1 ? "request" : "requests"}${f.q || f.result ? " match" : ""}${data.total > data.requests.length ? `, showing the newest ${data.requests.length}` : ""}` : "";
   if (sig === reqs.sig) return;  // nothing new: leave the table alone so hover and focus stay put
   reqs.sig = sig;
-  $("requests-count").textContent = data.total ? `${nf.format(data.total)} ${data.total === 1 ? "request" : "requests"}${f.q || f.result ? " match" : ""}${data.total > data.requests.length ? `, showing the newest ${data.requests.length}` : ""}` : "";
   if (!data.requests.length) {
     const any = f.q || f.result;
     box.replaceChildren(el("div", { className: "empty" }, el("strong", { textContent: any ? "No requests match" : "No requests yet" }), el("span", { textContent: any ? "Try a different search or result." : "Phrase requests show up here as they happen. Ctrl+Space asks for one anywhere." })));
@@ -511,7 +524,7 @@ async function loadRequests(reset = false) {
   const rows = data.requests.map((r) => {
     const at = clock.format(new Date(r.at * 1000));
     const tr = el("tr", {},
-      el("td", { className: "mono" }, el("button", { className: "rowbtn", type: "button", textContent: at, "aria-label": `Open request from ${at}, ${WORDS[r.outcome] || r.outcome}` })),
+      el("td", { className: "mono" }, el("button", { className: "rowbtn", type: "button", textContent: at, "aria-label": `Open request from ${at}, ${WORDS[r.outcome] || r.outcome}`, "data-request-id": r.id })),
       el("td", { className: "mono", textContent: r.app }),
       el("td", { className: "mono", textContent: r.model || "–" }),
       el("td", { className: "reply", textContent: r.reply || "" }),
@@ -523,15 +536,23 @@ async function loadRequests(reset = false) {
     return tr;
   });
   const heads = [["Time", ""], ["App", ""], ["Answered by", ""], ["Suggestion", ""], ["First text", "n"], ["Took", "n"], ["Result", ""]];
-  box.replaceChildren(el("div", { className: "scroll" }, el("table", { className: "log" },
-    el("thead", {}, el("tr", {}, ...heads.map(([h, c]) => el("th", { className: c, scope: "col", textContent: h })))), el("tbody", {}, ...rows))));
+  const focusedId = document.activeElement?.closest?.(".rowbtn")?.dataset.requestId;
+  box.replaceChildren(el("div", { className: "scroll", role: "region", "aria-label": "Recent phrase requests table; scroll horizontally on narrow screens" }, el("table", { className: "log" },
+    el("thead", {}, el("tr", {}, ...heads.map(([h, c]) => el("th", { className: c, scope: "col", textContent: h })))), el("tbody", {}, ...rows)),
+    el("p", { className: "scroll-hint", textContent: "Scroll horizontally to see the model, suggestion, timing, and result." })));
+  if (focusedId) [...box.querySelectorAll(".rowbtn")].find((button) => button.dataset.requestId === focusedId)?.focus({ preventScroll: true });
   reqs.seen = new Set(data.requests.map((r) => r.id)); reqs.fresh = false;
 }
 function setPoll(on) {
   clearInterval(reqs.timer); reqs.timer = null;
+  if (!on) reqs.listSeq++;
   $("requests-live").classList.toggle("paused", !on);
-  if (on) reqs.timer = setInterval(() => { if (!document.hidden && current === "requests") loadRequests(); }, 3000);
+  if (on && !document.hidden) reqs.timer = setInterval(() => { if (current === "requests" && !document.hidden) loadRequests(); }, 3000);
 }
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) setPoll(false);
+  else if (current === "requests") { setPoll(true); loadRequests(true); }
+});
 let typingTimer;
 $("requests-q").addEventListener("input", () => { clearTimeout(typingTimer); typingTimer = setTimeout(() => loadRequests(true), 250); });
 $("requests-result").addEventListener("change", () => loadRequests(true));
@@ -543,38 +564,63 @@ $("requests-result").addEventListener("change", () => loadRequests(true));
 }
 
 // The side sheet: slides in from the right after a click; opening it from the keyboard is instant.
-const sheet = $("sheet"), scrim = $("scrim"), behindSheet = [document.querySelector("header.sign"), $("main")];
+const sheet = $("sheet"), scrim = $("scrim"), behindSheet = [document.querySelector("header.sign"), $("main"), $("savebar")];
 function section(title, ...kids) { return el("div", {}, el("h4", { textContent: title }), ...kids); }
 // The screenshot is fetched with the token and shown from an in-memory blob, so the token never goes in an image address.
 let shotUrl = "";
 function forgetShot() { if (shotUrl) URL.revokeObjectURL(shotUrl); shotUrl = ""; }
-async function showShot(id, box) {
+async function showShot(id, box, detailGeneration) {
+  const mine = ++reqs.screenshotSeq;
   try {
-    const r = await fetch(`/api/requests/${id}/screenshot`, { headers: { "X-Completionist-Token": token } });
+    const r = await fetch(`/api/requests/${id}/screenshot`, { cache: "no-store", headers: { "X-Completionist-Token": token } });
     if (!r.ok) throw new Error("gone");
     const url = URL.createObjectURL(await r.blob());
-    if (!box.isConnected) { URL.revokeObjectURL(url); return; }  // the sheet moved on to another request
+    if (mine !== reqs.screenshotSeq || detailGeneration !== reqs.detailSeq || !sheet.classList.contains("show") || !box.isConnected) { URL.revokeObjectURL(url); return; }
     forgetShot(); shotUrl = url;
     box.replaceChildren(el("a", { href: url, target: "_blank", rel: "noopener", title: "Open full size" }, el("img", { className: "shot", src: url, alt: "The window as it looked when its text was read" })),
       el("p", { className: "shotnote", textContent: "Click the picture to open it full size." }));
-  } catch (e) { box.replaceChildren(el("p", { className: "text none", textContent: "The screenshot is no longer available." })); }
+  } catch (e) {
+    if (mine === reqs.screenshotSeq && detailGeneration === reqs.detailSeq && sheet.classList.contains("show") && box.isConnected)
+      box.replaceChildren(el("p", { className: "text none", textContent: "The screenshot is no longer available." }));
+  }
 }
-function screenSections(r) {
+function screenSections(r, detailGeneration) {
   const s = r.screen;
-  if (!s) return [section("Screen", el("p", { className: "text none", textContent: "No screen text was used for this request: reading the screen was off, or nothing had been read from this window yet." }))];
+  if (!s) return [section("Window context read", el("p", { className: "text none", textContent: "No window context was read for this request: context reading was off, or nothing had been read from this window yet." })), section("Window context sent", el("p", { className: "text none", textContent: "No window context was sent." }))];
   const box = el("div", { className: "shotbox" }, el("p", { className: "text none", textContent: s.has_image ? "Loading the screenshot…" : "No screenshot was kept." }));
-  if (s.has_image) showShot(r.id, box);
+  if (s.has_image) showShot(r.id, box, detailGeneration);
   const out = [
     section("Screen it was shown", el("p", { className: "shotnote", textContent: `${s.app}${s.title ? " · " + s.title : ""}` }), box),
-    section("Text read from the screen", s.text ? el("pre", { className: "text", textContent: s.text }) : el("p", { className: "text none", textContent: "The reader found no text in the picture." })),
+    section("Window context read", s.text ? el("pre", { className: "text", textContent: s.text }) : el("p", { className: "text none", textContent: "The screen reader found no text in this window." })),
+    section("Window context sent", s.sent ? el("pre", { className: "text", textContent: s.sent }) : el("p", { className: "text none", textContent: "No window text was sent; every line was text you had typed yourself." })),
   ];
-  if (s.sent !== s.text) out.push(section("Sent to the model", s.sent ? el("pre", { className: "text", textContent: s.sent }) : el("p", { className: "text none", textContent: "Nothing: every line was text you had typed yourself." })));
   return out;
 }
 async function openRequest(id, opener, animate) {
+  const mine = ++reqs.detailSeq;
+  reqs.opener = opener; reqs.openerId = id;
+  forgetShot(); reqs.screenshotSeq++;
+  for (const n of [sheet, scrim]) n.classList.toggle("instant", !animate || reduced.matches);
+  $("sheet-title").textContent = "Request receipt loading";
+  $("sheet-body").replaceChildren(el("p", { className: "text none sheet-status", role: "status", textContent: "Loading request details…" }));
+  sheet.setAttribute("aria-hidden", "false");
+  sheet.classList.add("show"); scrim.classList.add("show");
+  for (const n of behindSheet) n.inert = true;
+  $("sheet-close").focus({ preventScroll: true });
+  sheet.scrollTop = 0;
   let r;
-  try { r = await api("/api/requests/" + id); } catch (e) { if (!e.shown) { toast(e.message); loadRequests(true); } return; }
+  try { r = await api("/api/requests/" + id); }
+  catch (e) {
+    if (mine === reqs.detailSeq && sheet.classList.contains("show")) {
+      $("sheet-title").textContent = "Request receipt unavailable";
+      $("sheet-body").replaceChildren(el("p", { className: "text none", role: "status", textContent: e.shown ? "Request details are no longer available." : e.message }));
+      if (!e.shown) toast(e.message);
+    }
+    return;
+  }
+  if (mine !== reqs.detailSeq || !sheet.classList.contains("show")) return;
   const at = clock.format(new Date(r.at * 1000));
+  $("sheet-title").textContent = `${WORDS[r.outcome] || r.outcome} request · ${r.app} · ${at}`;
   const tried = r.attempts.length
     ? el("ul", { className: "tried" }, ...r.attempts.map((a) => el("li", {},
         el("span", { className: "mono", textContent: a.model }), el("span", { className: "ms", textContent: (a.ok ? "answered in " : "gave up after ") + ms(a.ms) }),
@@ -583,9 +629,9 @@ async function openRequest(id, opener, animate) {
   $("sheet-body").replaceChildren(
     el("div", { className: "line" }, outcome(r.outcome), el("b", { textContent: r.app }), el("span", { textContent: at })),
     el("div", { className: "line" }, el("span", { textContent: `First text ${ms(r.ttft_ms)} · took ${ms(r.total_ms)}` })),
-    section("Prompt sent to the model (system and user messages)", el("pre", { className: "text", textContent: r.prompt })),
-    ...(r.suffix ? [section("Text after the caret sent to the model", el("pre", { className: "text", textContent: r.suffix }))] : []),
-    ...screenSections(r),
+    section("Text sent to the model", el("pre", { className: "text", textContent: r.prompt })),
+    section("Text after the caret", r.suffix ? el("pre", { className: "text", textContent: r.suffix }) : el("p", { className: "text none", textContent: "No text after the caret was sent." })),
+    ...screenSections(r, mine),
     section("Suggestion", r.reply ? el("pre", { className: "text", textContent: r.reply }) : el("p", { className: "text none", textContent: r.outcome === "cancelled" ? "Nothing arrived before the request was dropped." : "Nothing came back." })),
     section(r.attempts.length > 1 ? "Models tried" : "Model tried", tried),
     section("Request settings (without API key)", el("pre", { className: "text", textContent: JSON.stringify(r.settings || {}, null, 2) })),
@@ -594,25 +640,29 @@ async function openRequest(id, opener, animate) {
           el("span", { className: "mono", textContent: `+${event.ms} ms · ${event.kind}` }),
           el("pre", { className: "text", textContent: JSON.stringify(Object.fromEntries(Object.entries(event).filter(([key]) => key !== "ms" && key !== "kind")), null, 2) }))))
       : el("p", { className: "text none", textContent: "No event history was kept for this request." })));
-  reqs.opener = opener;
-  for (const n of [sheet, scrim]) n.classList.toggle("instant", !animate || reduced.matches);
-  sheet.setAttribute("aria-hidden", "false");
-  sheet.classList.add("show"); scrim.classList.add("show");
-  for (const n of behindSheet) n.inert = true;
-  $("sheet-close").focus({ preventScroll: true });
-  sheet.scrollTop = 0;
 }
 function closeRequest() {
   if (!sheet.classList.contains("show")) return;
+  reqs.detailSeq++; reqs.screenshotSeq++;
   sheet.classList.remove("show"); scrim.classList.remove("show");
   sheet.setAttribute("aria-hidden", "true");
   forgetShot();
   for (const n of behindSheet) n.inert = false;
-  if (reqs.opener && reqs.opener.isConnected) reqs.opener.focus({ preventScroll: true });
+  const opener = reqs.opener?.isConnected ? reqs.opener : [...document.querySelectorAll(".rowbtn")].find((button) => button.dataset.requestId === reqs.openerId);
+  (opener || $("tab-requests")).focus({ preventScroll: true });
 }
 $("sheet-close").addEventListener("click", closeRequest);
 scrim.addEventListener("click", closeRequest);
-addEventListener("keydown", (ev) => { if (ev.key === "Escape") closeRequest(); });
+sheet.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Tab") return;
+  const focusable = [...sheet.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+    .filter((node) => !node.hidden && node.getAttribute("aria-hidden") !== "true");
+  if (!focusable.length) { ev.preventDefault(); sheet.focus(); return; }
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (ev.shiftKey && (document.activeElement === first || !sheet.contains(document.activeElement))) { ev.preventDefault(); last.focus(); }
+  else if (!ev.shiftKey && (document.activeElement === last || !sheet.contains(document.activeElement))) { ev.preventDefault(); first.focus(); }
+});
+addEventListener("keydown", (ev) => { if (ev.key === "Escape" && sheet.classList.contains("show")) closeRequest(); });
 
 // ---- stats
 let days = 7;
@@ -628,8 +678,15 @@ const dayLong = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "lo
 const when = (iso) => new Date(iso + "T00:00:00");
 function card(big, small, lead, i) { const c = el("div", { className: "card" + (lead ? " lead" : "") }, el("b", { className: "tnum", textContent: big }), el("span", { textContent: small })); c.style.setProperty("--d", i * 40 + "ms"); return c; }
 function table(heads, rows) {
-  return el("div", { className: "scroll" }, el("table", {}, el("thead", {}, el("tr", {}, ...heads.map((h, i) => el("th", { className: i ? "n" : "", scope: "col", textContent: h })))),
-    el("tbody", {}, ...rows.map((r) => el("tr", {}, ...r.map((c, i) => el("td", { className: i ? "n" : "", textContent: typeof c === "number" ? nf.format(c) : c })))))));
+  const head = el("thead", {}, el("tr", {}, ...heads.map((h, i) => el("th", { className: i ? "n" : "", scope: "col", textContent: h }))));
+  const bodyRows = rows.map((row) => {
+    const cells = row.map((value, index) => el("td", { className: index ? "n" : "", textContent: typeof value === "number" ? nf.format(value) : value }));
+    return el("tr", {}, ...cells);
+  });
+  const body = el("tbody", {}, ...bodyRows);
+  const grid = el("table", {}, head, body);
+  const hint = el("p", { className: "scroll-hint", textContent: "Scroll horizontally to see every column." });
+  return el("div", { className: "scroll", role: "region", "aria-label": heads.join(", ") + " table; scroll horizontally on narrow screens" }, grid, hint);
 }
 function block(title, ...kids) { return el("div", { className: "block" }, el("h3", { textContent: title }), ...kids); }
 async function loadStats() {
@@ -948,7 +1005,7 @@ function renderRuntime() {
     privacy.addEventListener("click", () => runtimeAction(runtimeState.private_mode ? "private_off" : "private_on"));
     buttons.prepend(pause, privacy);
   }
-  box.replaceChildren(el("header", {}, el("h3", { textContent: "Current Session" }), el("p", { textContent: runtimeState ? `${runtimeState.paused ? "Paused" : "Running"} · Private mode ${runtimeState.private_mode ? "on" : "off"}. Actions apply immediately. Pause uses the duration below.` : "Refresh to load session status." })), buttons);
+  box.replaceChildren(el("header", {}, el("h3", { textContent: "Session actions · apply immediately" }), el("p", { textContent: runtimeState ? `${runtimeState.paused ? "Paused" : "Running"} · Private mode ${runtimeState.private_mode ? "on" : "off"}. Pause uses the duration below. Saved settings are farther down.` : "Refresh to load session status." })), buttons);
   const preview = contextState?.preview;
   if (preview) {
     const send = el("button", { type: "button", className: "btn primary", textContent: "Send", disabled: runtimeBusy || runtimeState?.private_mode || runtimeState?.paused });

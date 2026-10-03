@@ -1282,6 +1282,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Completed M10.3 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Started M10.3 toward 2.0.0."
+    },
+    {
+      "date": "2026-10-03",
       "text": "M10.15 follow-up: publish truthful working status at provider request start; delayed-provider/current-id focused checks passed; native runtime gate remains pending."
     },
     {
@@ -3614,12 +3622,18 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.3",
       "title": "Overhaul the dashboard (the viewer)",
-      "status": "next",
+      "status": "done",
       "area": "viewer",
       "stories": [],
-      "notes": "Independent V2 viewer overhaul track. Desktop autocomplete scope now has a separate spec and nine-stage implementation plan, prioritised by the owner. The viewer still needs its own approved Words, Stats, Requests and Settings layout in Evergreen tokens. Existing settings remain authoritative; context receipt stays in the viewer. Native desktop completion alone does not finish the full 2.0.0 release.",
+      "notes": "Refined viewer pages and guarded async request receipts; synthetic browser and engine tests pass.",
       "targetRelease": "2.0.0",
-      "label": "Dashboard overhaul"
+      "label": "Dashboard overhaul",
+      "completed": "2026-10-03",
+      "refs": [
+        "engine/src/completionist_engine/viewer.html",
+        "engine/tests/viewer_browser.cjs",
+        ".superpowers/sdd/2026-10-02-v2-desktop-overhaul/viewer-report.md"
+      ]
     },
     {
       "id": "M10.1",
