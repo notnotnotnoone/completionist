@@ -37,3 +37,12 @@ Task 1b contains partial composition surfaces and a generated PNG exporter. Thre
 Both native executable entrypoints now set process-local error mode and WER no-UI flags before graphics initialization and fail closed if setup fails. Global Windows settings were not changed. The exporter COM lifetime was corrected from source. Independent source review also identified an incorrect WIC row stride; `cbf655e` fixes the mapped row pitch versus total buffer size, checks dimensions/overflow, and releases WIC objects before unmapping. Compile-time checks exercise the production layout helper's valid and invalid cases.
 
 After the interruption, only `tip/renderer/build.cmd` and `tip/renderer/test.cmd --compile-only` were run; both passed `/W4 /WX /MT`. The dialog guard and WIC memory-layout fix received independent source reviews. No produced executable was run after these changes. The PNG export and crash correction remain runtime-unverified, and the lens shader, live capture worker, dirty/output geometry and failure policies remain incomplete. M10.14 stays doing. Native runtime checks must wait until they can be run without interrupting the owner.
+
+## Engine metadata implementation
+
+Task 2 source/Python scope reviewed through `39b1cb8`: truthful scheduler lifecycle, current provider identity, optional wire status/durations and aligned local/learned origins. Full engine suite: 633 passed, 1 skipped in 18.46 s, exit 0. Focused final coverage: 131 passed; request-start timing fix: 41 passed in 6.35 s. Independent scoped re-review found the delayed working push addressed and no new Critical/Important findings. Native protocol tests compiled under /W4 /WX; their assertions remain runtime-unverified while native executions are stopped. M10.15 remains doing until that gate passes.
+
+## Viewer automated implementation
+
+Viewer M10.3 committed as `f2750b3`. The synthetic headless browser suite passed 10 checks covering stale list/detail/screenshot responses, modal keyboard/focus, clear-log cleanup, dirty-navigation confirmation, hidden polling, private/pause guards, light/dark responsive layouts, reduced motion and narrow zoom-equivalent overflow. Named viewer Python tests: 31 passed in 0.42 s. Full engine: 634 passed, 1 skipped in 26.33 s. Roadmap checker passed. Generated screenshots contain synthetic fixtures only and are retained in the ignored SDD workspace; this evidence does not establish live-user-data behavior. Independent task review is pending.
+

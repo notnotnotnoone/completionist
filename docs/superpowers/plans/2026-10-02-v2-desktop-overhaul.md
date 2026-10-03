@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md` (read in full before execution).
 
-Status: complete proposed implementation sequence, awaiting joint document review. The owner explicitly requested both a spec and plan together; neither document is evidence that production implementation is approved. No installation, native capture, source-library download or product-code change has been done by this planning task.
+Status: implementation is in progress under the subsequent owner instruction to finish V2 using Luna subagents. Code and automated evidence are recorded in the verification document; pending live material, native runtime and real-app gates remain required. Native executable launches are paused after disruptive fixture crash dialogs. No installation or release has been performed.
 
 ## Global constraints
 

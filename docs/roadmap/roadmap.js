@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Record reviewed engine metadata and automated viewer evidence while retaining native runtime gates"
+    },
+    {
+      "date": "2026-10-03",
       "text": "Completed M10.3 toward 2.0.0; no release was created."
     },
     {
