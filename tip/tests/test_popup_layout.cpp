@@ -111,6 +111,20 @@ TEST(WordOnlyAndPendingOnlyContentHaveCorrectRows) {
     CHECK(pendingLayout.selectableRows == 0);
 }
 
+TEST(SelectedCorrectionGetsMeasuredContextWithoutAddingASelectableRow) {
+    WorkArea work{{0, 0, 1200, 800}, 96};
+    Snapshot snapshot = SnapshotWithRows(2);
+    ContentMetrics metrics = MetricsFor(snapshot);
+    const auto withoutContext = completionist::layout::Place(snapshot, work, metrics);
+    metrics.hasAuxiliaryShelf = true;
+    metrics.statusHeightDip = 20.0f;
+    const auto withContext = completionist::layout::Place(snapshot, work, metrics);
+    CHECK(withContext.hasStatusShelf);
+    CHECK(withContext.selectableRows == snapshot.words.size());
+    CHECK(withContext.rowOrder.size() == withoutContext.rowOrder.size());
+    CHECK(withContext.menuDip.height() > withoutContext.menuDip.height());
+}
+
 TEST(CustomFontMetricsAndMeasuredWrappingDriveLogicalHeight) {
     WorkArea work{{0, 0, 1400, 900}, 192};
     Snapshot snapshot = SnapshotWithRows(2);

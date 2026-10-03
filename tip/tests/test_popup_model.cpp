@@ -1,4 +1,5 @@
 #include "../src/popup_model.h"
+#include "../src/engine_connection_observer.h"
 #include "test_harness.h"
 
 using completionist::Action;
@@ -51,6 +52,12 @@ TEST(status_only_presentation_has_no_selectable_popup_rows) {
     CHECK(!model.visible());
     CHECK(!model.OnKey(Key::Tab, kNone).consume);
     CHECK(!model.OnKey(Key::Enter, kNone).consume);
+}
+
+TEST(queued_connection_messages_from_a_prior_popup_registration_are_ignored) {
+    CHECK(!completionist::IsCurrentConnectionObserver(0, 0));
+    CHECK(!completionist::IsCurrentConnectionObserver(12, 11));
+    CHECK(completionist::IsCurrentConnectionObserver(12, 12));
 }
 
 TEST(enter_is_never_consumed_in_any_state) {

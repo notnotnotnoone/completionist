@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "engine_client.h"
+#include "engine_connection_observer.h"
 #include "log.h"
 #include "popup.h"
 #include "popup_model.h"
@@ -338,7 +339,7 @@ public:
             keystrokes->Release();
         }
         if (!popup_.Create(g_module, &CompletionistService::PopupHook, this)) LogError(L"could not create the popup window");
-        if (popup_.hwnd()) EngineClient::Instance().RegisterWindow(popup_.hwnd());
+        if (popup_.hwnd()) connectionObserverToken_ = EngineClient::Instance().RegisterWindow(popup_.hwnd());
         EngineClient::Instance().Acquire();
         acquired_ = true;
         LogDebug(L"activate flags=0x%lx keysink=0x%08lx app=%s", flags, keyHr, app_.c_str());
@@ -372,7 +373,8 @@ public:
             threadMgr_ = nullptr;
         }
         HideAll();
-        EngineClient::Instance().UnregisterWindow(popup_.hwnd());
+        EngineClient::Instance().UnregisterWindow(popup_.hwnd(), connectionObserverToken_);
+        connectionObserverToken_ = 0;
         popup_.Destroy();
         if (acquired_) {
             EngineClient::Instance().Release();
@@ -932,7 +934,8 @@ private:
                 return true;
             }
             if (message == completionist::WM_COMPLETIONIST_CONNECTION) {
-                service->engineConnected_ = wParam != 0;
+                if (!completionist::IsCurrentConnectionObserver(service->connectionObserverToken_, wParam)) return true;
+                service->engineConnected_ = lParam != 0;
                 service->Render();
                 return true;
             }
@@ -979,6 +982,7 @@ private:
     std::uint64_t statusReceivedAt_ = 0;
     std::string triggerReason_;
     bool engineConnected_ = false;
+    std::uint64_t connectionObserverToken_ = 0;
     WPARAM eatenKey_ = 0;
 
     bool inspectQueued_ = false;

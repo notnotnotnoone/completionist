@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Hardened fallback observer teardown with serialized posts and registration tokens, exposed local pipe health independently of AI state, and measured selected-correction shelf space."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Host fallback now advances scheduled/working status from monotonic receipt time and preserves explicit hide behavior on focus or disallowed scopes; validation remains compile-only."
     },
     {

@@ -40,6 +40,12 @@ bool HasStatus(render::AiState state) {
            state == render::AiState::Unavailable;
 }
 
+int SelectedCorrectionIndex(const PopupContent& content, int selection) {
+    return selection >= 0 && selection < static_cast<int>(content.words.size()) &&
+                   selection < static_cast<int>(content.marks.size()) && !content.marks[selection].empty()
+               ? selection : -1;
+}
+
 std::wstring AiStatus(const PopupContent& content) {
     const wchar_t* reason = content.triggerReason == "idle" ? L" · Idle pause" :
                             content.triggerReason == "manual" ? L" · Manual shortcut" :
@@ -139,8 +145,11 @@ void Popup::Show(const PopupContent& content, int selection, const RECT& caret) 
     measured.rowGapDip = 2.0f;
     const int rowHeight = metrics.tmHeight + Scale(12, dpi_);
     measured.phraseHeightDip = static_cast<float>(rowHeight) / scale;
-    measured.statusHeightDip = HasStatus(content_.ai) ? static_cast<float>((metrics.tmHeight + Scale(4, dpi_)) *
-        (content_.words.empty() && content_.phrase.empty() ? 1 : 2)) / scale : 0.0f;
+    const bool hasAiStatus = HasStatus(content_.ai);
+    const bool hasCorrection = SelectedCorrectionIndex(content_, selection_) >= 0;
+    measured.hasAuxiliaryShelf = hasCorrection;
+    const int statusLines = (hasAiStatus ? 1 : 0) + (hasCorrection ? 1 : 0);
+    measured.statusHeightDip = statusLines ? static_cast<float>((metrics.tmHeight + Scale(4, dpi_)) * statusLines) / scale : 0.0f;
     render::Snapshot snapshot{};
     snapshot.settings = settings_;
     snapshot.ai = content_.ai;
@@ -247,12 +256,15 @@ void Popup::Paint() {
     GetTextMetricsW(dc, &metrics);
     const int pad = Scale(15, dpi_);
     const bool hasStatus = HasStatus(content_.ai);
+    const int selectedCorrection = SelectedCorrectionIndex(content_, selection_);
+    const bool hasCorrection = selectedCorrection >= 0;
     const float scale = static_cast<float>(dpi_) / 96.0f;
     layout::ContentMetrics measured{};
     measured.fontSizeDip = static_cast<float>(settings_.font_size) * 96.0f / 72.0f;
     measured.phraseHeightDip = static_cast<float>(metrics.tmHeight + Scale(12, dpi_)) / scale;
-    measured.statusHeightDip = hasStatus ? static_cast<float>((metrics.tmHeight + Scale(4, dpi_)) *
-        (content_.words.empty() && content_.phrase.empty() ? 1 : 2)) / scale : 0.0f;
+    measured.hasAuxiliaryShelf = hasCorrection;
+    const int statusLines = (hasStatus ? 1 : 0) + (hasCorrection ? 1 : 0);
+    measured.statusHeightDip = statusLines ? static_cast<float>((metrics.tmHeight + Scale(4, dpi_)) * statusLines) / scale : 0.0f;
     render::Snapshot snapshot{};
     snapshot.settings = settings_;
     snapshot.ai = content_.ai;
@@ -266,44 +278,26 @@ void Popup::Paint() {
     layout::WorkArea work{{0, 0, width, height}, dpi_};
     auto placed = layout::Place(snapshot, work, measured);
 
-    if (hasStatus) {
+    if (hasStatus || hasCorrection) {
         const RECT statusBounds = RectPx(placed.statusClip, dpi_);
         RECT status = statusBounds;
         const std::wstring statusText = AiStatus(content_);
         SetTextColor(dc, mutedColor);
         const int line = metrics.tmHeight + Scale(4, dpi_);
-        status.right -= Scale(12, dpi_);
-        status.bottom = std::min(status.bottom, status.top + line);
-        DrawTextW(dc, statusText.c_str(), static_cast<int>(statusText.size()), &status,
-                  DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
-        std::wstring correction;
-        const int selectedWord = selection_ >= 0 ? selection_ : -1;
-        if (selectedWord >= 0 && selectedWord < static_cast<int>(content_.words.size()) &&
-            selectedWord < static_cast<int>(content_.marks.size()) && !content_.marks[selectedWord].empty()) {
-            correction = content_.phraseLead + L" → " + content_.words[selectedWord];
+        if (hasStatus) {
+            status.bottom = std::min(status.bottom, status.top + line);
+            DrawTextW(dc, statusText.c_str(), static_cast<int>(statusText.size()), &status,
+                      DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
         }
-        if (!correction.empty()) {
-            RECT compare = status;
-            compare.top = statusBounds.top + line;
-            compare.bottom = statusBounds.bottom;
+        if (hasCorrection) {
+            std::wstring correction = content_.phraseLead + L" → " + content_.words[selectedCorrection];
+            RECT compare = statusBounds;
+            compare.top = statusBounds.top + (hasStatus ? line : 0);
+            compare.bottom = std::min(statusBounds.bottom, compare.top + line);
             SetTextColor(dc, typedColor);
             DrawTextW(dc, correction.c_str(), static_cast<int>(correction.size()), &compare,
                       DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
         }
-        const int diameter = std::max(1, Scale(6, dpi_));
-        const int dotRight = statusBounds.right - Scale(2, dpi_);
-        const int dotLeft = dotRight - diameter;
-        const int dotTop = statusBounds.top + (line - diameter) / 2;
-        const COLORREF connectionColor = highContrast ? GetSysColor(COLOR_WINDOWTEXT) : Color(theme.engine);
-        HBRUSH dotBrush = CreateSolidBrush(content_.engineConnected ? connectionColor : backgroundColor);
-        HPEN dotPen = CreatePen(PS_SOLID, std::max(1, Scale(1, dpi_)), connectionColor);
-        HGDIOBJ oldBrush = SelectObject(dc, dotBrush);
-        HGDIOBJ oldPen = SelectObject(dc, dotPen);
-        Ellipse(dc, dotLeft, dotTop, dotRight, dotTop + diameter);
-        SelectObject(dc, oldBrush);
-        SelectObject(dc, oldPen);
-        DeleteObject(dotBrush);
-        DeleteObject(dotPen);
     }
 
     for (const auto& rowLayout : placed.rowOrder) {
@@ -405,6 +399,22 @@ void Popup::Paint() {
         }
         RestoreDC(dc, textState);
     }
+
+    // Local pipe health is independent of AI lifecycle and must remain visible for words-only menus.
+    const int indicator = std::max(1, Scale(6, dpi_));
+    const int indicatorRight = width - Scale(4, dpi_);
+    const int indicatorLeft = indicatorRight - indicator;
+    const int indicatorTop = std::max(1, (Scale(15, dpi_) - indicator) / 2);
+    const COLORREF connectionColor = highContrast ? GetSysColor(COLOR_WINDOWTEXT) : Color(theme.engine);
+    HBRUSH indicatorBrush = CreateSolidBrush(content_.engineConnected ? connectionColor : backgroundColor);
+    HPEN indicatorPen = CreatePen(PS_SOLID, std::max(1, Scale(1, dpi_)), connectionColor);
+    HGDIOBJ oldIndicatorBrush = SelectObject(dc, indicatorBrush);
+    HGDIOBJ oldIndicatorPen = SelectObject(dc, indicatorPen);
+    Ellipse(dc, indicatorLeft, indicatorTop, indicatorRight, indicatorTop + indicator);
+    SelectObject(dc, oldIndicatorBrush);
+    SelectObject(dc, oldIndicatorPen);
+    DeleteObject(indicatorBrush);
+    DeleteObject(indicatorPen);
 
     BitBlt(screen, 0, 0, width, height, dc, 0, 0, SRCCOPY);
     SelectObject(dc, oldFont);

@@ -87,7 +87,7 @@ Layout Place(const render::Snapshot& snapshot, const WorkArea& work, const Conte
     const int menuWidthPx = std::max(1, std::min(workWidth, Px(menuWidthDip, scale)));
 
     out.hasPhraseRow = !snapshot.phrase.empty();
-    out.hasStatusShelf = HasStatus(snapshot);
+    out.hasStatusShelf = HasStatus(snapshot) || measured.hasAuxiliaryShelf;
     out.selectableRows = snapshot.words.size() + (out.hasPhraseRow ? 1u : 0u);
     const float statusHeight = out.hasStatusShelf ? std::max(18.0f, measured.statusHeightDip) + 10.0f : 0.0f;
     const float phraseHeight = out.hasPhraseRow ? std::max(measured.phraseHeightDip, measured.fontSizeDip + 12.0f) : 0.0f;

@@ -24,13 +24,14 @@ struct MeasuredRow {
     float heightDip = 0;
 };
 
-// Filled by the DirectWrite text path. Geometry never estimates glyph widths.
+// Filled from measured GDI or DirectWrite text metrics. Geometry never estimates glyph widths.
 struct ContentMetrics {
     float fontSizeDip = 12;
     float rowGapDip = 8;
     float measuredContentWidthDip = 0;
     float phraseHeightDip = 0;
-    float statusHeightDip = 0;
+    float statusHeightDip = 0;  // measured height of the AI/correction shelf content
+    bool hasAuxiliaryShelf = false;  // for selected correction context without an AI status
     std::vector<MeasuredRow> rows;
 };
 

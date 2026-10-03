@@ -35,8 +35,8 @@ public:
     void Send(protocol::Request request, HWND replyTo);
 
     // Connection transitions are posted to registered popup windows; the worker never calls UI code.
-    void RegisterWindow(HWND window);
-    void UnregisterWindow(HWND window);
+    std::uint64_t RegisterWindow(HWND window);
+    void UnregisterWindow(HWND window, std::uint64_t registration);
 
     bool connected() const { return connected_; }
 

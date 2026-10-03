@@ -1,7 +1,7 @@
 #include "engine_client.h"
 
-#include <algorithm>
 #include <atomic>
+#include <algorithm>
 #include <deque>
 #include <map>
 #include <mutex>
@@ -65,11 +65,13 @@ bool ServerIsCurrentUser(HANDLE pipe) {
 }  // namespace
 
 struct EngineClient::State {
+    struct ConnectionObserver { HWND window; std::uint64_t registration; };
     std::mutex lifecycle;  // guards refs and the thread
     std::mutex lock;       // guards outgoing and pending
     std::deque<std::string> outgoing;
     std::map<std::uint32_t, HWND> pending;
-    std::vector<HWND> observers;
+    std::vector<ConnectionObserver> observers;
+    std::uint64_t nextObserverRegistration = 1;
     std::wstring pipeName = kDefaultPipe;
     HANDLE stopEvent = nullptr;
     HANDLE wakeEvent = nullptr;
@@ -136,32 +138,39 @@ void EngineClient::Send(protocol::Request request, HWND replyTo) {
     if (state_->wakeEvent) SetEvent(state_->wakeEvent);
 }
 
-void EngineClient::RegisterWindow(HWND window) {
-    if (!window) return;
-    {
-        std::lock_guard<std::mutex> guard(state_->lock);
-        if (std::find(state_->observers.begin(), state_->observers.end(), window) == state_->observers.end())
-            state_->observers.push_back(window);
+std::uint64_t EngineClient::RegisterWindow(HWND window) {
+    if (!window) return 0;
+    std::lock_guard<std::mutex> guard(state_->lock);
+    std::uint64_t registration = state_->nextObserverRegistration++;
+    if (registration == 0) registration = state_->nextObserverRegistration++;
+    if (state_->nextObserverRegistration == 0) ++state_->nextObserverRegistration;
+    state_->observers.push_back({window, registration});
+    if (!PostMessageW(window, WM_COMPLETIONIST_CONNECTION, static_cast<WPARAM>(registration), connected() ? 1 : 0)) {
+        state_->observers.pop_back();
+        return 0;
     }
-    PostMessageW(window, WM_COMPLETIONIST_CONNECTION, connected() ? 1 : 0, 0);
+    return registration;
 }
 
-void EngineClient::UnregisterWindow(HWND window) {
+void EngineClient::UnregisterWindow(HWND window, std::uint64_t registration) {
+    if (!window || registration == 0) return;
     std::lock_guard<std::mutex> guard(state_->lock);
-    state_->observers.erase(std::remove(state_->observers.begin(), state_->observers.end(), window),
+    state_->observers.erase(std::remove_if(state_->observers.begin(), state_->observers.end(),
+        [=](const State::ConnectionObserver& observer) {
+            return observer.window == window && observer.registration == registration;
+        }),
                             state_->observers.end());
 }
 
 void EngineClient::NotifyConnection(bool connected) {
-    std::vector<HWND> observers;
-    {
-        std::lock_guard<std::mutex> guard(state_->lock);
-        observers = state_->observers;
-    }
-    for (HWND window : observers) {
-        if (!PostMessageW(window, WM_COMPLETIONIST_CONNECTION, connected ? 1 : 0, 0))
-            UnregisterWindow(window);
-    }
+    // Posting under the same lock as UnregisterWindow makes teardown wait for in-flight posts.
+    // The per-registration token also rejects messages already queued before unregistration.
+    std::lock_guard<std::mutex> guard(state_->lock);
+    auto& observers = state_->observers;
+    observers.erase(std::remove_if(observers.begin(), observers.end(), [=](const State::ConnectionObserver& observer) {
+        return !PostMessageW(observer.window, WM_COMPLETIONIST_CONNECTION,
+                             static_cast<WPARAM>(observer.registration), connected ? 1 : 0);
+    }), observers.end());
 }
 
 void EngineClient::DropQueued() {
