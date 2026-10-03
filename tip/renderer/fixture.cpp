@@ -133,7 +133,7 @@ bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark, int font
         FAILED(device->CreateShaderResourceView(input.Get(), nullptr, &inputView))) return false;
 
     BlurMaterial blur;
-    if (!blur.create(device.Get(), width, height) || !blur.blur(context.Get(), inputView.Get())) return false;
+    if (!blur.create(device.Get(), width, height) || !blur.blur(context.Get(), inputView.Get(), static_cast<float>(dpi))) return false;
 
     ComPtr<IDXGIDevice> dxgiDevice;
     ComPtr<ID2D1Factory1> d2dFactory;
@@ -184,7 +184,35 @@ bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark, int font
     completionist::layout::Layout layout;
     const bool laidOut = textRenderer.Prepare(snapshot, 330.0f, &prepared);
     if (laidOut) layout = completionist::layout::Place(snapshot, work, prepared.metrics);
-    if (resourcesReady && laidOut) {
+    const float materialTint[4]{
+        static_cast<float>(colors.sign.r) / 255.0f,
+        static_cast<float>(colors.sign.g) / 255.0f,
+        static_cast<float>(colors.sign.b) / 255.0f,
+        0.20f};
+    auto panelViewport = [](const completionist::render::Rect& bounds) {
+        return D3D11_VIEWPORT{static_cast<float>(bounds.left), static_cast<float>(bounds.top),
+            static_cast<float>(bounds.right - bounds.left), static_cast<float>(bounds.bottom - bounds.top), 0, 1};
+    };
+    bool materialReady = false;
+    if (laidOut) {
+        const auto menuViewport = panelViewport(layout.menuBounds);
+        const auto dockViewport = panelViewport(layout.dockBounds);
+        materialReady = blur.renderLens(context.Get(), menuViewport, 26.0f, 18.0f,
+                                        static_cast<float>(dpi), materialTint, true) &&
+            blur.renderLens(context.Get(), dockViewport, 16.0f, 8.0f,
+                            static_cast<float>(dpi), materialTint, false);
+    }
+    ComPtr<IDXGISurface> glassSurface;
+    ComPtr<ID2D1Bitmap1> glassLayer;
+    const auto glassProperties = D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_NONE,
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+        static_cast<float>(dpi), static_cast<float>(dpi));
+    materialReady = materialReady && SUCCEEDED(blur.glassTexture.As(&glassSurface)) &&
+        SUCCEEDED(drawing->CreateBitmapFromDxgiSurface(glassSurface.Get(), &glassProperties, &glassLayer));
+    if (resourcesReady && laidOut && materialReady) {
+        drawing->DrawBitmap(glassLayer.Get(), D2D1::RectF(0, 0, static_cast<float>(width) / (static_cast<float>(dpi) / 96.0f),
+            static_cast<float>(height) / (static_cast<float>(dpi) / 96.0f)), 1.0f,
+            D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
         const float scale = static_cast<float>(dpi) / 96.0f;
         auto menuRect = D2D1::RectF(static_cast<float>(layout.menuBounds.left) / scale,
             static_cast<float>(layout.menuBounds.top) / scale, static_cast<float>(layout.menuBounds.right) / scale,
