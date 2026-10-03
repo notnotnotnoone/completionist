@@ -1282,6 +1282,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "M10.16 source/compile-only progress: version-1 render framing and exact uint64 codecs, shared extracted JSON parser, pure Session lease/focus arbitration, Windows logon/session/PID/HWND validators and revocation hooks, plus host and renderer native assertion sources are implemented. tip/test.cmd --compile-only and tip/renderer/test.cmd --compile-only both exited 0. Native runtime RED/GREEN, Win32 runtime behavior and prerequisite Stage 1 live gates remain UNRUN; M10.16 stays doing."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Started M10.16 toward 2.0.0."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Completed fix-requests-clear-list-race-found-in-m10-3-review toward 2.0.0; no release was created."
     },
     {
@@ -3782,7 +3790,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.16",
       "title": "Implement renderer protocol, focus leases and arbitration",
-      "status": "todo",
+      "status": "doing",
       "area": "dll",
       "stories": [
         74
