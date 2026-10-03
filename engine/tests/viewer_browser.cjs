@@ -71,7 +71,12 @@ async function makePage(browser, viewport = { width: 1280, height: 900 }, colorS
       await route.fulfill({ status: 200, contentType: "image/svg+xml", body: screenshotFixture });
       return;
     }
-    if (url.pathname === "/api/requests/clear") { requestsCleared = true; await json(route, { cleared: true }); return; }
+    if (url.pathname === "/api/requests/clear") {
+      const gate = globalThis.clearGate;
+      if (gate) { gate.started.resolve(); await gate.promise; }
+      if (gate?.fail) { await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "synthetic clear failure" }) }); return; }
+      requestsCleared = true; await json(route, { cleared: true }); return;
+    }
     if (url.pathname.startsWith("/api/requests/")) {
       const id = url.pathname.split("/").at(-1);
       if (id === "r1") {
@@ -268,6 +273,54 @@ async function testClearDropsReceiptAndLateScreenshot(browser) {
   }
 }
 
+async function testClearInvalidatesPendingRequestList(browser) {
+  globalThis.listGates = { failed: { ...deferred(), started: deferred() } };
+  globalThis.clearGate = { ...deferred(), started: deferred() };
+  const { context, page } = await makePage(browser);
+  try {
+    await page.getByRole("button", { name: /Open request/ }).first().waitFor();
+    await page.locator("#requests-result").selectOption("failed");
+    await globalThis.listGates.failed.started.promise;
+    await page.getByRole("button", { name: "Clear Log" }).click();
+    await page.getByRole("button", { name: "Confirm Clear" }).click();
+    await globalThis.clearGate.started.promise;
+
+    globalThis.listGates.failed.resolve();
+    await page.waitForTimeout(100);
+    assert.equal(await page.getByText("old filtered result").count(), 0, "a request-list response that predates clear cannot render while clear is pending");
+
+    globalThis.clearGate.resolve();
+    await page.getByText("No requests match").waitFor();
+    assert.equal(await page.getByText("old filtered result").count(), 0, "the successful clear reload remains empty");
+  } finally {
+    globalThis.listGates.failed.resolve();
+    globalThis.clearGate.resolve();
+    await context.close();
+    delete globalThis.listGates;
+    delete globalThis.clearGate;
+  }
+}
+
+async function testClearFailureKeepsRequestsUsable(browser) {
+  globalThis.clearGate = { ...deferred(), started: deferred(), fail: true };
+  const { context, page } = await makePage(browser);
+  try {
+    await page.locator("#requests-result").selectOption("failed");
+    await page.getByText("old filtered result").waitFor();
+    await page.getByRole("button", { name: "Clear Log" }).click();
+    await page.getByRole("button", { name: "Confirm Clear" }).click();
+    await globalThis.clearGate.started.promise;
+    globalThis.clearGate.resolve();
+    await page.getByText("synthetic clear failure").waitFor();
+    await page.getByText("old filtered result").waitFor();
+    assert.equal(await page.getByText("old filtered result").count(), 1, "a failed clear leaves the request log available and reloads its current filter");
+  } finally {
+    globalThis.clearGate.resolve();
+    await context.close();
+    delete globalThis.clearGate;
+  }
+}
+
 async function testDirtySettingsNavigationGuard(browser) {
   const { context, page } = await makePage(browser);
   try {
@@ -417,6 +470,8 @@ async function testRuntimeActions(browser) {
     ["modal ignores a late screenshot", testLateScreenshot],
     ["receipts explain absent context and suffix", testAbsentContextIsExplained],
     ["clear closes receipt work and removes screenshots", testClearDropsReceiptAndLateScreenshot],
+    ["clear invalidates request-list fetches immediately", testClearInvalidatesPendingRequestList],
+    ["clear failure leaves request list usable", testClearFailureKeepsRequestsUsable],
     ["dirty settings navigation remains guarded", testDirtySettingsNavigationGuard],
     ["polling stops while Requests is backgrounded", testHiddenPolling],
     ["runtime actions and preview privacy guards work", testRuntimeActions],

@@ -1282,6 +1282,18 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Completed fix-requests-clear-list-race-found-in-m10-3-review toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Started fix-requests-clear-list-race-found-in-m10-3-review toward 2.0.0."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Added task fix-requests-clear-list-race-found-in-m10-3-review toward 2.0.0: Fix Requests clear/list race found in M10.3 review"
+    },
+    {
+      "date": "2026-10-03",
       "text": "Record reviewed engine metadata and automated viewer evidence while retaining native runtime gates"
     },
     {
@@ -3927,6 +3939,21 @@ window.COMPLETIONIST_ROADMAP = {
       "refs": [
         "docs/roadmap/map.js",
         "codex/roadmap-release-atlas"
+      ]
+    },
+    {
+      "id": "fix-requests-clear-list-race-found-in-m10-3-review",
+      "targetRelease": "2.0.0",
+      "title": "Fix Requests clear/list race found in M10.3 review",
+      "status": "done",
+      "area": "viewer",
+      "stories": [],
+      "notes": "Invalidated request-list fetches at clear start; delayed clear race and failure recovery browser checks pass.",
+      "completed": "2026-10-03",
+      "refs": [
+        "engine/src/completionist_engine/viewer.html",
+        "engine/tests/viewer_browser.cjs",
+        ".superpowers/sdd/2026-10-02-v2-desktop-overhaul/viewer-report.md"
       ]
     },
     {

@@ -496,13 +496,14 @@ const lists = {
 };
 
 // ---- requests log
-const reqs = { seen: new Set(), sig: "", fresh: true, timer: null, opener: null, openerId: "", listSeq: 0, detailSeq: 0, screenshotSeq: 0 };
+const reqs = { seen: new Set(), sig: "", fresh: true, clearing: false, timer: null, opener: null, openerId: "", listSeq: 0, detailSeq: 0, screenshotSeq: 0 };
 const clock = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" });
 const WORDS = { ok: "OK", failover: "Failover", failed: "Failed", cancelled: "Cancelled" };
 const ms = (v) => (v == null ? "–" : v >= 1000 ? (v / 1000).toFixed(1) + " s" : nf.format(v) + " ms");
 const outcome = (o) => el("span", { className: "outcome outcome-" + o, textContent: WORDS[o] || o });
 function requestFilters() { return { q: $("requests-q").value.trim(), result: $("requests-result").value }; }
 async function loadRequests(reset = false) {
+  if (reqs.clearing) return;
   if (reset) { reqs.fresh = true; reqs.sig = ""; }
   const mine = ++reqs.listSeq;
   const f = requestFilters(), box = $("requests-body");
@@ -559,7 +560,10 @@ $("requests-result").addEventListener("change", () => loadRequests(true));
 {
   const clear = $("requests-clear"); clear.dataset.what = "";
   armable(clear, "Clear Log", "Confirm Clear", async () => {
-    try { await api("/api/requests/clear", {}); toast("Request log cleared."); loadRequests(true); } catch (e) { if (!e.shown) toast(e.message); }
+    reqs.clearing = true; reqs.listSeq++;
+    try { await api("/api/requests/clear", {}); toast("Request log cleared."); }
+    catch (e) { if (!e.shown) toast(e.message); }
+    finally { reqs.clearing = false; loadRequests(true); }
   });
 }
 
