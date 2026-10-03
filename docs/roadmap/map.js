@@ -2,6 +2,7 @@
 (() => {
   const R=window.RM,esc=R.esc,color=id=>R.hwColor(id);
   const T=(x,y,text,extra='')=>`<text x="${x}" y="${y}" ${extra}>${esc(text)}</text>`;
+  const clearText='stroke="var(--surface)" stroke-width="4" stroke-linejoin="round" paint-order="stroke"';
   function lines(text,max=22){const words=String(text).split(/\s+/),out=[''];for(const word of words){let i=out.length-1;if(out[i]&&out[i].length+word.length+1>max){out.push(word);}else out[i]+=(out[i]?' ':'')+word;}return out.slice(0,3).map((s,i)=>i===2&&out.length>3?s+'…':s);}
   const action=(id,hws,label,body,hit)=>`<g class="marker" data-hws="${hws.join(' ')}"><g aria-hidden="true" style="pointer-events:none">${body}</g><g class="stn" tabindex="0" role="button" data-id="${esc(id)}" aria-label="${esc(label)}"><title>${esc(label)}</title><rect class="hit" ${hit} rx="8" style="fill:transparent;stroke:transparent"/></g></g>`;
   function draw(svg,L){
@@ -45,17 +46,23 @@
         out+=action(e.id,e.lanes,`${r.version} · ${title} · ${r.status}`,body,`x="${e.x-131}" y="76" width="198" height="106"`);
       }
     }
+    out+=`<path d="M${L.now.x} 190 V${L.height-60}" style="stroke:var(--accent);stroke-width:2;stroke-dasharray:5 5"/>`;
+    // Connect lower stops through the gutter, rather than through earlier labels.
     for(const stop of L.taskStops){
-      const t=stop.task,lane=L.lanes.find(l=>l.id===stop.lane),active=['doing','next','blocked'].includes(t.status),dropped=stop.branch;
-      let body=`<path d="M${stop.x} ${lane.y} V${stop.y}" style="stroke:${color(stop.lane)};stroke-width:2;opacity:${dropped?.3:.55}${dropped?';stroke-dasharray:3 3':''}"/><circle cx="${stop.x}" cy="${stop.y}" r="9" style="fill:${t.status==='done'?color(stop.lane):'var(--surface)'};stroke:${active?'var(--accent)':color(stop.lane)};stroke-width:3${t.status==='todo'||dropped?';stroke-dasharray:3 2':''};opacity:${dropped?.45:1}"/>`;
+      const lane=L.lanes.find(l=>l.id===stop.lane);
+      if(stop.y===lane.y)continue;
+      out+=`<path data-hw="${stop.lane}" d="M${stop.x-70} ${lane.y} V${stop.y} H${stop.x-12}" style="fill:none;stroke:${color(stop.lane)};stroke-width:2;opacity:${stop.branch?.3:.55}${stop.branch?';stroke-dasharray:3 3':''};pointer-events:none"/>`;
+    }
+    for(const stop of L.taskStops){
+      const t=stop.task,active=['doing','next','blocked'].includes(t.status),dropped=stop.branch;
+      let body=`<circle cx="${stop.x}" cy="${stop.y}" r="9" style="fill:${t.status==='done'?color(stop.lane):'var(--surface)'};stroke:${active?'var(--accent)':color(stop.lane)};stroke-width:3${t.status==='todo'||dropped?';stroke-dasharray:3 2':''};opacity:${dropped?.45:1}"/>`;
       if(t.status==='done')body+=T(stop.x,stop.y+4,'✓','text-anchor="middle" style="font:900 12px var(--display);fill:var(--sign-ink)"');
       if(dropped)body+=T(stop.x,stop.y+4,'×','text-anchor="middle" style="font:900 12px var(--display);fill:var(--muted)"');
-      if(t.stage)body+=T(stop.x,stop.y-19,`STAGE ${t.stage}`,'text-anchor="middle" style="font:600 10px var(--mono);fill:var(--muted)"');
-      lines(t.label||t.title,20).slice(0,2).forEach((s,i)=>body+=T(stop.x,stop.y+27+i*14,s,`text-anchor="middle" style="font:700 11px var(--display);fill:${dropped?'var(--muted)':'var(--ink)'}"`));
-      body+=T(stop.x,stop.y+58,R.STATUS[t.status].label,'text-anchor="middle" style="font:10px var(--display);fill:var(--muted)"');
+      if(t.stage)body+=T(stop.x,stop.y-19,`STAGE ${t.stage}`,`${clearText} text-anchor="middle" style="font:600 10px var(--mono);fill:var(--muted)"`);
+      lines(t.label||t.title,20).slice(0,2).forEach((s,i)=>body+=T(stop.x,stop.y+27+i*14,s,`${clearText} text-anchor="middle" style="font:700 11px var(--display);fill:${dropped?'var(--muted)':'var(--ink)'}"`));
+      body+=T(stop.x,stop.y+58,R.STATUS[t.status].label,`${clearText} text-anchor="middle" style="font:10px var(--display);fill:var(--muted)"`);
       out+=action(stop.id,[stop.lane],`${t.label||t.title} · ${R.STATUS[t.status].label} · target ${t.targetRelease}`,body,`x="${stop.x-64}" y="${stop.y-31}" width="128" height="95"`);
     }
-    out+=`<path d="M${L.now.x} 190 V${L.height-60}" style="stroke:var(--accent);stroke-width:2;stroke-dasharray:5 5"/>`;
     out+=T(L.now.x+8,L.height-32,`YOU ARE HERE${L.now.target?' · building '+L.now.target:''}`,'style="font:800 12px var(--display);fill:var(--accent-ink)"');
     out+=T(20,L.height-10,`Last shipped: ${L.now.version||'none'} · Width represents broad scope, not time or percent complete.`,'style="font:11px var(--mono);fill:var(--muted)"');
     svg.setAttribute('viewBox',`0 0 ${L.width} ${L.height}`);svg.setAttribute('width',L.width);svg.setAttribute('height',L.height);svg.innerHTML=out;

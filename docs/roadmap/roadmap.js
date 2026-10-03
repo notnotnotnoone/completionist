@@ -1282,6 +1282,22 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-02",
+      "text": "Commit label readability fix and push codex/roadmap-release-atlas to origin as requested; includes previously committed release atlas and V2 prototype work."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Completed atlas-label-readability toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Started atlas-label-readability toward 2.0.0."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task atlas-label-readability toward 2.0.0: Keep atlas labels clear of construction lines"
+    },
+    {
+      "date": "2026-10-02",
       "text": "Commit and push all current workspace changes on codex/roadmap-release-atlas: release atlas implementation and concept prototypes, roadmap tooling and documentation, V2 design plans, native glass spike and UI prototypes."
     },
     {
@@ -3830,6 +3846,21 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/roadmap/map.js",
         "docs/roadmap/page.js",
         "docs/roadmap/tasks.html"
+      ]
+    },
+    {
+      "id": "atlas-label-readability",
+      "targetRelease": "2.0.0",
+      "title": "Keep atlas labels clear of construction lines",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "notes": "Construction connectors now use side gutters and render before marker text. Stage, title and status text masks underlying lines with a small background stroke; the current-position line renders behind labels. Browser screenshot and task selection verified. JavaScript syntax, 8 layout tests and 23 Python tests pass.",
+      "label": "Readable map labels",
+      "completed": "2026-10-02",
+      "refs": [
+        "docs/roadmap/map.js",
+        "codex/roadmap-release-atlas"
       ]
     },
     {
