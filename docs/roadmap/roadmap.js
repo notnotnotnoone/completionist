@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Record native renderer safety fixes and deferred runtime gates after disruptive crash dialogs"
+    },
+    {
+      "date": "2026-10-03",
       "text": "M10.15 engine lifecycle and candidate-origin metadata implemented; full engine suite passed (633 passed, 1 skipped); native parser runtime remains deferred."
     },
     {

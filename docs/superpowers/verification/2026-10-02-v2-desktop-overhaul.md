@@ -27,3 +27,13 @@ GPU 4ms p95, foreground 32ms p95 and static-desktop idle behavior are unmeasured
 Do not register an unverified DLL. Preserve the last working DLL and renderer as a pair before installation. Production `tip/build.cmd` currently renames the existing DLL, so review builds must avoid replacing an installed artifact inadvertently. Specific staged paths and rollback commands will be added when a validated pair exists.
 
 Full 2.0.0 readiness also requires the independently tracked viewer overhaul and its verification.
+
+## Renderer foundations and interrupted runtime checks
+
+Task 1a implements a separable GPU Gaussian shader. WARP generated-content assertions compare actual shader output to the specified sigma-6/radius-18 impulse and step profiles and check constant-field preservation. A temporary wrong-kernel mutation failed the impulse assertion; restoring the kernel passed `tip/renderer/test.cmd`. This proves the generated WARP shader profile, not hardware timing or live glass.
+
+Task 1b contains partial composition surfaces and a generated PNG exporter. Three exporter launches faulted during cleanup and raised Windows access-violation dialogs. The owner reported that these interrupted other work. Native executable/debugger testing was stopped immediately; the owned renderer processes were terminated, and a filtered process inspection found no remaining renderer, test, fixture or WER processes.
+
+Both native executable entrypoints now set process-local error mode and WER no-UI flags before graphics initialization and fail closed if setup fails. Global Windows settings were not changed. The exporter COM lifetime was corrected from source. Independent source review also identified an incorrect WIC row stride; `cbf655e` fixes the mapped row pitch versus total buffer size, checks dimensions/overflow, and releases WIC objects before unmapping. Compile-time checks exercise the production layout helper's valid and invalid cases.
+
+After the interruption, only `tip/renderer/build.cmd` and `tip/renderer/test.cmd --compile-only` were run; both passed `/W4 /WX /MT`. The dialog guard and WIC memory-layout fix received independent source reviews. No produced executable was run after these changes. The PNG export and crash correction remain runtime-unverified, and the lens shader, live capture worker, dirty/output geometry and failure policies remain incomplete. M10.14 stays doing. Native runtime checks must wait until they can be run without interrupting the owner.
