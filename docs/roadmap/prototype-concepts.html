@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- Throwaway: three roadmap concepts using the live source read-only; ?variant=A|B|C. -->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Completionist · Roadmap concepts</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Overpass:wght@400;600;700;800;900&family=Overpass+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css"><link rel="stylesheet" href="prototype-concepts.css">
+</head>
+<body>
+  <header class="shell topbar">
+    <a class="brand" href="index.html"><span class="brand-shield">C</span><span class="brand-word">Completionist<small>Roadmap design studio</small></span></a>
+    <div class="topbar-side"><span class="meta">THROWAWAY CONCEPT · LIVE DATA, READ ONLY</span><button class="theme-btn" id="theme">Night</button></div>
+  </header>
+  <main class="shell">
+    <div class="concept-caption"><span id="concept-number" class="lbl"></span><p id="concept-description"></p></div>
+    <div id="concept"></div>
+    <section class="inspection" aria-live="polite" aria-label="Selected roadwork"><div id="inspection"></div></section>
+    <details class="history"><summary>Shipped history <span id="history-count"></span><span class="meta">Preserved from the roadmap</span></summary><div id="history-list"></div></details>
+    <p class="prototype-note">Prototype projection: planned task versions become target releases. Task statuses and shipped history come from the current roadmap. Nothing here changes project data.</p>
+  </main>
+  <nav class="switcher" aria-label="Concept switcher"><button id="previous" aria-label="Previous concept">←</button><div class="switch-options"><button data-variant="A">A <span>Release atlas</span></button><button data-variant="B">B <span>Roadbook</span></button><button data-variant="C">C <span>Interchange</span></button></div><button id="next" aria-label="Next concept">→</button></nav>
+  <script src="roadmap.js?schema=4"></script><script src="common.js?schema=4"></script><script src="prototype-concepts.js?schema=4"></script>
+</body>
+</html>

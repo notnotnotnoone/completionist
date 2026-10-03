@@ -4,81 +4,69 @@ System-wide, VS Code-style English autocomplete for Windows. A C++ TSF text serv
 
 ## The roadmap: keep it current (required)
 
-`docs/roadmap/roadmap.js` is the single source of truth for what's done, in progress and next, and for every release. Two plain HTML pages read it. The user opens them straight from disk in a browser; nothing is published.
+`docs/roadmap/roadmap.js` is the single source of truth. It is `window.COMPLETIONIST_ROADMAP = { ... };` with strict JSON after the assignment. The two plain HTML pages work directly from disk: `index.html` is the Release atlas and `tasks.html` is the task board. Nothing is published.
 
-- `docs/roadmap/index.html`: the highway map. Every release on highways, one for each part of the app, with the release writing, the road work and the itinerary.
-- `docs/roadmap/tasks.html`: the task board by release, with filters, story coverage, decisions, risks and the log.
+**Versions are destinations. Tasks are roadwork.** Several tasks share a `targetRelease`. Completing a task never creates a release, allocates a patch number or tags Git. Every change, including docs and fixes, is a task.
 
-`roadmap.js` is `window.COMPLETIONIST_ROADMAP = { ... };` where everything after the `=` must be strict JSON: double quotes, no comments, no trailing commas.
+**Every commit updates the roadmap. No exceptions.** Stage `roadmap.js` with at least a new line at the top of `log` describing the commit, and run `python scripts/check_roadmap.py` before committing. It must print `roadmap ok`. Plans and findings also update the roadmap in the same session.
 
-**Updating the roadmap is part of every task, not a follow-up.** A session that changes code, plans or findings without updating the roadmap is not finished.
+### Model and routine edits
 
-**Every commit updates the roadmap. No exceptions.** Every single commit, including small fixes, docs and merges, stages `docs/roadmap/roadmap.js` with at least a new line at the top of `log` saying what that commit did, and `python scripts/check_roadmap.py` must print `roadmap ok` before you commit. If a commit has nothing else to change in the roadmap, the log line is still required.
+- Schema 4 has flat `tasks`, `releases`, `releasePlans`, `highways` and one `activeRelease` (or null if no future destination remains).
+- `releases` contains actual shipped versions and coherent planned destinations, in ascending version order, with shipped versions first. Preserve genuine shipped records, tags and historical writing.
+- `releasePlans[VERSION]` stores the destination title, goal, `done_when` and broad `scope`: `contained`, `medium` or `large`. Existing `milestone` fields on old release records are historical metadata only.
+- Tasks have stable internal `id`, full `title`, `status`, `area`, `targetRelease`, `stories`, optional `refs`/`notes`, optional concise `label` and optional local numeric `stage`. No task has a `version`. Existing M-style IDs remain internal for links; new IDs are descriptive slugs. Never reuse or renumber IDs.
+- A done task can have a `completed` date. `shippedIn` names the actual released version carrying its work; absence means not yet shipped. Completed work and shipped software are different facts.
+- Task array order controls local order. Stages are local sequence information; reorder tasks without renumbering IDs or releases. Retargeting logs the old and new destination, preserves the task and removes its old local stage.
+- Statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. Dropped work stays in history, does not count toward progress and never silently disappears.
 
-**Highways (the roadmap map).** The map draws each part of the app as a highway (`highways` in `roadmap.js`), and a task's `area` decides which highway it's on.
-- Every task area must belong to exactly one highway. A new area means adding it to a highway's `areas`.
-- Every patch release names the highways it touched: `"highways": ["engine"]`. Minor releases get theirs from their milestone's tasks, and major releases take every open highway.
-- A bug-fix patch adds `"kind": "fix"` and is drawn as a cul-de-sac. Other patches leave `kind` out.
-- A highway with `"opens": "X.0.0"` starts at that major release. Nothing before that version may name it.
-- The checker enforces all of this.
+**Start every session with** `python scripts/roadmap.py brief`. Generated briefs are ignored by Git; never edit them directly. Choose the smallest view:
 
-The design for the map pages, and the plan to build them, are in `docs/superpowers/specs/2026-09-29-roadmap-highway-map-design.md` and `docs/superpowers/plans/2026-09-29-roadmap-highway-map.md`.
+- **Minimal:** current `doing`, `next` and `blocked` work with IDs, target releases, areas and local stages.
+- **Medium:** current goals and criteria, all remaining active-release work with full notes, five recent dated completions, and the five latest shipped releases matched by `shippedIn`.
+- **Maximum:** a lossless JSON snapshot of every field and historical log.
 
-**Do not open `roadmap.js` if you can avoid it.** It is thousands of lines and burns tokens. Use the brief and the helper instead:
+Run `python scripts/roadmap.py brief --level minimal|medium|maximum` to print a view; all views regenerate together. `roadmap-brief.md` is the minimal alias.
 
-- `python scripts/roadmap.py brief` writes `docs/roadmap/roadmap-brief.md` (git-ignored, regenerated each time) and prints it: the active group's open tasks, planned groups, open risks, recent decisions and log, the highway/area map and the commands. **Run it before checking the roadmap**, and read it instead of `roadmap.js`.
-- `python scripts/roadmap.py start <task>`, `done <task> --title ... --text ...`, `log "..."` and `add-task <group> ...` make the routine edits (they change only the lines they need, re-run the checker, and undo themselves if it fails). Run `python scripts/roadmap.py --help` for the options.
-- Open `roadmap.js` only for what the helper can't do (dropping or moving tasks, renumbering, release essays, decisions, risks, closing a group), and read just the part you need (Grep for the id, then read a small range).
+Routine commands:
 
-1. **At the start of a session**, run the brief (above). Unless the user asks for something else, work on the tasks marked `doing` or `next`, and tell the user which one you're picking up.
-2. **When you start a task**, set its status to `doing`.
-3. **When you finish a task**, set it to `done` and add `refs` (branch, key files, version). Promote the next task(s) to `next`.
-4. **When plans change**, edit the roadmap in the same session:
-   - Add newly discovered work as tasks.
-   - Split tasks that grew too large.
-   - Mark abandoned work `dropped`. Never delete a task silently.
-   - Keep each task's `stories` pointing at the PRD user stories it delivers.
-   - Keep the planned release writing in step with what each release's tasks now contain.
-5. **When a release's last task is done**, set its group to `done` and make the next one `active`. Exactly one milestone is active at a time.
-6. **Record decisions and findings.** Add them to `decisions`, and add or re-status entries in `risks` (`open`, `mitigated`, `retired`).
-7. **With every change**, set `updated` to today's date and add a one-line entry at the **top** of `log`: what changed and why.
-8. **Validate** with `python scripts/check_roadmap.py`. It must print `roadmap ok`. It also enforces the writing lengths below.
-9. **Commit** `roadmap.js` in the same commit as the work it describes. Every commit has a `roadmap.js` change (see the rule above).
+```text
+python scripts/roadmap.py add-task 2.0.0 --area dll --title "Build renderer IPC" --label "Renderer IPC" --stories 1
+python scripts/roadmap.py start TASK_ID
+python scripts/roadmap.py done TASK_ID --refs branch,key-file --note "What was checked."
+python scripts/roadmap.py move TASK_ID --before OTHER_ID
+python scripts/roadmap.py retarget TASK_ID 2.1.0
+python scripts/roadmap.py drop TASK_ID --reason "Why it was superseded."
+python scripts/roadmap.py log "What changed and why."
+```
 
-Task statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. Milestone statuses: `planned`, `active`, `done`. Task ids are `<group>.<n>` (e.g. `M9.9`); never reuse or renumber them. The `milestones` list in `roadmap.js` is just the container that groups the tasks leading to one release. **People read versions, not M-ids.** The pages show a group as its release and name ("0.7.0 · Typo-tolerant words") and every task by its `version`. The ids and group names are internal keys, and old log lines keep them.
+`add-task` optionally accepts `--id`, `--before` and `--stage`. All edits validate before writing; rejected edits leave the file unchanged. Serialization is deterministic. Use the helper instead of reading thousands of lines. Open a small source range only for release plans, writing, decisions, risks or other fields not covered by the helper.
 
-**Task versions (required on every task).** A task's `version` is the version it ships in:
-- **Every change is a task**, including small fixes and docs, and **finishing a task releases it as a patch**. A fix to older work is a new task in the group that is active now.
-- **Every task gets its own patch number, in the order the group lists them.** A group that finishes at `X.Y.0` numbers its tasks `X.(Y-1).1`, `X.(Y-1).2`, and so on, counting up from the last release before the group (so `0.7.0` is led by `0.6.2` ... `0.6.10`, and `0.3.0` by `0.2.1` ... `0.2.12`). The finish line `X.Y.0` is never a task's version. When there is no earlier patch line to count from (the first group), continue after the latest patch release. Add a new task with the next number, and renumber the planned ones if it ships first.
-- **Every shipped task is a stop.** When a task is `done`, add a `released` patch entry for its version to `releases` (one sentence, the `highways` it touched, the date), placed in version order before its group's finish-line release. Retroactively numbering old work follows the same rule.
-- **Dropped tasks keep their number but get no release.** They stay in the group as greyed-out rows, so the version sequence can have gaps. A task that was dropped or moved to another group is never deleted.
-- **A fix that shipped after its group's finish line** (a real patch such as `0.6.1`) keeps that number; only work that shipped with the group follows the rule above.
-- **Do not name a task after the release that finishes the group.** `0.3.0` is the finish line, so a task numbered `0.3.0` means the numbering was skipped.
-- The checker enforces part of this: every task has a `version`, a finish-line release (`X.Y.0`) can't be a task's version until it is released, and two unshipped tasks can't share a number. Giving each task its own number and adding the release entry for it is on you.
-- Keep `milestones` in version order (by their release), so the pages read left to right.
+When starting work, mark the task doing. On completion, add references and mark it done; the helper promotes the next waiting task when appropriate. Keep story links, planned release writing, decisions and risks current. Add new discoveries as tasks; do not make software versions for them. Set `updated` to today's date and prepend a log entry with every change.
 
-### Releases and versions
+### Shipping and version meaning
 
-Completionist uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `releases` gets writing whose length matches its size, in plain, standard English prose:
+PATCH means a real small fix, regression, polish or maintenance release. MINOR means a coherent capability. MAJOR means a major product, interface or architecture expansion. Use judgment, not task counts. Do not reserve patch numbers for future work. Neither a commit, merge nor the last completed task automatically ships a release.
 
-| Release | Example | Writing | Field |
-|---|---|---|---|
-| **Patch** | 0.0.5, 0.1.1 | Exactly **one sentence** (under 50 words) saying what changed | `text` |
-| **Minor** | 0.1.0 | **One paragraph** (50–220 words). Each minor release is one milestone (`milestone` field) | `text` |
-| **Major** | 1.0.0 | **An essay** of at least 4 paragraphs and 450 words: what the release is, why it's built this way, what it costs, and what it leaves out | `essay` (list of paragraphs) |
+- A release becomes ready when its required work is complete or explicitly dropped. Ship only after validation and integration, using a separate release action.
+- For an existing destination: `python scripts/roadmap.py release 2.1.0 --validated "Integration checks passed." --text "Retrospective release paragraph..."`.
+- For a concrete patch: `python scripts/roadmap.py release 1.1.15 --tasks TASK_ID,OTHER_ID --title "Fix description" --text "One sentence describing what shipped." --validated "Checks passed."`.
+- Major writing can be supplied with `--essay-file PATH`, blank lines separating paragraphs. Rewrite planned writing to describe what actually shipped.
+- A patch can carry several done tasks from an upcoming destination, without claiming that destination shipped. Previously shipped contributions retain their original `shippedIn`.
+- The helper records shipping and moves `activeRelease` to the next destination; it never tags, pushes or publishes. Tag `vX.Y.Z` on the actual release commit on main as a separate authorized shipping step. Ask before pushing to main.
+- Package versions are independent; release versions live in `roadmap.js`.
 
-- **Every merge to `main` that changes behaviour, tooling or docs is a patch release.**
-  - Add the next patch version after the latest released one (e.g. 0.0.5, or 0.1.1 once 0.1.0 is out).
-  - Set it to `released` with today's date and one sentence.
-  - Keep `releases` in ascending version order, with all released versions before unreleased ones.
-- **Finishing the last task of a group releases its minor version.**
-  - Set it to `released` with a date.
-  - Rewrite its paragraph in the past tense to describe what actually shipped.
-  - Mark the following release `next`.
-- **A major release** rewrites its planned essay as a retrospective of what actually shipped.
-- **Planned versions** (`planned`, and at most one `next`) describe the intent.
-- **Tag every released version** `vX.Y.Z` on `main` and push the tag.
-- Package versions (such as `engine/pyproject.toml`) are not release versions. The release version lives only in `roadmap.js`.
+Writing remains proportional: a patch has one sentence, at most 50 words; a minor has one paragraph of 50-220 words; a major has at least four paragraphs and 450 words. The checker enforces this for planned and shipped releases.
+
+### Atlas and highways
+
+Every area belongs to exactly one highway. Releases connect only participating highways; majors do not automatically involve all lanes. New shipped records name the highways actually touched. Historical release records remain unchanged; historical destinations may derive lanes from their original task contributions.
+
+A highway's `opens` names its major launch. Its construction lane may begin in that launch's planned region, before the release itself; earlier shipped releases cannot claim it.
+
+Future region width follows `scope`, never task count, elapsed time or completion percentage. Adding work increases task stack height without moving release destinations. Small stops display task labels, statuses and optional local stages; dropped tasks use faded spurs. Completed unshipped roadwork remains visible. Older shipped contributions appear in history, not as duplicate new stops. The default compressed history expands without deleting records; every historical release remains selectable. YOU ARE HERE marks the active destination region, while latest shipped is separate.
+
+The current design and implementation plan are `docs/superpowers/specs/2026-10-02-roadmap-release-atlas-design.md` and `docs/superpowers/plans/2026-10-02-roadmap-release-atlas.md`. Earlier highway-map documents describe the historical design.
 
 ## Layout and commands
 
@@ -131,3 +119,6 @@ Completionist uses semantic versioning (`MAJOR.MINOR.PATCH`). Every version in `
 Before acting on any user prompt, evaluate whether rewriting it for clarity, typo correction, or actionability would meaningfully improve it. **Only rewrite when there is a real improvement to make** — typos to fix, ambiguous references to resolve, or vague intent to specify. If the original prompt is already clear and actionable, proceed without rewriting and without showing a rewrite. When you do rewrite, display the rewritten version with the prefix "**Rewritten prompt:**" and wait for approval before proceeding.
 
 **Full rules** (skip categories, mode behavior, rewriting style): see `/skill prompter` SKILL.md. Do NOT duplicate the skip list here; the skill file is the source of truth.
+
+## FOR CODEX
+Whenever a major task is done, relese confitei :)

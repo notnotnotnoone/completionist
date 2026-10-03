@@ -45,7 +45,7 @@
   const RELEASE_STATUS = { released: "Released", next: "Up next", planned: "Planned" };
   const MS_STATUS = { active: "Active", done: "Done", planned: "Planned" };
   const AREA = { engine: "Engine", dll: "DLL", install: "Install", test: "Manual test", bench: "Benchmark", data: "Data",
-    docs: "Docs", repo: "Repo", toolchain: "Toolchain", extension: "Extension" };
+    docs: "Docs", repo: "Repo", toolchain: "Toolchain", extension: "Extension", viewer: "Viewer" };
 
   if (!data) { window.RM = { data: null, bindThemeButton, esc, rich }; return; }
 
@@ -56,11 +56,18 @@
   const hwColor = (id) => `var(--hw-${id})`;
   const hwOpenAt = (h, version) => !h.opens || cmpVer(version, h.opens) >= 0;
 
-  const tasks = [];
-  for (const m of data.milestones) for (const t of m.tasks) { t.ms = m; t.stories = t.stories || []; t.hw = hwOfArea[t.area] || null; tasks.push(t); }
-  const releaseForMilestone = {};
-  for (const r of data.releases) if (r.milestone) releaseForMilestone[r.milestone] = r;
-  const milestoneById = Object.fromEntries(data.milestones.map((m) => [m.id, m]));
+  const tasks = (data.tasks || []).map((t) => ({ ...t, stories: t.stories || [], hw: hwOfArea[t.area] || null }));
+  const releaseByVersion = Object.fromEntries(data.releases.map((r) => [r.version, r]));
+  const groups = data.releases.filter((r) => data.releasePlans[r.version]).map((r) => {
+    const plan = data.releasePlans[r.version];
+    return { ...plan, id: r.version, version: r.version, release: r,
+      status: r.status === "released" ? "done" : r.version === data.activeRelease ? "active" : "planned",
+      tasks: tasks.filter((t) => t.targetRelease === r.version) };
+  });
+  const groupByVersion = Object.fromEntries(groups.map((g) => [g.version, g]));
+  for (const t of tasks) t.ms = groupByVersion[t.targetRelease] || { id: t.targetRelease, title: releaseByVersion[t.targetRelease]?.title || t.targetRelease };
+  const releaseForMilestone = releaseByVersion;
+  const milestoneById = groupByVersion;
 
   const live = (list) => list.filter((t) => t.status !== "dropped");
   const progress = (list) => {
@@ -73,19 +80,19 @@
   };
   const tasksOn = (m, hwId) => m.tasks.filter((t) => t.hw && t.hw.id === hwId);
 
-  // Which highways a release touches: patches say so, minors inherit their milestone's tasks, majors take every open highway.
+  // Actual records name their lanes; future destinations derive participating lanes from their work.
   function highwaysOf(r) {
     const tier = tierOf(r.version);
     if (Array.isArray(r.highways) && r.highways.length) return r.highways.filter((id) => hwById[id]);
-    if (tier === "major") return highways.filter((h) => hwOpenAt(h, r.version)).map((h) => h.id);
-    const m = r.milestone && milestoneById[r.milestone];
-    if (!m) return [];
-    const used = new Set(live(m.tasks).map((t) => t.hw && t.hw.id).filter(Boolean));
+    let own = r.status === "released" ? tasks.filter((t) => t.shippedIn === r.version) : tasks.filter((t) => t.targetRelease === r.version);
+    if (!own.length && tier !== "patch") own = tasks.filter((t) => t.targetRelease === r.version);
+    const used = new Set(live(own).map((t) => t.hw && t.hw.id).filter(Boolean));
+    if (!used.size && r.status === "released" && tier === "major") return highways.filter((h) => hwOpenAt(h, r.version)).map((h) => h.id);
     return highways.filter((h) => used.has(h.id)).map((h) => h.id);
   }
 
   window.RM = {
-    data, highways, hwById, hwOfArea, hwColor, hwOpenAt, tasks, milestoneById, releaseForMilestone,
+    data, highways, hwById, hwOfArea, hwColor, hwOpenAt, tasks, groups, groupByVersion, releaseByVersion, milestoneById, releaseForMilestone,
     progress, tasksOn, highwaysOf, live,
     esc, rich, words, parseVer, cmpVer, tierOf, fmtDate,
     STATUS, RELEASE_STATUS, MS_STATUS, AREA, areaName: (a) => AREA[a] || a,

@@ -98,44 +98,38 @@ It is built as a **Text Services Framework (TSF) text service**, the same mechan
 | Metrics | Counts and timings in `metrics.sqlite`, shown by `completionist-stats` |
 | Harness | The scripts under `tip/tests` that drive the real DLL through real TSF. `tsf_e2e.ps1` steals focus |
 | Spike | The throwaway M0 experiment in `tip/spike/` that proved the TSF approach |
-| Release group | The tasks leading to one minor release. Kept in the `milestones` list as an internal key (M0, M1, ...); the pages show only the release and name ("0.2.0 · Smarter words"). A task shows the version it ships in: shipped work names its release, unshipped work gets one patch number each (0.6.2 ... 0.6.10, then 0.7.0 is the finish line) |
-| Release tiers | Patch (a sentence), minor (a paragraph, one milestone), major (an essay) |
-| Highway | On the roadmap map, one part of the app: Engine, Text service, Tooling, Browser extension |
-| Interchange | A major release: every open highway meets here |
-| Station | A minor release, drawn across the highways its milestone touched |
-| Stop | A patch release, on the highway it touched |
-| Cul-de-sac | A bug-fix patch, drawn as a short spur |
+| Release destination | A coherent planned or shipped version; several tasks share its `targetRelease` |
+| Release tiers | Patch (small fixes, one sentence), minor (a capability, one paragraph), major (an expansion, an essay) |
+| Highway | A subsystem: Engine, Text service, Tooling or Browser extension |
+| Destination landmark | A release sign connecting participating highways only |
+| Roadwork stop | A task, with its name, status and optional local stage; no task version |
+| Dropped branch | A faded spur for superseded work, excluded from progress |
+| Shipped in | The actual released version carrying completed work, independent of its target destination |
 
 ## 9. Releases and the roadmap
 
-- **Semver.** `MAJOR.MINOR.PATCH`. The release version lives only in `docs/roadmap/roadmap.js`, not in package versions.
-- **Writing tiers.** A patch gets exactly one sentence (under 50 words). A minor release gets one paragraph (50 to 220 words) and is one milestone. A major release gets an essay of at least 4 paragraphs and 450 words. `scripts/check_roadmap.py` enforces the lengths.
-- **`roadmap.js` is the source of truth**, and **every commit updates it**: a new line at the top of `log`, and `python scripts/check_roadmap.py` must print `roadmap ok`.
-- **Two pages read it**, opened from disk and never published: `index.html` (the highway map) and `tasks.html` (the task board).
+Versions are destinations; tasks are roadwork. The release version lives only in `docs/roadmap/roadmap.js`, not package versions. Completing a task, committing or merging does not ship software. Shipping is a separate action after validation and integration.
 
-The highway map rules:
+Schema 4 uses flat `tasks` with stable internal IDs, `targetRelease` and optional `shippedIn`; `releasePlans` stores goals, completion criteria and contained/medium/large scope. `activeRelease` names the current destination. `releases` preserves all real historical records and future coherent destinations. Optional task `stage` and `label` improve local presentation; array order controls task order without renumbering.
+
+The Release atlas and task board are plain HTML opened from disk. Every commit updates the source log and runs `python scripts/check_roadmap.py`. Read and edit using `python scripts/roadmap.py`; `CLAUDE.md` contains the complete command and shipping rules.
 
 | Thing | Drawn as |
 |---|---|
-| **Highway** (a part of the app) | A thick horizontal road in its highway color, stacked: Engine on top, then Text service, Tooling, Browser extension |
-| **Major release** (X.0.0) | An **interchange**: every open highway curves into one bundle and back out, with a shield and an overhead gantry sign |
-| **Project start** | An interchange at the far left where every highway without `opens` begins |
-| **Minor release** (X.Y.0) | A **station**: a tall capsule across the highways it touched, with an exit sign above it |
-| **Patch** (X.Y.Z) | A **stop**: a circle on the one highway it touched, or a small capsule across several |
-| **Bug-fix patch** (`"kind": "fix"`) | A **cul-de-sac**: a short spur ending in a round turnaround |
-| **Released** | Filled solid with a check mark |
-| **Up next** | Magenta ring with a slowly pulsing halo and a "NEXT" tag |
-| **Planned** | Surface-colored fill with a dashed outline |
-| **Road built** (the milestone's tasks on that highway are done) | Solid highway color with a white dashed lane marking |
-| **Under construction** (doing, next or blocked) | Diagonal stripes with a barricade where construction starts |
-| **Not built** (todo) | The highway color at 35% opacity, dashed |
-| **Open road, no work planned** | A thin dotted line at 35% opacity |
-| **Now** | A magenta line and a "YOU ARE HERE" pin just after the latest released version |
+| Highway | A horizontal road in its subsystem color |
+| Future release region | A fixed contained, medium or large scope footprint; not time or percent complete |
+| Release destination | A prominent sign and station joining participating highways |
+| Task | A smaller named stop on its owning highway; stacked when necessary |
+| Complete work | A checked stop; shipping is a separate fact |
+| Current / next / blocked work | A magenta ring with explicit status text |
+| Future work | A dashed stop with status text |
+| Dropped work | A faded spur with a cross and status text |
+| Old shipped history | Expandable release families; all original releases remain selectable |
+| YOU ARE HERE | The active destination region; latest shipped is labeled separately |
 
-- A task's `area` decides its highway, and every area belongs to exactly one highway (`highways` in `roadmap.js`).
-- Patch releases name the highways they touched. Minor releases get theirs from their milestone's tasks. Major releases take every open highway.
-- A highway with `"opens": "X.0.0"` starts at that major release, and nothing before it may name it.
-- Road between two anchors (each milestone's release, each interchange and the end of the road) belongs to the milestone at the right-hand anchor, and its length is split by that milestone's tasks on the highway. Built road can therefore run past "now": the work is done but not released yet.
+Every task area belongs to one highway. Released patches name their touched highways. New major/minor destinations derive participating highways from tasks until shipping records them explicitly. Existing historical release records remain unchanged. A highway with `opens` is available at its major launch, with construction visible earlier within that launch's region. Older shipped task contributions appear in history rather than duplicated as future roadwork.
+
+Writing tiers remain enforced: patches use one sentence of at most 50 words, minors one paragraph of 50-220 words, majors four or more paragraphs totaling at least 450 words. Genuine shipped versions, tags, references and logs are historical facts; planned pseudo-versions are removed during migration.
 
 ## 10. Evergreen: the official color scheme
 

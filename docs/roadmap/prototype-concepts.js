@@ -1,0 +1,74 @@
+/* Throwaway UI comparison. All projection and selection state stays in memory. */
+(() => {
+  const R = window.RM, data = R.data, esc = R.esc;
+  const $ = (q) => document.querySelector(q);
+  const released = data.releases.filter(r => r.status === 'released');
+  const latest = released.slice().sort((a,b) => R.cmpVer(a.version,b.version)).at(-1);
+  const lanes = data.highways;
+  const group = id => R.groups.find(m => m.release.milestone === id);
+  const labels = ['Live glass proof','AI lifecycle','Renderer IPC','Native layout','Glass & motion','Host fallback','TSF integration','Packaging','Validation'];
+  const v2 = group('M10').tasks.filter(t => t.stage).sort((a,b)=>a.stage-b.stage).map((t,i) => ({...t, label:labels[i],target:'2.0.0',lane:R.hwOfArea[t.area].id}));
+  const extra = group('M10').tasks.filter(t => !['done','dropped'].includes(t.status) && !t.stage).map(t => ({...t,label:t.label||(t.area==='viewer'?'Dashboard overhaul':'Popup scope'),target:'2.0.0',lane:R.hwOfArea[t.area].id}));
+  const projectTask = (t,target,label) => ({...t,target,label,lane:R.hwOfArea[t.area].id});
+  const plans = [
+    {version:'2.0.0',title:'Desktop overhaul',scope:'Large',group:group('M10'),tasks:[...v2,...extra],summary:'A native desktop experience: live glass, deliberate typography, truthful AI state and resilient fallback.'},
+    {version:'2.1.0',title:'Tense-aware suggestions',scope:'Contained',group:group('M11'),tasks:group('M11').tasks.map(t => projectTask(t,'2.1.0','Tense-aware ranking')),summary:'Suggestions that follow the tense of the sentence you are writing.'},
+    {version:'3.0.0',title:'Browser autocomplete',scope:'Large',group:group('M6'),tasks:group('M6').tasks.map(t => projectTask(t,'3.0.0','Chrome extension')),summary:'Bring Completionist into web fields through a browser extension and Native Messaging.'}
+  ];
+  const tasks = plans.flatMap(p => p.tasks);
+  const names = {A:'Release atlas',B:'Roadbook',C:'Interchange'};
+  const descriptions = {A:'The whole route at a glance. Release regions keep their scope while roadwork fits inside.',B:'One chapter per destination. Read the work on each highway without hunting for tiny stops.',C:'Stand at the next interchange. See what must converge before the desktop overhaul can ship.'};
+  let variant = new URLSearchParams(location.search).get('variant') || 'A';
+  if (!names[variant]) variant='A';
+  let selected = v2[0].id, expanded = new Set(['2.0.0']);
+  const color = lane => `var(--hw-${lane})`;
+  const badge = t => `<span class="pill s-${esc(t.status)}">${esc(R.STATUS[t.status].label)}</span>`;
+  const chip = t => `<button class="task-chip${selected===t.id?' selected':''}" style="--lane:${color(t.lane)}" data-task="${esc(t.id)}">${t.stage?`<span class="mono">${t.stage}</span>`:''}<span>${esc(t.label)}<small>${esc(R.STATUS[t.status].label)}${t.stage?' · stage '+t.stage+'/9':''}</small></span></button>`;
+  const txt = (x,y,s,attr='') => `<text x="${x}" y="${y}" ${attr}>${esc(s)}</text>`;
+  const taskPoint = (t,x,y) => `<g class="svg-action" role="button" tabindex="0" data-task="${esc(t.id)}" aria-label="${esc(t.label)}, ${esc(R.STATUS[t.status].label)}, target ${t.target}"><title>${esc(t.title)}</title><circle class="stop-ring" cx="${x}" cy="${y}" r="${t.status==='next'?10:7}" fill="var(--surface)" stroke="${selected===t.id||t.status==='next'?'var(--accent)':color(t.lane)}" stroke-width="3" ${t.status==='todo'?'stroke-dasharray="3 2"':''}/>${t.stage?txt(x,y-19,t.stage,'text-anchor="middle" font-size="11" class="map-mono"'):''}</g>`;
+  const releasePoint = (p,x,y,w=180) => `<g class="svg-action" role="button" tabindex="0" data-release="${p.version}" aria-label="${esc(p.version+' '+p.title)}"><rect x="${x}" y="${y}" width="${w}" height="82" rx="9" fill="var(--sign)"/><rect x="${x+6}" y="${y+6}" width="${w-12}" height="70" rx="5" fill="none" stroke="var(--sign-dim)"/>${txt(x+14,y+33,p.version,'class="map-on-sign map-mono" font-size="25" font-weight="600"')}${txt(x+14,y+60,p.title,'class="map-on-sign" font-size="13" font-weight="700"')}</g>`;
+
+  function VariantA(){
+    let svg=`<svg viewBox="0 0 1360 500" aria-label="Release atlas with four highways, roadwork and three destinations" role="group"><rect x="165" y="0" width="540" height="500" fill="var(--paper-2)" opacity=".6"/><rect x="930" y="0" width="430" height="500" fill="var(--paper-2)" opacity=".6"/>${txt(193,34,'BUILDING TOWARD 2.0','font-size="11" font-weight="800" letter-spacing="2"')}${txt(731,34,'THEN · 2.1','font-size="11" font-weight="800" letter-spacing="2"')}${txt(958,34,'THEN · 3.0','font-size="11" font-weight="800" letter-spacing="2"')}${txt(193,60,'Large · desktop overhaul','font-size="14" class="map-muted"')}${txt(731,60,'Contained','font-size="14" class="map-muted"')}${txt(958,60,'Large · new client','font-size="14" class="map-muted"')}`;
+    lanes.forEach((h,i) => {const y=205+i*68, start=h.id==='browser'?955:165;svg+=txt(18,y+4,h.title,'font-size="13" font-weight="800"')+`<path d="M${start} ${y} H1335" stroke="${color(h.id)}" stroke-width="9" fill="none" opacity=".27" stroke-dasharray="10 5"/>`; if(h.id!=='browser')svg+=`<path d="M165 ${y} H222" stroke="${color(h.id)}" stroke-width="9"/>`;if(h.id==='browser')svg+=txt(965,y+29,'Under construction → opens at 3.0','font-size="11" class="map-muted"');});
+    const positions = {engine:[305],tsf:[252,352,402,452,502,552,598],tooling:[460,540],browser:[]};
+    const counters={};v2.forEach(t=>{const n=counters[t.lane]||0;counters[t.lane]=n+1;const i=lanes.findIndex(h=>h.id===t.lane),x=(positions[t.lane]||[])[n]||280+n*52;svg+=taskPoint(t,x,205+i*68);});
+    extra.forEach((t,i)=>{const y=205+lanes.findIndex(h=>h.id===t.lane)*68;svg+=taskPoint(t,305+i*55,y+26)+txt(305+i*55,y+48,t.label,'font-size="10" text-anchor="middle" class="map-muted"');});
+    svg+=`<path d="M650 190 V355" stroke="var(--sign)" stroke-width="20" stroke-linecap="round"/><path d="M867 190 V220" stroke="${color('engine')}" stroke-width="16" stroke-linecap="round"/><path d="M1245 190 V415" stroke="var(--sign)" stroke-width="20" stroke-linecap="round"/>`;
+    svg+=releasePoint(plans[0],530,93,172)+releasePoint(plans[1],726,93,186)+releasePoint(plans[2],1150,93,190);
+    svg+=taskPoint(plans[1].tasks[0],774,205)+taskPoint(plans[2].tasks[0],1060,409);
+    svg+=`<path d="M225 170 V450" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 5"/>${txt(193,476,'YOU ARE HERE · preparing stage 1','font-size="12" font-weight="800" style="fill:var(--accent-ink)"')}${txt(733,476,'Scope diagram · no dates or distance estimates','font-size="11" class="map-muted"')}</svg>`;
+    return `<div class="atlas-title"><div><div class="current-label"><span class="dot"></span>BUILDING TOWARD 2.0.0</div><h1 class="display">The road to a new desktop.</h1><p class="subline serif">Versions are destinations. The work happens between them.</p></div><div class="latest">Latest shipped<strong>${esc(latest.version)}</strong>${esc(latest.title)}</div></div><div class="map-scroll">${svg}</div><div class="map-legend"><span><b>▣ Destination</b> · a coherent release</span><span><b>◌ Roadwork</b> · select a task</span><span><b>1–9</b> · local V2 stages</span><span><b>Region width</b> · broad scope, never task count</span></div><div class="atlas-bottom"><div><h3>A large overhaul, then a focused capability.</h3><p>The renderer, engine and packaging converge on 2.0. Tense-aware ranking is a smaller stop before a new browser highway opens at 3.0.</p></div><div><h3>Current scope</h3><p>9 coordinated stages + ${extra.length} existing open tasks. Completed work is distinct from shipped software.</p></div></div>`;
+  }
+  function VariantB(){
+    return `<div class="roadbook-head"><div><div class="lbl">Completionist / release roadbook</div><h1 class="display">Every destination.<br>All the roadwork.</h1></div><div class="edition"><div class="current-label">YOU ARE HERE · 2.0</div><p class="serif subline">A desktop overhaul across the native surface, engine and tooling.</p><p class="meta">Latest shipped: ${esc(latest.version)}</p></div></div>${plans.map((p,i)=>`<article class="chapter ${i===0?'active':''}"><header class="chapter-head"><button class="release-button version" data-release="${p.version}">${p.version}</button><div><div class="lbl">${i===0?'Under construction':'Future destination'} · ${p.scope} scope</div><h2>${p.title}</h2><p>${i===0?'9 stages · '+extra.length+' existing open tasks':p.summary}</p></div><button data-expand="${p.version}" aria-expanded="${expanded.has(p.version)}">${expanded.has(p.version)?'Fold roadwork ↑':'Open roadwork ↓'}</button></header>${expanded.has(p.version)?`<div class="chapter-body">${lanes.filter(h=>p.tasks.some(t=>t.lane===h.id)).map(h=>`<div class="road-row" style="--lane:${color(h.id)}"><div class="road-label">${esc(h.title)}</div><div class="road-items">${p.tasks.filter(t=>t.lane===h.id).map(chip).join('')}</div><div class="road-end">→ ${p.version}</div></div>`).join('')}<div class="chapter-foot"><p>${esc(p.group.done_when)}</p><span class="badge">Explicit release gate</span></div></div>`:`<div class="future-trace" style="--lane:${color(p.tasks[0].lane)}"><span class="trace"></span><p>${p.tasks.length} planned task${p.tasks.length===1?'':'s'} · ${esc(R.hwById[p.tasks[0].lane].title)}</p><span class="badge">${p.scope}</span></div>`}</article>`).join('')}`;
+  }
+  function VariantC(){
+    let svg=`<svg viewBox="0 0 940 330" role="group" aria-label="Engine, Text service and Tooling converge on the 2.0 desktop release">`;
+    lanes.filter(h=>h.id!=='browser').forEach((h,i)=>{const y=80+i*90;svg+=`<path d="M35 ${y} H470 C590 ${y} 565 170 675 170 H760" fill="none" stroke="${color(h.id)}" stroke-width="14" opacity=".35"/><path d="M35 ${y} H150" stroke="${color(h.id)}" stroke-width="14"/>${txt(36,y-25,h.title,'font-size="14" font-weight="800"')}`;const laneTasks=v2.filter(t=>t.lane===h.id);laneTasks.forEach((t,n)=>svg+=taskPoint(t,190+n*44,y));});
+    svg+=`<path d="M715 75 L835 75 L835 208 Q835 251 775 279 Q715 251 715 208Z" fill="var(--sign)" stroke="var(--surface)" stroke-width="6"/>${txt(775,125,'DESTINATION','text-anchor="middle" font-size="10" letter-spacing="1" class="map-on-sign"')}${txt(775,175,'2.0','text-anchor="middle" font-size="48" font-weight="900" class="map-on-sign"')}${txt(775,204,'Desktop','text-anchor="middle" font-size="16" class="map-on-sign"')}${txt(775,226,'overhaul','text-anchor="middle" font-size="16" class="map-on-sign"')}${txt(38,316,'Roadwork can be complete before the release ships.','font-size="12" class="map-muted"')}</svg>`;
+    return `<div class="interchange"><div><header class="junction-header"><div class="lbl">Next interchange · coordinated desktop release</div><h1>Bring the desktop together.</h1><p>${plans[0].summary}</p></header><div class="junction-map">${svg}</div><div class="work-manifest"><div class="current-label"><span class="dot"></span>YOU ARE HERE · STAGE 1 IS NEXT</div><h2>Work approaching the interchange</h2><div class="manifest-grid">${plans[0].tasks.map(chip).join('')}</div></div></div><aside class="route-rail"><h2>The onward route</h2>${plans.map((p,i)=>`<div class="rail-item ${i===0?'is-current':''}"><button class="release-button" data-release="${p.version}"><strong>${p.version}</strong><h3>${p.title}</h3></button><p>${i===0?'Current destination · 9 coordinated stages':p.summary}</p><span class="badge">${p.scope} scope</span></div>`).join('')}<div class="meta">Last shipped<br><strong>${latest.version}</strong><br>${esc(latest.title)}</div></aside></div>`;
+  }
+  function inspection(){
+    const task=tasks.find(t=>t.id===selected), p=plans.find(p=>p.version===selected);
+    if(task){$('#inspection').innerHTML=`<div class="inspection-layout"><div><div class="lbl">Selected roadwork</div><div class="detail-meta">Target <strong>${task.target}</strong><br>Highway <strong>${esc(R.hwById[task.lane].title)}</strong>${task.stage?'<br>Stage <strong>'+task.stage+' / 9</strong>':''}<br>${badge(task)}</div></div><div><h2>${esc(task.title.replace(/^Stage \d+\/9: /,''))}</h2><div class="notes"><p>${esc(task.notes||'Work planned toward this release.')}</p></div><p class="meta">Completing this task records progress toward ${task.target}; it does not create a software release.</p></div></div>`;}
+    else if(p){$('#inspection').innerHTML=`<div class="inspection-layout"><div><div class="lbl">Release destination</div><div class="detail-meta"><strong>${p.version}</strong><br>${p.scope} scope<br>${p.tasks.length} open tasks</div></div><div><h2>${p.title}</h2><p>${p.summary}</p><p><strong>Ready when:</strong> ${esc(p.group.done_when)}</p><p class="meta">Shipping is an explicit action after validation and integration.</p></div></div>`;}
+  }
+  function render(){
+    $('#concept-number').textContent=`CONCEPT ${variant} / ${names[variant]}`;
+    $('#concept-description').textContent=descriptions[variant];
+    $('#concept').innerHTML=({A:VariantA,B:VariantB,C:VariantC})[variant]();
+    document.querySelectorAll('[data-variant]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.variant===variant)));
+    inspection();
+  }
+  function change(next){variant=next;const url=new URL(location.href);url.searchParams.set('variant',variant);history.replaceState(null,'',url);render();window.scrollTo(0,0);}
+  function cycle(n){const keys=Object.keys(names);change(keys[(keys.indexOf(variant)+n+3)%3]);}
+  document.addEventListener('click',e=>{const el=e.target.closest('[data-task],[data-release],[data-variant],[data-expand]');if(!el)return;if(el.dataset.variant){change(el.dataset.variant);return;}if(el.dataset.expand){expanded.has(el.dataset.expand)?expanded.delete(el.dataset.expand):expanded.add(el.dataset.expand);render();return;}selected=el.dataset.task||el.dataset.release;render();});
+  document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select,[contenteditable="true"]'))return;if(e.key==='Enter'||e.key===' '){const el=e.target.closest('g[role="button"]');if(el){e.preventDefault();selected=el.dataset.task||el.dataset.release;render();$('#inspection').scrollIntoView({block:'nearest'});}return;}if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();cycle(e.key==='ArrowRight'?1:-1);}});
+  $('#previous').onclick=()=>cycle(-1);$('#next').onclick=()=>cycle(1);
+  $('#history-count').textContent=`· ${released.length} releases`;
+  $('#history-list').innerHTML=`<div class="history-grid">${released.slice().reverse().map(r=>`<div class="history-item"><strong class="mono">${esc(r.version)}</strong><div>${esc(r.title)}<small>${esc(r.date||'')} · Released</small></div></div>`).join('')}</div>`;
+  R.bindThemeButton($('#theme'));
+  addEventListener('popstate',()=>{variant=new URLSearchParams(location.search).get('variant')||'A';if(!names[variant])variant='A';render();});
+  render();
+})();

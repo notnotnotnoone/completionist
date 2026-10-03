@@ -1,0 +1,63 @@
+<!doctype html>
+<!-- Throwaway liquid-glass prototype. All AI, context, connection and tense data are simulated. -->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Completionist · V2 autocomplete study</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Overpass:wght@400;500;600;700;800&family=Overpass+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../docs/roadmap/theme.css">
+  <link rel="stylesheet" href="prototype.css">
+  <script src="prototype.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="wordmark" href="index.html"><span class="brand-symbol" aria-hidden="true">c<span>↗</span></span>Completionist<span class="edition">V2 / LIQUID GLASS</span></a>
+    <button id="theme" type="button">Dark appearance ◐</button>
+  </header>
+  <main>
+    <section class="intro">
+      <div><p class="eyebrow">V2 / THE AUTOCOMPLETE MENU</p><h1>Finish the thought.</h1></div>
+      <p class="intro-copy">Words at your fingertips.<br>The bigger picture, in the corner.<br><span>Everything here runs locally with simulated data.</span></p>
+    </section>
+    <div class="workbench">
+      <section class="canvas" aria-label="Typing preview">
+        <div class="canvas-bar"><span class="document-dot"></span><span>Untitled note</span><span class="canvas-label">LOCAL SIMULATION</span></div>
+        <div id="stage" class="stage">
+          <div class="note-heading"><p class="eyebrow">FRIDAY, OCTOBER 2</p><h2>A thought in progress</h2><p>Good tools leave room for the thought.</p></div>
+          <div id="editor" contenteditable="true" role="textbox" aria-label="Try autocomplete here" aria-multiline="true" spellcheck="false" aria-controls="popup">Let’s make something beau</div>
+          <div id="popup" class="popup" role="listbox" aria-label="Completion suggestions"></div>
+          <div class="stage-note">Click the text and keep writing.<br><span>Sample suggestions only · nothing is sent or saved</span></div>
+        </div>
+        <div class="canvas-footer"><span><kbd>↑</kbd> <kbd>↓</kbd> choose <kbd>Tab</kbd> accept <kbd>Esc</kbd> dismiss</span><span>Enter stays yours</span></div>
+      </section>
+      <aside class="inspector">
+        <p class="eyebrow">PROTOTYPE CONTROLS</p><h2>Two surfaces. One flow.</h2><p id="direction-copy">A light glass menu follows the caret. A separate information panel stays at the bottom-left of your screen.</p>
+        <div class="control-group"><label for="scenario">Explore a moment</label><select id="scenario">
+          <option value="word">Completing a word</option><option value="phrase">A sentence continuation</option><option value="correction">A typo correction</option><option value="next">After a space</option><option value="long">A long continuation</option><option value="empty">No suggestions</option><option value="paused">Paused / silent</option>
+        </select></div>
+        <div class="control-group"><label for="tense">Simulated tense · V2.1 preview</label><select id="tense"><option>Present</option><option>Past</option><option>Future</option><option>Uncertain / mixed</option></select></div>
+        <div class="control-group"><label for="trigger">AI trigger</label><select id="trigger"><option value="auto">Automatic after idle</option><option value="manual">Manual · Ctrl+Space</option></select></div>
+        <div class="control-group"><label for="delay">Simulated idle delay</label><select id="delay"><option value="1200">1.2 seconds · slow demo</option><option value="350">0.35 seconds · engine default</option><option value="2000">2 seconds</option></select></div>
+        <div class="control-group"><label for="connection">Simulated connection</label><select id="connection"><option value="online">Connected</option><option value="offline">Offline · local words available</option></select></div>
+        <div class="control-group"><label for="placement">Position in the window</label><select id="placement"><option value="normal">Room below the caret</option><option value="bottom">Near the bottom edge</option><option value="right">Near the right edge</option></select></div>
+        <div class="control-group"><label for="scale">Menu scale</label><select id="scale"><option value="1">100% · actual size</option><option value="1.5">150% · closer look</option><option value="2">200% · closer look</option></select></div>
+        <button class="replay" id="replay" type="button">↻ Replay this moment</button>
+        <div class="state"><p class="eyebrow">LIVE STATE</p><p id="state" role="status" aria-live="polite"></p></div>
+      </aside>
+    </div>
+    <section class="principles" aria-label="Design principles">
+      <article><h3>The text comes first.</h3><p>One clear selection. A visible typed prefix. A continuation with enough room to read before you accept.</p></article>
+      <article><h3>Stillness is polish.</h3><p>A stable width, quiet streaming, instant selection. Nothing bounces, breathes, or fights the caret.</p></article>
+      <article><h3>Every moment counts.</h3><p>Short words, long phrases, mistakes, empty states. Light and dark. At the edges of a window.</p></article>
+    </section>
+  </main>
+  <aside id="info-panel" class="info-panel" aria-label="Completionist information">
+    <div id="info-body" class="info-body glass">
+      <span class="tense-label">Tense</span><strong id="tense-value">Present</strong>
+    </div>
+    <div class="info-dock glass"><span id="connection-light" class="connection-light" role="img" aria-label="Connected" title="Connected"></span><span class="dock-brand">Completionist</span><button id="minimize" type="button" aria-expanded="true" aria-controls="info-body" aria-label="Minimize information panel">⌄</button></div>
+  </aside>
+  <svg class="glass-filter" aria-hidden="true" width="0" height="0"><defs><filter id="glass-distortion" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".008 .025" numOctaves="1" seed="17" result="noise"/><feGaussianBlur in="noise" stdDeviation="2" result="softMap"/><feDisplacementMap in="SourceGraphic" in2="softMap" scale="22" xChannelSelector="R" yChannelSelector="G"/></filter></defs></svg>
+</body>
+</html>

@@ -121,6 +121,15 @@
 .itin-text { font-family: var(--serif); line-height: 1.65; max-width: 50rem; }
 .itin-text p + p { margin-top: .8em; }
 
+.g-task { grid-template-columns: 5rem minmax(0,1fr); }
+.g-task .meta { grid-column: 2; }
+.itin-history { padding-block: 1.25rem; border-bottom: 1px solid var(--line-strong); }
+.itin-history summary { cursor: pointer; font-weight: 900; font-size: var(--fs-l); }
+.hero-name { font-size: clamp(2.1rem,6vw,4rem); }
+.hero-sign { padding: 2rem; }
+.legend { grid-template-columns: 1fr; }
+.map-inner svg text { fill: var(--ink); }
+.post b { font-family: var(--mono); font-size: 1.8rem; }
 </style>
 </head>
 <body>
@@ -141,7 +150,7 @@
   <section class="wrap hero" aria-label="Where Completionist is">
     <span class="exit-tab">Autocomplete for Windows</span>
     <div class="sign hero-sign"><span class="hero-ghost" id="hero-ghost" aria-hidden="true"></span>
-      <h1 class="hero-name">Completionist</h1><p class="hero-tag" id="hero-tag"></p><ul class="hero-arrows" id="hero-arrows"></ul></div>
+      <h1 class="hero-name">The release atlas</h1><p class="hero-tag" id="hero-tag"></p><ul class="hero-arrows" id="hero-arrows"></ul></div>
     <div class="vms" role="status"><span class="vms-lbl">Now</span><p class="vms-text" id="vms-text"></p></div>
     <ul class="posts" id="posts" aria-label="Progress"></ul>
   </section>
@@ -153,6 +162,7 @@
         <button type="button" class="ctl ctl-now" id="go-now">You are here</button>
         <button type="button" class="ctl" id="go-end">Future ⇥</button>
         <button type="button" class="ctl" id="fit" aria-pressed="false">Whole map</button>
+        <button type="button" class="ctl" id="history-toggle" aria-pressed="false">Expand history</button>
       </div>
     </div>
     <div class="wrap"><div class="hw-chips" id="hw-chips" aria-label="Spotlight a highway"></div></div>
@@ -181,10 +191,10 @@
   <span>Source of truth: <code>roadmap.js</code>. Agents update it with every commit (see <a href="../../CLAUDE.md">CLAUDE.md</a>).</span>
   <span><a href="tasks.html">Task board</a> · <a href="../../CONTEXT.md">CONTEXT.md</a> · <a href="https://github.com/notnotnotnoone/typer/issues/1" target="_blank" rel="noopener">PRD ↗</a> · <a href="https://github.com/notnotnotnoone/typer" target="_blank" rel="noopener">Repository ↗</a></span>
 </footer>
-<script src="roadmap.js"></script>
-<script src="common.js"></script>
-<script src="map-layout.js"></script>
-<script src="map.js"></script>
-<script src="page.js"></script>
+<script src="roadmap.js?schema=4"></script>
+<script src="common.js?schema=4"></script>
+<script src="map-layout.js?schema=4"></script>
+<script src="map.js?schema=4"></script>
+<script src="page.js?schema=4"></script>
 </body>
 </html>

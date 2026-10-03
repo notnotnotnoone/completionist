@@ -1,14 +1,11 @@
-// Completionist roadmap data, read by index.html (the highway map) and tasks.html (the task board).
-// Everything after the `=` is strict JSON: double quotes, no comments, no trailing commas.
-// Update it with every change (see CLAUDE.md), then run: python scripts/check_roadmap.py
 window.COMPLETIONIST_ROADMAP = {
-  "schema": 3,
+  "schema": 4,
   "project": "Completionist",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
   "updated": "2026-10-02",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
-  "now": "The viewer icon, personal word log and Requests detail fixes are complete through 1.1.5; the dashboard overhaul is next in the active M10 group, leading to 2.0.0. Tense-aware suggestions are planned for 2.1.0.",
+  "now": "Building toward 2.0.0: nine native desktop stages plus the viewer and scope tracks. Live soft-glass feasibility is next. Latest recorded shipped release is 1.1.14; tense-aware ranking targets 2.1.0 and the browser client targets 3.0.0.",
   "highways": [
     {
       "id": "engine",
@@ -49,1727 +46,6 @@ window.COMPLETIONIST_ROADMAP = {
         "extension"
       ],
       "opens": "3.0.0"
-    }
-  ],
-  "milestones": [
-    {
-      "id": "M0",
-      "title": "Foundations and TSF spike",
-      "status": "done",
-      "goal": "Prove a TSF text service fixes the three failures of the old hook-based attempt: popup position, text sync and key handling.",
-      "done_when": "A throwaway TIP shows a popup at the caret, reads the real text and swallows Tab in the must-work apps.",
-      "tasks": [
-        {
-          "id": "M0.1",
-          "version": "0.0.3",
-          "title": "Install VS 2022 Build Tools (MSVC v143, Windows SDK 10.0.26100)",
-          "status": "done",
-          "area": "toolchain",
-          "stories": [],
-          "notes": "CLI-only toolchain, no full Visual Studio IDE."
-        },
-        {
-          "id": "M0.2",
-          "version": "0.0.3",
-          "title": "Build Microsoft's SampleIME unmodified",
-          "status": "done",
-          "area": "dll",
-          "stories": [],
-          "notes": "Link error LNK1295 fixed with `/p:WholeProgramOptimization=false`, retargeted to v143 and SDK 10.0.26100."
-        },
-        {
-          "id": "M0.3",
-          "version": "0.0.3",
-          "title": "Spike TIP: popup at the caret, context length and input scope logging",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            47
-          ],
-          "notes": "`GetTextExt` never failed in ~830 inspections. Input scope must be read with `GetAppProperty`, not `GetProperty`.",
-          "refs": [
-            "tip/spike/CompletionistSpike.cpp",
-            "m0-tsf-spike"
-          ]
-        },
-        {
-          "id": "M0.4",
-          "version": "0.0.3",
-          "title": "Spike: swallow Tab and replace the current word with ITfRange::SetText",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            47
-          ],
-          "notes": "Plain `SetText` worked everywhere; the composition fallback was never needed."
-        },
-        {
-          "id": "M0.5",
-          "version": "0.0.3",
-          "title": "Manual app matrix, rounds 1 and 2",
-          "status": "done",
-          "area": "test",
-          "stories": [
-            47
-          ],
-          "notes": "Works in Notepad, Discord, Chrome, Edge and Teams, and stays silent in password fields. Discord exposed 2,239 characters before the caret. Google Docs and the Google search box are out of scope."
-        },
-        {
-          "id": "M0.6",
-          "version": "0.0.3",
-          "title": "Write up spike findings and verdict",
-          "status": "done",
-          "area": "docs",
-          "stories": [
-            47
-          ],
-          "notes": "Verdict: TSF works for Completionist.",
-          "refs": [
-            "tip/spike/README.md"
-          ]
-        },
-        {
-          "id": "M0.7",
-          "version": "0.0.1",
-          "title": "Scaffold the repository",
-          "status": "done",
-          "area": "repo",
-          "stories": [],
-          "notes": "README, gitignore and a standalone uv project for the engine."
-        },
-        {
-          "id": "M0.8",
-          "version": "0.0.2",
-          "title": "Engine word completion over the named pipe",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "notes": "146,000-word frequency list, p95 under 10 ms, 74 tests."
-        },
-        {
-          "id": "M0.9",
-          "version": "0.0.4",
-          "title": "Roadmap pages and agent guide",
-          "status": "done",
-          "area": "docs",
-          "stories": [],
-          "notes": "Task board, release timeline and the CLAUDE.md rules."
-        },
-        {
-          "id": "M0.11",
-          "version": "0.0.6",
-          "title": "OpenRouter-only phrases",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "notes": "Models list in the config; DeepSeek and the benchmark tool removed; phrases held back when text follows the caret."
-        },
-        {
-          "id": "M0.12",
-          "version": "0.0.7",
-          "title": "Highway map, Evergreen colors and the Completionist rename",
-          "status": "done",
-          "area": "docs",
-          "stories": [],
-          "notes": "CONTEXT.md added; old data folders move on first start."
-        },
-        {
-          "id": "M0.13",
-          "version": "0.0.8",
-          "title": "Continue-only phrase prompt",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "notes": "Daily budget and price counting removed in favour of a spending limit on the OpenRouter key."
-        },
-        {
-          "id": "M0.14",
-          "version": "0.0.9",
-          "title": "Stricter phrase prompt and the 0.5.0 to 2.0.0 plan",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "notes": "Thirty numbered rules and two worked examples in the prompt."
-        },
-        {
-          "id": "M0.15",
-          "version": "0.0.10",
-          "title": "Groq default model and API key in the config",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "notes": "Llama 3.3 70B on Groq through OpenRouter, with a provider_order setting."
-        },
-        {
-          "id": "M0.16",
-          "version": "0.0.11",
-          "title": "One-line launcher",
-          "status": "done",
-          "area": "install",
-          "stories": [],
-          "notes": "cd engine && uv run completionist.py"
-        },
-        {
-          "id": "M0.17",
-          "version": "0.0.12",
-          "title": "Task board by release",
-          "status": "done",
-          "area": "docs",
-          "stories": [],
-          "notes": "Milestones shown as releases, plain titles, tasks sorted by status."
-        }
-      ]
-    },
-    {
-      "id": "M1",
-      "title": "Word completion end-to-end",
-      "status": "done",
-      "goal": "Type in any supported app and get a word dropdown at the caret, fed by the engine, accepted with Tab.",
-      "done_when": "The real DLL shows engine word suggestions at the caret in Notepad, Chrome, Edge and Discord, Tab/Up/Down/Esc behave as specified, Enter is never consumed, and gated fields stay silent.",
-      "tasks": [
-        {
-          "id": "M1.1",
-          "version": "0.0.13",
-          "title": "Protocol codec: length-prefixed JSON frames",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "notes": "4-byte little-endian length, UTF-8 JSON, 1 MB cap. Streaming decoder handles split and merged frames.",
-          "refs": [
-            "engine/src/completionist_engine/protocol.py",
-            "m1-engine-words"
-          ]
-        },
-        {
-          "id": "M1.2",
-          "version": "0.0.14",
-          "title": "Word completer over the wordfreq vocabulary",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            1,
-            10,
-            12,
-            13
-          ],
-          "notes": "~146k words ranked by frequency. Matches case, excludes the exact typed word, capitalises \"i\". p95 lookup under 5 ms.",
-          "refs": [
-            "engine/src/completionist_engine/words.py",
-            "engine/src/completionist_engine/vocabulary.py"
-          ]
-        },
-        {
-          "id": "M1.3",
-          "version": "0.0.15",
-          "title": "TOML config and policy gating",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            31,
-            32,
-            33,
-            37
-          ],
-          "notes": "Block-list (editors, IDEs, terminals), silent input scopes (password, URL, email, number), allow-list for automatic phrases. Hot reload is 0.4.0.",
-          "refs": [
-            "engine/src/completionist_engine/config.py",
-            "engine/src/completionist_engine/policy.py"
-          ]
-        },
-        {
-          "id": "M1.4",
-          "version": "0.0.16",
-          "title": "Named-pipe server, client and probe CLI",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            48,
-            49
-          ],
-          "notes": "Real-pipe integration test asserts round-trip plus lookup p95 < 10 ms. 74 engine tests pass.",
-          "refs": [
-            "engine/src/completionist_engine/server.py",
-            "engine/src/completionist_engine/probe.py"
-          ]
-        },
-        {
-          "id": "M1.5",
-          "version": "0.0.17",
-          "title": "Merge m1-engine-words and m0-tsf-spike into main",
-          "status": "done",
-          "area": "repo",
-          "stories": [],
-          "notes": "Fast-forwarded main to the engine branch, then merged the spike branch. Released as v0.0.4.",
-          "refs": [
-            "main",
-            "v0.0.4"
-          ]
-        },
-        {
-          "id": "M1.6",
-          "version": "0.0.18",
-          "title": "TSF service shell from SampleIME: activation, key sink, edit sessions, registration",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            43
-          ],
-          "notes": "TSF shell written from the spike's proven code: activation, edit sessions, key sink, COM registration for en-US/CA/GB. Lifecycle smoke test (`tip/tests/load_test.ps1`) activates and tears it down 40 times on a real thread manager and the DLL stays unloadable.",
-          "refs": [
-            "tip/src/tsf_service.cpp",
-            "m1-tsf-dll"
-          ]
-        },
-        {
-          "id": "M1.7",
-          "version": "0.0.19",
-          "title": "Context reader: text around the caret, caret rect, input scope, app and title",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            14,
-            31,
-            32
-          ],
-          "notes": "Reads up to 2,000 characters before and 500 after the caret, the caret rect, input scope and app/title. Keyboard-disabled and password contexts send nothing. `E_FAIL` from `RequestEditSession` is retried shortly instead of treated as an error.",
-          "refs": [
-            "tip/src/tsf_service.cpp"
-          ]
-        },
-        {
-          "id": "M1.8",
-          "version": "0.0.20",
-          "title": "Pure popup state + key router with native tests",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            51
-          ],
-          "notes": "`PopupModel` has no TSF dependency and 14 native tests cover every key in every state (closed, open, stale, modifiers held). Enter is never consumed. The tests also cover the frame codec and JSON reader (15 more).",
-          "refs": [
-            "tip/src/popup_model.h",
-            "tip/tests/test_popup_model.cpp",
-            "tip/test.cmd"
-          ]
-        },
-        {
-          "id": "M1.9",
-          "version": "0.0.21",
-          "title": "Engine client on a worker thread",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            34,
-            35
-          ],
-          "notes": "Worker thread with overlapped I/O, request ids, stale replies dropped, reconnect with backoff (250 ms to 2 s), and a check that the engine runs as the same Windows user. `tip/tests/e2e.ps1` runs it against the real engine: no engine, late start, kill and restart all recover.",
-          "refs": [
-            "tip/src/engine_client.cpp",
-            "tip/tests/e2e.ps1"
-          ]
-        },
-        {
-          "id": "M1.14",
-          "version": "0.0.22",
-          "title": "TSF harness: real DLL, real engine, simulated app",
-          "status": "done",
-          "area": "test",
-          "stories": [
-            1,
-            2,
-            4,
-            5,
-            6,
-            7,
-            8,
-            31,
-            51
-          ],
-          "notes": "`tip/tests/tsf_e2e.ps1` runs the unregistered DLL through real TSF against a stand-in text field (`ITextStoreACP`), with the real engine and n-gram data. 31 checks: popup under the caret, Down/Up/Tab/Esc, Enter never consumed, Tab left alone when the popup is closed or stale, no popup mid-word / with a selection / where keyboards are disabled, learned words offered, fast typing. Also passes as a DPI-unaware app. Key events go straight to the DLL's key interface because TSF only routes keys to a registered text service.",
-          "refs": [
-            "tip/tests/tsf_harness.cpp",
-            "tip/tests/tsf_e2e.ps1"
-          ]
-        },
-        {
-          "id": "M1.10",
-          "version": "0.0.23",
-          "title": "Popup rendering at the caret",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            2,
-            3,
-            36
-          ],
-          "notes": "Built and checked in the harness: word rows, typed prefix highlighted in blue, highlight row moves, popup opens just under the caret (screenshots reviewed), never takes focus, click-through, per-window DPI. Second-monitor and 150% checks happen in daily use, not as a gate.",
-          "refs": [
-            "tip/src/popup.cpp"
-          ]
-        },
-        {
-          "id": "M1.11",
-          "version": "0.0.24",
-          "title": "Keyboard icon and an enable-keyboard step",
-          "status": "done",
-          "area": "install",
-          "stories": [
-            43
-          ],
-          "notes": "Icon (`tip/assets/completionist.ico`) is compiled into the DLL, and `tip/register.ps1` plus `tip/enable-keyboard.ps1` do the install. Confirming Completionist shows in Settings happens in daily use, not as a gate.",
-          "refs": [
-            "tip/register.ps1",
-            "tip/enable-keyboard.ps1"
-          ]
-        },
-        {
-          "id": "M1.12",
-          "version": "0.0.25",
-          "title": "Manual app matrix for the real DLL",
-          "status": "dropped",
-          "area": "test",
-          "stories": [
-            2,
-            31,
-            36
-          ],
-          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Notepad, Chrome (textarea, contenteditable, long text, password field, after `chrome://restart`), Edge, Discord, Slack, Obsidian, an older Electron app. 100% and 150% scaling. Enter still sends in Discord. The harness (0.1.0) already covers the logic; this checks each app's own quirks. Switch to the Completionist keyboard first, so the old Completionist Spike keyboard isn't also active."
-        },
-        {
-          "id": "M1.13",
-          "version": "0.0.26",
-          "title": "Remove the Completionist Spike keyboard and unregister it",
-          "status": "dropped",
-          "area": "install",
-          "stories": [],
-          "notes": "Moved to 0.4.0 so 0.1.0 does not wait on a cleanup only the user can do. Originally: the user removes the Spike keyboard from the language list, then runs `tip/spike/register.ps1 -Unregister`."
-        },
-        {
-          "id": "M1.15",
-          "version": "0.0.27",
-          "title": "Roadmap as a highway map, in the Evergreen color scheme",
-          "status": "done",
-          "area": "docs",
-          "stories": [],
-          "notes": "Shipped the highway map page, the restyled task board with highway stripes and filter, the retired timeline page, and a CONTEXT.md holding the Evergreen scheme.",
-          "refs": [
-            "branch worktree-roadmap-map",
-            "docs/roadmap/index.html",
-            "docs/roadmap/map-layout.js",
-            "docs/roadmap/map.js",
-            "docs/roadmap/page.js",
-            "docs/roadmap/tasks.html",
-            "CONTEXT.md"
-          ]
-        },
-        {
-          "id": "M1.16",
-          "version": "0.0.28",
-          "title": "Rename the app from Typer to Completionist",
-          "status": "done",
-          "area": "repo",
-          "stories": [],
-          "notes": "Renamed everywhere: the engine package and commands, pipe, DLL and its files, folders, install scripts, tests, docs and the roadmap pages. The engine moves old Typer folders on first start. The GitHub repo and checkout folder keep the name typer until the owner renames them. After merging, run `scripts/install.ps1` again.",
-          "refs": [
-            "branch rename-completionist",
-            "engine/src/completionist_engine/config.py",
-            "scripts/install.ps1",
-            "CONTEXT.md"
-          ]
-        },
-        {
-          "id": "M1.17",
-          "version": "0.0.29",
-          "title": "Make the roadmap easier to read: releases first, plain titles, tasks by status",
-          "status": "done",
-          "area": "docs",
-          "stories": [],
-          "refs": [
-            "branch m1-roadmap-readability",
-            "docs/roadmap/tasks.html",
-            "v0.0.12"
-          ],
-          "notes": "The M-numbers confuse: M2 is 0.2.0 but M5 is 1.1.0, and task ids like M1.14 sit before M1.10. The pages should show each milestone as its release and name (\"0.2.0 · Smarter words\", found through the release's `milestone` field), lead task rows with the plain title and show the id only as a small grey tag (ids stay as stable keys, never renumbered), and sort tasks doing, next, todo, blocked, done, dropped. Then update the wording in CLAUDE.md and CONTEXT.md. Files: tasks.html, common.js, page.js."
-        }
-      ]
-    },
-    {
-      "id": "M2",
-      "title": "Smarter words",
-      "status": "done",
-      "goal": "Rank words by the preceding words and by the user's own habits.",
-      "done_when": "After \"I'd like to\" the list shows \"know\" above \"knowledge\", and names or slang the user types a few times start appearing.",
-      "tasks": [
-        {
-          "id": "M2.1",
-          "version": "0.1.1",
-          "title": "N-gram builder: bigram and trigram tables from a public corpus",
-          "status": "done",
-          "area": "data",
-          "stories": [
-            11
-          ],
-          "notes": "`completionist-build-ngrams` counts words, bigrams and trigrams from text files or folders (`.txt`/`.gz`), prunes rare entries while counting so memory stays bounded, and writes a SQLite file. Built from WikiText-103: 81M words, 100k vocabulary, 0.8M bigrams, 1.6M trigrams, 66 MB, 6.5 minutes.",
-          "refs": [
-            "engine/src/completionist_engine/ngrams.py",
-            "engine/src/completionist_engine/build_ngrams.py"
-          ]
-        },
-        {
-          "id": "M2.2",
-          "version": "0.1.2",
-          "title": "N-gram re-ranking in the word completer",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            11
-          ],
-          "notes": "The completer mixes Zipf frequency with bigram and trigram counts (contexts seen under 5 times are ignored). \"What do you th\" now ranks \"think\" first. Pipe round trip stays fast: p95 1.2 ms uncached against the real table.",
-          "refs": [
-            "engine/src/completionist_engine/words.py"
-          ]
-        },
-        {
-          "id": "M2.3",
-          "version": "0.1.3",
-          "title": "Filter misspellings and junk out of the base vocabulary",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            10
-          ],
-          "notes": "Beyond the 20,000 most common words, a word must appear written lowercase at least 3 times in the corpus. \"tomorow\", \"tomorrowland\" and \"Updike\" no longer appear; the vocabulary went from 146k to 53k words.",
-          "refs": [
-            "engine/src/completionist_engine/vocabulary.py"
-          ]
-        },
-        {
-          "id": "M2.4",
-          "version": "0.1.4",
-          "title": "Personal store: accept and typed-word counts in SQLite",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            16,
-            17
-          ],
-          "notes": "`PersonalStore` keeps word and word-pair counts in memory, saved to `personal.sqlite` every 10 s and on exit. Only plain lowercase English words are stored. Corrupt files are set aside; rare pairs are pruned past 300k.",
-          "refs": [
-            "engine/src/completionist_engine/personal.py"
-          ]
-        },
-        {
-          "id": "M2.5",
-          "version": "0.1.5",
-          "title": "Promote new words to the vocabulary after N uses",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            15
-          ],
-          "notes": "A word outside the dictionary is suggested once used 3 times (`[learning] promote_after`). Learning counts only real typing, one character at a time, so pasted text, caret jumps and backspacing never count. Silent fields and block-listed apps never teach it anything.",
-          "refs": [
-            "engine/src/completionist_engine/learning.py",
-            "engine/src/completionist_engine/engine.py"
-          ]
-        },
-        {
-          "id": "M2.6",
-          "version": "0.1.6",
-          "title": "Accept events name the accepted item",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            16
-          ],
-          "notes": "The DLL sends an `accept` event with the inserted word, and the engine learns it and the word before it. The protocol field is covered by tests on both sides.",
-          "refs": [
-            "tip/src/tsf_service.cpp",
-            "engine/src/completionist_engine/protocol.py"
-          ]
-        },
-        {
-          "id": "M2.7",
-          "version": "0.1.7",
-          "title": "Check learning and n-gram ranking live through the DLL",
-          "status": "dropped",
-          "area": "test",
-          "stories": [
-            11,
-            15,
-            16
-          ],
-          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Needs you: with the engine running and the Completionist keyboard on, type a made-up word (like \"zorblax\") three or more times, then confirm it shows up as a suggestion. Also check \"I'd like to kn\" puts \"know\" first."
-        }
-      ]
-    },
-    {
-      "id": "M3",
-      "title": "Phrase suggestions",
-      "status": "done",
-      "goal": "A greyed phrase continuation from a cheap cloud FIM model as the top popup row, accepted with Tab.",
-      "done_when": "Allow-listed apps show a streaming phrase row after a pause, Ctrl+Space works everywhere, and heavy use stays under $0.50 a day.",
-      "tasks": [
-        {
-          "id": "M3.1",
-          "version": "0.2.1",
-          "title": "Provider benchmark: time-to-first-token and quality",
-          "status": "dropped",
-          "area": "bench",
-          "stories": [
-            45
-          ],
-          "notes": "Dropped: the benchmark tool was deleted. Model choice is read off the OpenRouter model cards and swapped in the config; completionist-stats shows real latency and cost."
-        },
-        {
-          "id": "M3.2",
-          "version": "0.2.2",
-          "title": "Benchmark time-to-first-token against context size",
-          "status": "dropped",
-          "area": "bench",
-          "stories": [
-            46
-          ],
-          "notes": "Dropped: the benchmark tool was deleted. Model choice is read off the OpenRouter model cards and swapped in the config; completionist-stats shows real latency and cost."
-        },
-        {
-          "id": "M3.3",
-          "version": "0.2.3",
-          "title": "Phrase provider: OpenAI-compatible /completions with optional FIM",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            22,
-            27,
-            28,
-            29,
-            39,
-            40
-          ],
-          "notes": "`PhraseProvider` streams OpenAI-style `/completions` (plain or FIM with a suffix), reads usage from DeepSeek and OpenAI formats, and turns timeouts and HTTP errors into `ProviderError` without ever including the key. Settings live under `[phrase]`; the key is read from the environment variable named in `api_key_env`. Tested against a local fake server.",
-          "refs": [
-            "engine/src/completionist_engine/phrase_provider.py"
-          ]
-        },
-        {
-          "id": "M3.4",
-          "version": "0.2.4",
-          "title": "Cache-friendly anchored context window",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            59
-          ],
-          "notes": "`anchored_window` cuts the text before the caret at a paragraph or sentence boundary, so the start of the prompt only moves every sentence or so instead of every keystroke. 400 keystrokes move it 5 times, so consecutive requests share a cached prefix.",
-          "refs": [
-            "engine/src/completionist_engine/context.py"
-          ]
-        },
-        {
-          "id": "M3.5",
-          "version": "0.2.5",
-          "title": "Daily budget cap and per-request cost tracking (removed)",
-          "status": "dropped",
-          "area": "engine",
-          "stories": [
-            60,
-            61
-          ],
-          "notes": "Removed on the user's call: Completionist no longer counts spend or prices. A spending limit is set on the OpenRouter key itself.",
-          "refs": [
-            "engine/src/completionist_engine/budget.py"
-          ]
-        },
-        {
-          "id": "M3.6",
-          "version": "0.2.6",
-          "title": "Phrase scheduler state machine",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            18,
-            23,
-            24,
-            26
-          ],
-          "notes": "`PhraseScheduler` is a pure state machine with an injected clock: 350 ms pause in auto mode, hotkey mode never asks alone, typing along trims the phrase without a new request, anything else cancels and clears it, late chunks that contradict the typed text are dropped. 22 tests.",
-          "refs": [
-            "engine/src/completionist_engine/phrase_scheduler.py"
-          ]
-        },
-        {
-          "id": "M3.7",
-          "version": "0.2.7",
-          "title": "Phrase push messages over the pipe",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            22
-          ],
-          "notes": "Replies carry `phrase` and `phrase_mode`; streamed text is pushed as `{\"type\":\"phrase\",\"id\",\"text\",\"done\"}` keyed to the newest request. Tested over a real named pipe with a fake provider, including that password fields never reach the provider.",
-          "refs": [
-            "engine/src/completionist_engine/phrases.py",
-            "engine/tests/test_phrases_pipe.py"
-          ]
-        },
-        {
-          "id": "M3.8",
-          "version": "0.2.8",
-          "title": "Phrase row in the popup",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            18,
-            19,
-            20,
-            21
-          ],
-          "notes": "The popup gets a phrase row on top: typed part in blue, the phrase as ghost text, highlighted by default 150 ms after it appears so a late phrase can't steal a Tab (that Tab takes the word). Up/Down move through phrase and words. Checked in the TSF harness with a fake provider, in both auto and hotkey modes, and in a screenshot.",
-          "refs": [
-            "tip/src/popup_model.h",
-            "tip/src/popup.cpp",
-            "tip/tests/phrase_scenarios.h"
-          ]
-        },
-        {
-          "id": "M3.9",
-          "version": "0.2.9",
-          "title": "Ctrl+Space hotkey requests a phrase in any app",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            25
-          ],
-          "notes": "Ctrl+Space asks for a phrase (also right after a space, with no word yet), Ctrl+Right inserts the next phrase word and keeps the rest, Esc quiets the popup for the word and stops phrase requests. The key is only taken where the engine says phrases are available, so Word's own Ctrl+Space is safe elsewhere.",
-          "refs": [
-            "tip/src/tsf_service.cpp"
-          ]
-        },
-        {
-          "id": "M3.10",
-          "version": "0.2.10",
-          "title": "Fall back to words when the provider is slow or down",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            30
-          ],
-          "notes": "A provider error ends the phrase quietly (word suggestions carry on); three failures in a row pause phrases for 30 seconds; with no key, no failure pause or phrases switched off, nothing is ever requested.",
-          "refs": [
-            "engine/src/completionist_engine/phrases.py"
-          ]
-        },
-        {
-          "id": "M3.11",
-          "version": "0.2.11",
-          "title": "Check phrases live with a real provider and key",
-          "status": "dropped",
-          "area": "test",
-          "stories": [
-            18,
-            19,
-            25,
-            59
-          ],
-          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Needs you: tray menu > Open settings file, add `api_key = \"...\"` under `[phrase]` (never in chat; it applies within seconds), then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Completionist` shows what it cost."
-        },
-        {
-          "id": "M3.12",
-          "version": "0.2.12",
-          "title": "OpenRouter without FIM: prefix-only phrases, held back when text follows the caret on the same line",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "notes": "The user only has an OpenRouter key and it documents no `suffix`. fim=false now also skips phrases while non-blank text follows the caret on the same line. Which OpenRouter models take /completions is untested; bench/providers.example.toml has candidates.",
-          "refs": [
-            "branch openrouter-phrases",
-            "engine/src/completionist_engine/phrases.py"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "M4",
-      "title": "Daily-driver polish",
-      "status": "done",
-      "goal": "Completionist runs all day without attention and shows whether it's paying off.",
-      "done_when": "One-command install and uninstall, autostart at logon, tray pause, hot-reloaded config and a stats summary.",
-      "tasks": [
-        {
-          "id": "M4.1",
-          "version": "0.3.1",
-          "title": "Tray icon with pause/resume and a global hotkey",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            41
-          ],
-          "notes": "Code and tests done; the tray and hotkey need a manual look on a real desktop.",
-          "refs": [
-            "branch m3-phrases",
-            "engine/src/completionist_engine",
-            "scripts/",
-            "tip/tests"
-          ]
-        },
-        {
-          "id": "M4.2",
-          "version": "0.3.2",
-          "title": "Start the engine at logon",
-          "status": "done",
-          "area": "install",
-          "stories": [
-            42
-          ],
-          "notes": "scripts/install.ps1 creates the logon task (pythonw, no console). Written and syntax-checked; not yet run, because it needs the user (UAC, keyboard setting). Scripts parse cleanly; running them (UAC) is left to the user.",
-          "refs": [
-            "scripts/install.ps1",
-            "scripts/uninstall.ps1",
-            "version 0.4.0"
-          ]
-        },
-        {
-          "id": "M4.3",
-          "version": "0.3.3",
-          "title": "Hot-reload the config file",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            38
-          ],
-          "notes": "ConfigWatcher polls mtime; a bad edit keeps the old config and logs why.",
-          "refs": [
-            "branch m3-phrases",
-            "engine/src/completionist_engine",
-            "scripts/",
-            "tip/tests"
-          ]
-        },
-        {
-          "id": "M4.4",
-          "version": "0.3.4",
-          "title": "Install and uninstall scripts",
-          "status": "done",
-          "area": "install",
-          "stories": [
-            43,
-            44
-          ],
-          "notes": "install.ps1 / uninstall.ps1 written and syntax-checked; the user runs them (UAC and language settings are not mine to change). Scripts parse cleanly; running them (UAC) is left to the user.",
-          "refs": [
-            "scripts/install.ps1",
-            "scripts/uninstall.ps1",
-            "version 0.4.0"
-          ]
-        },
-        {
-          "id": "M4.5",
-          "version": "0.3.5",
-          "title": "Metrics store: shown, accepted, keystrokes saved, provider latency",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            52,
-            53,
-            54,
-            56
-          ],
-          "notes": "SQLite counts and timings per day/app/provider; never text.",
-          "refs": [
-            "branch m3-phrases",
-            "engine/src/completionist_engine",
-            "scripts/",
-            "tip/tests"
-          ]
-        },
-        {
-          "id": "M4.6",
-          "version": "0.3.6",
-          "title": "Stats summary from the CLI or tray",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            55
-          ],
-          "notes": "completionist-stats CLI and tray \"Show stats\".",
-          "refs": [
-            "branch m3-phrases",
-            "engine/src/completionist_engine",
-            "scripts/",
-            "tip/tests"
-          ]
-        },
-        {
-          "id": "M4.7",
-          "version": "0.3.7",
-          "title": "Engine logging of request timings and provider errors",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            50
-          ],
-          "notes": "engine.log rotates; requests over 25 ms and provider errors are logged.",
-          "refs": [
-            "branch m3-phrases",
-            "engine/src/completionist_engine",
-            "scripts/",
-            "tip/tests"
-          ]
-        },
-        {
-          "id": "M4.8",
-          "version": "0.3.8",
-          "title": "Resilience pass: engine crashes and restarts",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            34,
-            35
-          ],
-          "notes": "Harness scenarios R1/R2 kill and restart the engine: typing does not hang, keys pass through, the popup returns after reconnect. The harness needs the desktop foreground, so it is run only when the user is away.",
-          "refs": [
-            "branch m3-phrases",
-            "engine/src/completionist_engine",
-            "scripts/",
-            "tip/tests"
-          ]
-        },
-        {
-          "id": "M4.9",
-          "version": "0.3.9",
-          "title": "Live check of install, tray, hotkey and logon start",
-          "status": "dropped",
-          "area": "install",
-          "stories": [
-            41,
-            42,
-            43,
-            44
-          ],
-          "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. User runs .\\scripts\\install.ps1, checks the tray icon and Ctrl+Alt+P, reboots once to see the engine start by itself."
-        },
-        {
-          "id": "M4.10",
-          "version": "0.3.10",
-          "title": "README demo GIF and a small web demo of the popup",
-          "status": "dropped",
-          "area": "docs",
-          "stories": [],
-          "notes": "Moved to 0.6.7 (0.7.0, the last release before 1.0) so 0.4.0 does not wait on it. Originally: the public showcase, a short GIF of the popup in use and a plain HTML page with made-up text that shows the ranking."
-        },
-        {
-          "id": "M4.11",
-          "version": "0.3.11",
-          "title": "Remove the Completionist Spike keyboard and unregister it",
-          "status": "dropped",
-          "area": "install",
-          "stories": [],
-          "notes": "Moved from 0.1.0. The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`. Moved to 0.6.8 so 0.4.0 does not wait on it."
-        }
-      ]
-    },
-    {
-      "id": "M7",
-      "title": "N-gram suggestions and the personal log",
-      "status": "done",
-      "goal": "Suggest the next word after a space and two- or three-word chunks while typing, all in one popup box, and keep a clean personal log of the words and trigrams you type.",
-      "done_when": "After a space the popup offers likely next words, chunks appear while typing, words, chunks and the phrase share one box, the popup stays quiet when nothing is likely, and the log holds only words and trigrams you typed, finished and used at least three times.",
-      "tasks": [
-        {
-          "id": "M7.1",
-          "version": "0.4.1",
-          "title": "Personal log admission: learn only words you typed, finished without correcting and used 3 times",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            66
-          ],
-          "notes": "Builds on the existing PersonalStore and `promote_after`. Adds: a word counts only when you finish it with a space or punctuation and didn't backspace over it (so typos are never learned, which also keeps the typo feature from learning its own mistakes). Silent fields, block-listed apps, pasted text and caret jumps already teach nothing. Keep it simple: no per-day rule, decay or never-learn list until junk actually shows up.",
-          "refs": [
-            "engine/src/completionist_engine/learning.py",
-            "branch m7-next-words"
-          ]
-        },
-        {
-          "id": "M7.2",
-          "version": "0.4.1",
-          "title": "Personal trigram counts next to the word and pair counts",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            66,
-            17
-          ],
-          "notes": "A trigram is three words typed in a row within one sentence, never across punctuation, a newline or a window switch. Counts only, stored on disk locally. Admission follows 0.4.1.",
-          "refs": [
-            "engine/src/completionist_engine/personal.py",
-            "branch m7-next-words"
-          ]
-        },
-        {
-          "id": "M7.3",
-          "version": "0.4.2",
-          "title": "`completionist-words` command: list and forget",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            67
-          ],
-          "notes": "`list` with search, `forget <word>` and `forget-recent 10m`. The smallest way to see and edit the log; the viewer (0.6.0) shows the same data.",
-          "refs": [
-            "engine/src/completionist_engine/personal.py",
-            "branch m7-kinds"
-          ]
-        },
-        {
-          "id": "M7.4",
-          "version": "0.4.1",
-          "title": "Next-word candidates after a space, with a confidence threshold",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            62,
-            65
-          ],
-          "notes": "An empty prefix is allowed: rank continuations from the bigram and trigram tables and the personal pairs. Return nothing when no continuation is likely enough, and put the threshold in the config so it can be switched off. Built as WordCompleter.next_words, used by the engine after a space. Config: [words] next (default false until 0.4.2 lets the popup open after a space safely) and next_threshold (default 0.05; 0 offers the best few whatever the odds).",
-          "refs": [
-            "engine/src/completionist_engine/words.py",
-            "engine/src/completionist_engine/config.py",
-            "branch m7-next-words"
-          ]
-        },
-        {
-          "id": "M7.5",
-          "version": "0.4.1",
-          "title": "Multi-word chunks from the n-gram tables",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            63
-          ],
-          "notes": "Extend the top continuation one word at a time while its probability stays above a cutoff, up to 3 words. Offer a chunk only when it reads coherently. Built as WordCompleter.chunks (cutoff 0.3, at most 3 words, never ends on the/a/of/to/and). Not yet in replies: 0.4.2 carries the kind and wires it in. Quality is limited by the WikiText corpus; judge it in 0.5.0.",
-          "refs": [
-            "engine/src/completionist_engine/words.py",
-            "branch m7-next-words"
-          ]
-        },
-        {
-          "id": "M7.6",
-          "version": "0.4.2",
-          "title": "Protocol: each suggestion carries its kind (word, chunk or next)",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            64
-          ],
-          "notes": "The field is covered by tests on both the engine and DLL sides, like the `accept` event was.",
-          "refs": [
-            "engine/src/completionist_engine/protocol.py",
-            "tip/src/protocol.cpp",
-            "branch m7-kinds"
-          ]
-        },
-        {
-          "id": "M7.7",
-          "version": "0.4.2",
-          "title": "Popup shows words, chunks and the phrase in one box",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            64
-          ],
-          "notes": "The phrase stays on top. First guess at the order: phrase, then chunks, then words. The row order gets polished in the UI redesign (2.0.0). Checked in the TSF harness with a screenshot. Built: the popup already drew the phrase row above the word rows, so chunks (engine-ordered first) and next words appear in the same box; the service now remembers each row's kind and sends it on accept. Not checked in the TSF harness: it steals focus, so it runs when you say you're away.",
-          "refs": [
-            "tip/src/tsf_service.cpp",
-            "tip/src/popup.cpp",
-            "branch m7-kinds"
-          ]
-        },
-        {
-          "id": "M7.8",
-          "version": "0.4.2",
-          "title": "Open the popup after a space without stealing Tab or Enter",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            62,
-            7,
-            8
-          ],
-          "notes": "Today the popup closes on space (story 9), so this changes the key router and needs native tests for every key. A next-word row is not highlighted by default until you press Down, so Tab still indents or moves on, like the 150 ms no-steal idea for phrases. Built: next-word rows open with nothing highlighted, so Tab and Enter stay the app's until Up or Down highlights a row; Esc dismisses. 12 native tests cover every key. [words] next and chunks now default to on.",
-          "refs": [
-            "tip/src/popup_model.h",
-            "tip/tests/test_popup_model.cpp",
-            "tip/src/tsf_service.cpp",
-            "branch m7-kinds"
-          ]
-        },
-        {
-          "id": "M7.9",
-          "version": "0.4.3",
-          "title": "Check next words and chunks live in real apps",
-          "status": "dropped",
-          "area": "test",
-          "stories": [
-            62,
-            63,
-            64,
-            65
-          ],
-          "notes": "Dropped for the release: live checks no longer gate a milestone (see the 2026-09-30 decision); daily use is the test. The checklist below stays for when you want to run it. Needs you. Checklist: (1) rebuild and register the DLL from the merged code (tip\build.cmd, then tip\register.ps1; restart Chrome with chrome://restart) and restart the engine. (2) In Notepad, Discord and Chrome type 'I would like to ' and check: a few next words appear with nothing highlighted; Tab still indents or moves on; Down then Tab takes one; Enter still sends or adds a line. (3) Type 'thank you for yo' and check a chunk can show above the words and Tab takes it. (4) Judge: helpful, or noisy? If noisy, raise [words] next_threshold (for example 0.15) or set next = false or chunks = false in config.toml. (5) If the base tables feel thin, the next step is a looser prune and a chat-style corpus, and only then. Logs are in %LOCALAPPDATA%\\Completionist (engine.log, tip.log); completionist-stats shows accepts."
-        }
-      ]
-    },
-    {
-      "id": "M8",
-      "title": "Personal viewer",
-      "status": "done",
-      "goal": "Let you see your personal dictionary and stats, remove words and change settings, from a page opened from the tray.",
-      "done_when": "The tray's Open viewer opens a page served by the engine on this machine. It lists learned words, trigrams and stats; removing a word there forgets it; changes in the settings panel reach config.toml and take effect without a restart; the API key can be typed in but is never shown back; it holds no typed-text history; and another website can't drive it.",
-      "tasks": [
-        {
-          "id": "M8.1",
-          "version": "0.5.1",
-          "title": "Snapshot writer: personal dictionary and stats into one local HTML file",
-          "status": "dropped",
-          "area": "viewer",
-          "stories": [
-            68,
-            69
-          ],
-          "notes": "Dropped 2026-09-30: a page opened from disk can't remove words or save settings, so the viewer is served by the engine instead (0.6.0)."
-        },
-        {
-          "id": "M8.2",
-          "version": "0.5.2",
-          "title": "Viewer page: searchable, sortable dictionary with remove, a settings form and the stats, in the Evergreen theme",
-          "status": "done",
-          "area": "viewer",
-          "stories": [
-            67,
-            68,
-            69,
-            75
-          ],
-          "notes": "Built as one self-contained page the engine serves: a searchable, sortable dictionary of words with counts and a Remove button, a settings form (only changed fields are saved), and stats by day, app and provider speed, in the Evergreen colours. Left out: a trigram list, because the store has no way to list or remove a single trigram; forgetting a word still removes the pairs and triples it was in.",
-          "refs": [
-            "m8-viewer",
-            "engine/src/completionist_engine/viewer.html",
-            "0.6.0"
-          ]
-        },
-        {
-          "id": "M8.3",
-          "version": "0.5.3",
-          "title": "Tray item: Open viewer",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            70
-          ],
-          "notes": "Next to the existing \"Show stats\" item; opens the engine's local address with its token.",
-          "refs": [
-            "m8-viewer",
-            "engine/src/completionist_engine/tray.py",
-            "engine/src/completionist_engine/app.py",
-            "0.6.0"
-          ]
-        },
-        {
-          "id": "M8.4",
-          "version": "0.5.4",
-          "title": "Tests: the page serves counts and dictionary entries only, and other websites can't drive it",
-          "status": "done",
-          "area": "test",
-          "stories": [
-            17,
-            56
-          ],
-          "notes": "No typed-text history, no text from silent fields or blocked apps. Requests without the token or from another origin are refused.",
-          "refs": [
-            "m8-viewer",
-            "engine/tests/test_viewer.py",
-            "engine/tests/test_settings.py",
-            "0.6.0"
-          ]
-        },
-        {
-          "id": "M8.5",
-          "version": "0.5.5",
-          "title": "Check the viewer live",
-          "status": "dropped",
-          "area": "test",
-          "stories": [
-            68,
-            69,
-            70
-          ],
-          "notes": "Dropped for the release: live checks no longer gate a milestone (see the 2026-09-30 decision); the viewer was driven in the browser pane instead. Checklist for when you want it: restart the engine, choose Open viewer in the tray, type for a while, check the dictionary and stats, remove a word, change the words limit and watch it apply within a couple of seconds, and type your key once to see the page say it is set but never show it."
-        },
-        {
-          "id": "M8.6",
-          "version": "0.5.6",
-          "title": "Local viewer server in the engine, on this machine only",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            69,
-            70
-          ],
-          "notes": "Binds 127.0.0.1 only and needs a secret token that the tray's Open viewer puts in the address. Checks the Host and Origin headers so another website can't call it. Serves the page and a small JSON interface: list words, forget a word, read and write settings.",
-          "refs": [
-            "m8-viewer",
-            "engine/src/completionist_engine/viewer.py",
-            "0.6.0"
-          ]
-        },
-        {
-          "id": "M8.7",
-          "version": "0.5.7",
-          "title": "Settings: show the config as a form and write changes back to config.toml",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            75
-          ],
-          "notes": "Only known options, validated, written back without losing the user's comments if practical. The phrase api_key is typed into the page by the user and saved to config.toml, but it is write-only: the engine never sends it to the page, the page shows only \"set\" or \"not set\", and it is never logged or printed in errors. The existing config hot reload applies changes.",
-          "refs": [
-            "m8-viewer",
-            "engine/src/completionist_engine/settings.py",
-            "engine/tests/test_settings.py",
-            "0.6.0"
-          ]
-        },
-        {
-          "id": "M8.8",
-          "version": "0.6.1",
-          "title": "Trigrams: list and remove three-word phrases, in the store, the server and the viewer",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            67,
-            68
-          ],
-          "notes": "PersonalStore.trigrams(search) and forget_trigram(a, b, c); /api/trigrams and /api/forget-trigram; a Phrases tab. Removing one phrase leaves its words and two-word pairs, since other sentences use them.",
-          "refs": [
-            "m8-trigrams",
-            "engine/src/completionist_engine/personal.py",
-            "engine/src/completionist_engine/viewer.py",
-            "0.6.1"
-          ]
-        },
-        {
-          "id": "M8.9",
-          "version": "0.6.1",
-          "title": "Viewer redesign: clearer hierarchy, motion and accessibility",
-          "status": "done",
-          "area": "viewer",
-          "stories": [
-            68,
-            69,
-            75
-          ],
-          "notes": "Rebuilt viewer.html: four tabs kept in the address hash, usage bars, a daily chart, switches and a save bar for settings, a two-step confirm before any remove, toasts, empty and loading states, dark mode, phone width, reduced motion, keyboard-initiated changes not animated. Checked against the ui-ux-designer, ui-animation and web-design-guidelines skills.",
-          "refs": [
-            "m8-trigrams",
-            "engine/src/completionist_engine/viewer.html",
-            "0.6.1"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "M9",
-      "title": "Typo-tolerant words",
-      "status": "done",
-      "goal": "Still suggest the right word when the typed part has a typo, and show which letters were guessed.",
-      "done_when": "Typing \"moutian\" offers \"mountain\" with the guessed letters in a different colour, exact prefix matches still rank first, and lookup p95 stays under 10 ms.",
-      "tasks": [
-        {
-          "id": "M9.9",
-          "version": "0.6.2",
-          "title": "Versions replace milestones on the roadmap",
-          "status": "done",
-          "area": "docs",
-          "stories": [],
-          "refs": [
-            "branch roadmap-versions",
-            "scripts/check_roadmap.py",
-            "docs/roadmap/tasks.html",
-            "docs/roadmap/page.js",
-            "0.6.2"
-          ],
-          "notes": "Every task shows the version it ships in instead of an M-id. Shipped work shows the release it went out in (several tasks can share one); unshipped work gets one patch number each, counting up to the next release, so 0.6.10 comes before 0.7.0. The M-ids stay in the file as internal keys and the old log lines keep them. The checker enforces the version rule."
-        },
-        {
-          "id": "M9.1",
-          "version": "0.6.3",
-          "title": "Fuzzy index over the vocabulary and personal words",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            71
-          ],
-          "refs": [
-            "m9-fuzzy",
-            "engine/src/completionist_engine/fuzzy.py",
-            "engine/tests/test_fuzzy.py",
-            "0.6.3"
-          ],
-          "notes": "Tried SymSpell first as planned, but it corrects whole words and can't handle half-typed fragments (see the decision). Uses rapidfuzz instead: a first-letter bucket scan with OSA edit distance and an early cutoff (see the decision)."
-        },
-        {
-          "id": "M9.2",
-          "version": "0.6.4",
-          "title": "Fuzzy candidates fill the rows after exact prefix matches",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            71,
-            73
-          ],
-          "refs": [
-            "m9-fuzzy",
-            "engine/src/completionist_engine/words.py",
-            "engine/src/completionist_engine/assemble.py",
-            "0.6.4"
-          ],
-          "notes": "Exact matches always come first. Corrections fill the remaining rows, or all of them when nothing matches. Edit distance 1 for short fragments and 2 for longer ones, and no correcting 1 to 2 letter fragments, names or learned words. Tests: moutian, definately, recieve."
-        },
-        {
-          "id": "M9.3",
-          "version": "0.6.5",
-          "title": "Protocol marks the guessed letters of each suggestion",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            72
-          ],
-          "refs": [
-            "m9-fuzzy",
-            "engine/src/completionist_engine/protocol.py",
-            "engine/src/completionist_engine/words.py",
-            "engine/src/completionist_engine/engine.py",
-            "tip/src/protocol.cpp",
-            "0.6.5"
-          ],
-          "notes": "Each item carries the positions it corrected. Tests on both sides. Builds on the suggestion kind from 0.4.2."
-        },
-        {
-          "id": "M9.4",
-          "version": "0.6.6",
-          "title": "Popup draws guessed letters in a third colour",
-          "status": "done",
-          "area": "dll",
-          "stories": [
-            72
-          ],
-          "refs": [
-            "m9-fuzzy",
-            "tip/src/popup.cpp",
-            "tip/src/popup.h",
-            "tip/src/tsf_service.cpp",
-            "0.6.6"
-          ],
-          "notes": "Guessed letters draw in amber (validated: 10.6 on the popup background, 5.0 on the highlight row). Native tests pass and the DLL builds; the TSF harness screenshot runs when you say you are away."
-        },
-        {
-          "id": "M9.5",
-          "version": "0.6.7",
-          "title": "Latency check with the fuzzy index on",
-          "status": "done",
-          "area": "test",
-          "stories": [
-            71
-          ],
-          "refs": [
-            "m9-fuzzy",
-            "engine/tests/test_server.py",
-            "0.6.7"
-          ],
-          "notes": "Lookup p95 stays under 10 ms over the real pipe (5 ms with typos typed; the fuzzy scan only runs when rows are unfilled)."
-        },
-        {
-          "id": "M9.6",
-          "version": "0.6.8",
-          "title": "Check typo completion live in real apps",
-          "status": "dropped",
-          "area": "test",
-          "stories": [
-            71,
-            72,
-            73
-          ],
-          "notes": "Dropped for the release: live checks no longer gate a milestone (see the 2026-09-30 decision); daily use is the test. Checklist for when you want it: type moutian, definately, recieve and similar, and check that correct rare words aren't pushed aside."
-        },
-        {
-          "id": "M9.7",
-          "version": "0.6.9",
-          "title": "README demo GIF and a small web demo of the popup",
-          "status": "dropped",
-          "area": "docs",
-          "stories": [],
-          "notes": "Dropped for the 0.7.0 release: a public showcase with made-up data needs the owner's OK before publishing, and daily use is the test. Checklist: a short GIF of the popup in use and a plain HTML page showing the ranking (no engine, no server, no real data)."
-        },
-        {
-          "id": "M9.8",
-          "version": "0.6.10",
-          "title": "Remove the Completionist Spike keyboard and unregister it",
-          "status": "dropped",
-          "area": "install",
-          "stories": [],
-          "notes": "Dropped for the 0.7.0 release: only the user can do it at a real desktop, and daily use is the test. Checklist: remove it from the language list, then run `tip/spike/register.ps1 -Unregister`."
-        }
-      ]
-    },
-    {
-      "id": "M5",
-      "title": "Reply-aware phrases",
-      "status": "done",
-      "goal": "Phrase suggestions know what you're replying to.",
-      "done_when": "A phrase suggestion in a Discord reply reflects the last few messages in the channel.",
-      "tasks": [
-        {
-          "id": "M5.2",
-          "version": "0.7.2",
-          "title": "Code-review fixes before 1.0",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            34,
-            35
-          ],
-          "refs": [
-            "release-1.0",
-            "engine/src/completionist_engine/phrase_scheduler.py",
-            "tip/src/tsf_service.cpp",
-            "0.7.2"
-          ],
-          "notes": "15 fixes from a full review: phrase and Esc suppression survive the sliding 8000-character window, DLL edit sessions hold the service alive, tray stats run on the engine loop, pause cancels phrases, personal-word promotion and chunk seeds, config encoding, viewer 500s, uninstall removes the roaming config, learning-off stops ranking."
-        },
-        {
-          "id": "M5.3",
-          "version": "1.0.1",
-          "title": "Evergreen tray and keyboard icon (no more Typer T)",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "refs": [
-            "tray-icon-evergreen",
-            "engine/src/completionist_engine/tray.py",
-            "tip/assets/make_icon.py",
-            "1.0.1"
-          ],
-          "notes": "The old icon was a blue square with a T for Typer. Now a pine-green square (Evergreen --sign) with a white C and a pink caret bar (--vms-ink); grey (--todo) when paused. Same drawing in the tray (Pillow) and the keyboard .ico (make_icon.py)."
-        },
-        {
-          "id": "M5.4",
-          "version": "1.0.2",
-          "title": "Preferred Providers option in the viewer settings",
-          "status": "done",
-          "area": "viewer",
-          "stories": [],
-          "refs": [
-            "tray-icon-evergreen",
-            "engine/src/completionist_engine/settings.py",
-            "engine/src/completionist_engine/viewer.html",
-            "1.0.2"
-          ],
-          "notes": "provider_order (default Groq) is now a list box under Cloud Phrases in the viewer settings, one provider per line; an empty list lets OpenRouter choose."
-        },
-        {
-          "id": "M5.5",
-          "version": "1.0.3",
-          "title": "Requests log tab in the viewer",
-          "status": "done",
-          "area": "viewer",
-          "stories": [],
-          "refs": [
-            "tray-icon-evergreen",
-            "engine/src/completionist_engine/request_log.py",
-            "engine/src/completionist_engine/viewer.html",
-            "engine/src/completionist_engine/viewer.py",
-            "1.0.3"
-          ],
-          "notes": "Modelled on the flexrouter request log: a live table (time, app, answered by, suggestion, first text, took, result) with search and a result filter, a side sheet with the text sent, the suggestion and each model tried (and why it failed), and a two-step Clear Log. Results are OK, Failover, Failed and Cancelled (the user kept typing). Text is held in memory only, last 200."
-        },
-        {
-          "id": "M5.6",
-          "version": "1.0.4",
-          "title": "Advanced phrase settings and editable instructions in the viewer",
-          "status": "done",
-          "area": "viewer",
-          "stories": [],
-          "refs": [
-            "tray-icon-evergreen",
-            "engine/src/completionist_engine/settings.py",
-            "engine/src/completionist_engine/config.py",
-            "engine/src/completionist_engine/context.py",
-            "engine/src/completionist_engine/viewer.html",
-            "1.0.4"
-          ],
-          "notes": "Cloud Phrases gains an expandable Advanced section (max output length, temperature, seconds before asking, give-up timeout, text before and after the caret, send-text-after) and an expandable Instructions section holding the system prompt, new as [phrase] instructions with a Restore Built-in button. The wait is shown in seconds but the file keeps debounce_ms. base_url stays out of the page on purpose: it would let a page redirect the key and typed text."
-        },
-        {
-          "id": "M5.1",
-          "version": "1.0.5",
-          "title": "Reply-aware context from the surrounding window",
-          "status": "done",
-          "area": "engine",
-          "stories": [
-            57,
-            58
-          ],
-          "refs": [
-            "reply-aware-context",
-            "engine/src/completionist_engine/screen_context.py",
-            "engine/src/completionist_engine/screen_windows.py",
-            "engine/src/completionist_engine/context.py",
-            "engine/src/completionist_engine/phrases.py",
-            "1.0.5"
-          ],
-          "notes": "Windows OCR of the window in front, read in the background after a window or title has stayed in front for two looks (twice a second), never on the typing path. The text (the last 2000 characters, whole lines) goes first in the prompt as background; lines the person typed are removed. A capture is only handed over if its window is still in front. Skipped for blocked apps, while paused, without an API key, for the engine's own windows and for elevated programs. New [phrase] screen_context switch, on by default. UI Automation was measured and dropped: see decisions."
-        },
-        {
-          "id": "M5.7",
-          "version": "1.0.6",
-          "title": "Show the screenshot and extracted text in the Requests page",
-          "status": "done",
-          "area": "viewer",
-          "stories": [],
-          "refs": [
-            "reply-aware-context",
-            "engine/src/completionist_engine/viewer.py",
-            "engine/src/completionist_engine/viewer.html",
-            "engine/src/completionist_engine/request_log.py",
-            "1.0.6"
-          ],
-          "notes": "A request's side sheet gains Screen it was shown (the JPEG, fetched with the token and shown from an in-memory blob, click for full size), Text read from the screen, and Sent to the model when lines were removed. The screenshot is served by a token-guarded endpoint, the page may show blob images and nothing else, and the pictures live in memory with the log and are cleared with it."
-        }
-      ]
-    },
-    {
-      "id": "M10",
-      "title": "Major UI redesign",
-      "status": "active",
-      "goal": "Give the dashboard first, then the suggestion popup, one deliberate look.",
-      "done_when": "The dashboard (the viewer) is rebuilt and reads well in the Evergreen colours, and the popup, with all its row types, reads well at 100% and 200% scaling and on a second monitor, with the rewritten drawing code passing the harness.",
-      "tasks": [
-        {
-          "id": "M10.4",
-          "version": "1.1.1",
-          "title": "Expanded settings and collapsible Advanced tiles",
-          "status": "done",
-          "area": "viewer",
-          "stories": [],
-          "notes": "All 30 approved controls: routing, timing, writing, context/privacy, app profiles, popup and keys; defaults retained and behavior tested. Verified with 626 passing Python tests (one skip), 77 native tests, four settings-form tests and a clean x64 DLL build; live popup and provider checks remain manual.",
-          "refs": [
-            "main",
-            "codex/expanded-settings",
-            "1.1.1",
-            "docs/settings.md",
-            "engine/src/completionist_engine/settings.py",
-            "engine/src/completionist_engine/viewer.html",
-            "tip/src/popup_settings.h"
-          ]
-        },
-        {
-          "id": "M10.5",
-          "version": "1.1.2",
-          "title": "Use the current C icon in the viewer header",
-          "status": "done",
-          "area": "viewer",
-          "stories": [],
-          "refs": [
-            "engine/src/completionist_engine/viewer.html"
-          ],
-          "notes": "Replace the leftover Typer T header SVG with the Evergreen C and pink caret used by the tray and keyboard icons."
-        },
-        {
-          "id": "M10.6",
-          "version": "1.1.3",
-          "title": "Keep single-letter words out of personal learning",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "refs": [
-            "engine/src/completionist_engine/personal.py",
-            "engine/tests/test_personal.py"
-          ],
-          "notes": "Typed or accepted single-letter words are not learned; old single-letter entries are removed on open. Word suggestions still start at the first letter."
-        },
-        {
-          "id": "M10.7",
-          "version": "1.1.4",
-          "title": "Show full phrase request details and events",
-          "status": "done",
-          "area": "viewer",
-          "stories": [],
-          "refs": [
-            "engine/src/completionist_engine/request_log.py",
-            "engine/src/completionist_engine/phrases.py",
-            "engine/src/completionist_engine/viewer.py",
-            "engine/src/completionist_engine/viewer.html"
-          ],
-          "notes": "Keep full prompts and replies in memory and show the suffix, non-secret request settings and an event timeline beside the existing context, screenshot, outcome, timings and model attempts. Timings-only mode scrubs the added detail."
-        },
-        {
-          "id": "M10.8",
-          "version": "1.1.5",
-          "title": "Show exact outgoing request and HTTP status",
-          "status": "done",
-          "area": "viewer",
-          "stories": [],
-          "refs": [
-            "engine/src/completionist_engine/phrase_provider.py",
-            "engine/tests/test_phrases.py",
-            "engine/tests/test_config_watch.py",
-            "AGENTS.MD"
-          ],
-          "notes": "The in-memory event timeline shows the exact outgoing JSON without the authorization header, followed by the HTTP status; the config watcher test uses monotonic file times, and the repository has a small AGENTS.MD pointer to CLAUDE.md."
-        },
-        {
-          "id": "M10.9",
-          "version": "1.1.6",
-          "title": "Proportional highway lanes and a 3.0.0 browser lane",
-          "status": "done",
-          "area": "docs",
-          "stories": [],
-          "refs": [
-            "docs/roadmap/map-layout.js",
-            "docs/roadmap/map.js",
-            "scripts/map_layout.test.mjs"
-          ],
-          "notes": "The highway map's lane height now follows how many patch stops a highway carries, and a tall lane deals its stops into slot rows above and below the road. The Browser extension highway opens at 3.0.0, not 1.0.0."
-        },
-        {
-          "id": "M10.10",
-          "version": "1.1.7",
-          "title": "Agent roadmap brief and edit helper",
-          "status": "done",
-          "area": "docs",
-          "stories": [],
-          "refs": [
-            "scripts/roadmap.py",
-            "scripts/test_roadmap_cli.py",
-            "CLAUDE.md"
-          ],
-          "notes": "scripts/roadmap.py brief writes a short git-ignored docs/roadmap/roadmap-brief.md for agents, and start, done, log and add-task make the routine roadmap edits without opening roadmap.js, undoing themselves if the checker rejects the result. CLAUDE.md tells agents to run the brief first and avoid roadmap.js."
-        },
-        {
-          "id": "M10.3",
-          "version": "1.1.8",
-          "title": "Overhaul the dashboard (the viewer)",
-          "status": "next",
-          "area": "viewer",
-          "stories": [],
-          "notes": "Prioritised ahead of the popup redesign (2026-10-01). Scope first, in plain English with mockups: what the dashboard shows, how Words, Stats, Requests and Settings are laid out, in the Evergreen tokens. Split into tasks once scoped."
-        },
-        {
-          "id": "M10.1",
-          "version": "1.1.9",
-          "title": "Scope the popup redesign: audit the popup in real apps and decide what else is included",
-          "status": "doing",
-          "area": "dll",
-          "stories": [],
-          "notes": "Assumed to mean the popup. The viewer now has its own task (M10.3), so this only decides whether the tray menu comes too. Mockups and Evergreen design tokens follow; split into tasks when scoped."
-        },
-        {
-          "id": "M10.2",
-          "version": "1.1.10",
-          "title": "Redesign and rewrite the popup drawing",
-          "status": "todo",
-          "area": "dll",
-          "stories": [
-            74
-          ],
-          "notes": "Split into mockups, tokens, the drawing rewrite and harness screenshots once 1.1.8 is done. A bad popup must fall back to the current look, never crash the host app."
-        },
-        {
-          "id": "M10.11",
-          "version": "1.1.11",
-          "title": "Explain Windows OCR context to the cloud model",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "refs": [
-            "engine/src/completionist_engine/context.py",
-            "docs/settings.md"
-          ],
-          "notes": "Update the phrase prompt to identify OCR text as locally recognized, imperfect background context and treat it as untrusted data; document that only recognized text is sent."
-        },
-        {
-          "id": "M10.12",
-          "version": "1.1.12",
-          "title": "Copy the prompt test pack and disable reasoning by default",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "refs": [
-            "engine/src/completionist_engine/context.py",
-            "engine/src/completionist_engine/phrase_provider.py",
-            "engine/src/completionist_engine/viewer.html",
-            "docs/settings.md"
-          ],
-          "notes": "Add a Settings action that copies the built-in system prompt plus three provider-playground scenarios; switch phrase requests to chat completions so reasoning effort defaults to none and no thinking output is requested."
-        },
-        {
-          "id": "M10.13",
-          "version": "1.1.13",
-          "title": "Ship OCR-aware prompt playground to main",
-          "status": "done",
-          "area": "engine",
-          "stories": [],
-          "refs": [
-            "engine/src/completionist_engine/context.py",
-            "engine/src/completionist_engine/phrase_provider.py",
-            "engine/src/completionist_engine/viewer.html"
-          ],
-          "notes": "Merge the Windows OCR-aware system prompt, three synthetic provider comparison scenarios, copy action and no-reasoning default into main."
-        }
-      ]
-    },
-    {
-      "id": "M11",
-      "title": "Tense-aware suggestions",
-      "status": "planned",
-      "goal": "Use whether the current sentence is in past or present tense to rank suggestions that fit what the person is writing.",
-      "done_when": "Past and present sentence context can influence suggestion ranking in representative examples, while ambiguous or mixed-tense context leaves the existing ranking unchanged.",
-      "tasks": [
-        {
-          "id": "M11.1",
-          "version": "2.0.2",
-          "title": "Use sentence tense when ranking word suggestions",
-          "status": "todo",
-          "area": "engine",
-          "stories": [],
-          "notes": "Detect whether the current sentence is in past or present tense from available context and use it as a ranking signal. Keep typed-prefix and context evidence in consideration; if tense is ambiguous or mixed, do not force a tense-based change."
-        }
-      ]
-    },
-    {
-      "id": "M6",
-      "title": "Web fields",
-      "status": "planned",
-      "goal": "Reach web text fields directly with a Chrome extension that talks to the same engine.",
-      "done_when": "Inline ghost text works in a Chrome textarea through the extension.",
-      "tasks": [
-        {
-          "id": "M6.1",
-          "version": "2.1.1",
-          "title": "Chrome extension over Native Messaging",
-          "status": "todo",
-          "area": "extension",
-          "stories": [],
-          "notes": "Inline ghost text and page context in web fields. Moved from 1.1.1 to 2.0.1 (2026-10-01), then to 2.1.1 (2026-10-01) to leave room for the tense-aware suggestions milestone; it still leads the 3.0.0 major release after the dashboard and popup redesign."
-        }
-      ]
     }
   ],
   "releases": [
@@ -2622,7 +898,10 @@ window.COMPLETIONIST_ROADMAP = {
       "status": "released",
       "date": "2026-10-01",
       "title": "Exact request events",
-      "highways": ["engine", "tooling"],
+      "highways": [
+        "engine",
+        "tooling"
+      ],
       "text": "The Requests event timeline now includes outgoing JSON and HTTP status, the config watcher test is stable, and the repo has an agent-guide pointer."
     },
     {
@@ -2630,7 +909,9 @@ window.COMPLETIONIST_ROADMAP = {
       "status": "released",
       "date": "2026-10-01",
       "title": "Proportional map lanes",
-      "highways": ["tooling"],
+      "highways": [
+        "tooling"
+      ],
       "text": "The roadmap highway map now gives busy highways taller lanes with stops stacked in rows, and the Browser extension lane opens at 3.0.0."
     },
     {
@@ -2638,7 +919,9 @@ window.COMPLETIONIST_ROADMAP = {
       "status": "released",
       "date": "2026-10-01",
       "title": "Agent roadmap brief",
-      "highways": ["tooling"],
+      "highways": [
+        "tooling"
+      ],
       "text": "Agents now read a short generated roadmap brief and use a helper script for routine roadmap edits, instead of opening the huge roadmap.js."
     },
     {
@@ -2646,7 +929,10 @@ window.COMPLETIONIST_ROADMAP = {
       "status": "released",
       "date": "2026-10-02",
       "title": "Cloud model OCR context",
-      "highways": ["engine", "tooling"],
+      "highways": [
+        "engine",
+        "tooling"
+      ],
       "text": "The phrase prompt now explains the local Windows OCR source and treats recognized screen text as imperfect, untrusted background context."
     },
     {
@@ -2654,7 +940,10 @@ window.COMPLETIONIST_ROADMAP = {
       "status": "released",
       "date": "2026-10-02",
       "title": "Prompt playground pack and reasoning control",
-      "highways": ["engine", "tooling"],
+      "highways": [
+        "engine",
+        "tooling"
+      ],
       "text": "Settings now copies the OCR-aware system prompt with three comparison cases, and cloud requests use chat completions with configurable reasoning defaulted to none."
     },
     {
@@ -2662,19 +951,32 @@ window.COMPLETIONIST_ROADMAP = {
       "status": "released",
       "date": "2026-10-02",
       "title": "Merge OCR-aware prompt playground",
-      "highways": ["engine", "tooling"],
+      "highways": [
+        "engine",
+        "tooling"
+      ],
       "text": "The OCR-aware cloud prompt, three provider-playground scenarios and no-reasoning default are now released on main."
+    },
+    {
+      "version": "1.1.14",
+      "status": "released",
+      "date": "2026-10-02",
+      "title": "Roadmap brief detail levels",
+      "highways": [
+        "tooling"
+      ],
+      "text": "Roadmap briefs now show current work in minimal, current work and recent completions in medium, and full context in maximum."
     },
     {
       "version": "2.0.0",
       "status": "next",
-      "title": "A dashboard and popup with a deliberate look",
+      "title": "Desktop overhaul",
       "milestone": "M10",
       "essay": [
-        "Completionist 2.0 is a redesign of the two things you actually look at, led by the dashboard. The dashboard, the page the tray opens with your words, stats, request log and settings, grew one tab at a time in 1.0.x, and it is rebuilt first as one deliberate page in the Evergreen colours. The popup that appears under the caret began as a way to prove that the plumbing worked, and by now it carries single words, next-word predictions, multi-word chunks, letters it guessed after a typo, and a greyed cloud phrase, all in one box. After the dashboard, this release gives that box one deliberate look: a single set of Evergreen colours, one type scale, clear rules for which kind of row sits where and how it is marked, and a version that reads well at 100% and 200% scaling and on a second monitor. The goal is that you can tell at a glance, without reading, which row is a word, which is a chunk, which is the cloud phrase and which letters were a guess, and that the popup still feels like a quiet part of whatever app you are in, not a foreign window sitting on top of it.",
-        "The reason to do it late is that a design made before the features exist is a guess. By 2.0 the row types and the colour for guessed letters are real, so the redesign can begin from an audit of what actually feels wrong in Notepad, Chrome and Discord, instead of from a blank page. The popup stays what it has always been: a thin C++ window that draws what the engine sends, never takes focus and never consumes a key it shouldn’t. The redesign changes how it looks and reads, not what it is allowed to do. Mockups come first, then design tokens checked against the colour rules in CONTEXT.md, then a rewrite of the drawing code, then harness screenshots at several scales and on more than one monitor.",
-        "It costs a rewrite of the most delicate rendering code in the project. That code lives inside every application the user types in, so each change is proved in the harness before it is tried in a real app, and a popup that can’t draw the new design has to fall back to the current one and never crash the host. It also costs restraint. A redesign is an invitation to add themes, settings and animation, and for a typing tool each of those makes it slower to read and easier to distract. The audit will say how far the scope goes, and whether the tray menu deserves the same treatment or is fine as it is.",
-        "What 2.0 leaves out is as deliberate as what it includes. It adds no new suggestion features, no themes or user-editable styles and no animation beyond whatever helps the eye follow the highlighted row. It does not change how suggestions are ranked, what leaves the machine, or which keys are taken. Its whole scope is how the dashboard and the existing suggestions look and read, which keeps the release small enough to finish and to test properly. This essay is a plan for now, and it becomes a retrospective of what actually shipped when the release is done."
+        "Completionist 2.0 gives the desktop autocomplete menu and the viewer one deliberate Evergreen identity. The owner has chosen to begin with the native desktop surfaces: a compact suggestion menu beside the caret and a separate lightweight information dock at the bottom-left of the typing monitor. The material should feel like soft liquid glass, with a genuinely blurred background, restrained edge refraction, broad highlights and sharp foreground words. Plain Acrylic is a fallback candidate rather than the target. The dock contains a small connection light and a smaller tense field; countdown and AI activity belong inside the caret menu. Descriptions, insertion previews and duplicated next-word displays are left out.",
+        "The desktop implementation is tracked through nine stages, each with its own scope, dependencies and verification gate, all targeting the same 2.0.0 release. First prove live glass in an isolated native renderer. Then supply truthful AI status and candidate origins, implement the display protocol and focus leases, build layout and typography, finish the glass windows and dock behavior, redraw the dependable host fallback, connect TSF snapshots with failover, integrate renderer lifecycle and packaging, and finally validate and stage the result. The written specification and implementation plan describe the interfaces and checks. A working static spike is a useful visual reference, but cannot prove desktop capture, transparent composition or behavior across monitors.",
+        "Python remains the engine for ranking, learning and cloud phrases. A separate C++ rendering process owns the graphics so a graphics failure does not crash the application receiving typing. The existing text-service DLL retains caret tracking, keyboard rules and text insertion. It sends asynchronous display snapshots and keeps an opaque Evergreen popup ready when the renderer is missing or unhealthy. Live refraction requires local GPU desktop sampling, used only for drawing: no captured pixels are sent to the engine or model or saved to disk. Capture exclusion prevents the glass from sampling itself, with a screenshot-visibility tradeoff that needs review. High contrast, disabled transparency, unsupported displays and device or session failures use opaque surfaces or hide the UI.",
+        "The final result must preserve Enter passthrough, after-space Tab behavior, the phrase selection guard, explicit selection and exact partial acceptance. Real scheduler data drives idle countdowns and request state; labels distinguish local vocabulary, personally promoted words and AI phrases without inventing provenance. Tense detection remains in 2.1, so V2 displays an unavailable dash. Verification covers engine and native tests, generated renderer fixtures, owner-run checks in Notepad, Chrome and Electron, mixed DPI and negative monitor coordinates, focus races, process restarts, accessibility and reduced motion. The viewer still needs its separately approved layout overhaul, with context receipt in Requests and existing settings as the authority. Desktop completion alone does not release all of V2; both tracks and the release checks must be finished."
       ]
     },
     {
@@ -2781,6 +1083,10 @@ window.COMPLETIONIST_ROADMAP = {
     "75": "Change my settings in the viewer"
   },
   "decisions": [
+    {
+      "date": "2026-10-02",
+      "text": "Adopted Release atlas concept A: versions are coherent destinations, tasks share targetRelease, completion is distinct from explicit validated shipping, and region widths follow broad scope rather than task count; all 91 shipped records were preserved."
+    },
     {
       "date": "2026-10-01",
       "text": "Reply-aware context reads the screen with Windows OCR, not UI Automation, reversing the same-day decision below after measuring both on the owner's machine. Reading a whole window with UI Automation cost 5 to 10 ms per element (about 100 ms to 19 s per window, the same in C++ and Python, so the language was not the problem), and Chrome and Gmail gave little or no text. OCR of a window-sized picture took about 60 to 150 ms on any app and read ordinary text almost perfectly (99 to 100 percent of characters at 12 px and up, 96 percent in dark mode at 11 px, but only about 32 percent at 10 px). So it runs in Python in the background, never on the typing path, with no C++. It is local, uses no AI or vision model and sends nothing by itself; what reaches OpenRouter is the text, placed in the prompt as background. Screenshots stay in memory with the Requests log."
@@ -2974,6 +1280,166 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-02",
+      "text": "Commit and push all current workspace changes on codex/roadmap-release-atlas: release atlas implementation and concept prototypes, roadmap tooling and documentation, V2 design plans, native glass spike and UI prototypes."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Completed roadmap-release-atlas toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Updated active release writing and the V2 execution plan to remove obsolete task patch numbers; strengthened invalid-source rejection for trustworthy briefs."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Migrated roadmap to release destinations and implemented the approved atlas; task completion no longer manufactures releases and shipped history remains intact."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Started roadmap-release-atlas toward 2.0.0."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task roadmap-release-atlas toward 2.0.0: Separate release destinations from roadwork and build the Release atlas"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added three read-only roadmap concept prototypes: a release atlas, a release roadbook and a focused interchange, using live task statuses and preserving shipped history."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Inspected the roadmap redesign: task completion currently creates patch releases and map width follows release count; proposed separate target releases, completed work and explicit shipping while preserving released history."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Corrected brief scope after review: minimal only doing/next/blocked tasks; medium adds the five latest released versions and matching completed tasks; maximum alone retains full history. Updated CLAUDE.md, regenerated files and passed eight CLI tests."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Released 1.1.14: Roadmap briefs now show current work in minimal, current work and recent completions in medium, and full context in maximum."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.23 (1.1.23): Generate roadmap briefs at three detail levels"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added all nine V2 desktop stages as planned highway-map stops 1.1.14-1.1.22 before the 2.0.0 interchange, assigned to text-service, engine and tooling highways with stage summaries; task-board scope and validation details remain linked through the matching versions, and no stop is marked shipped."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Expanded the V2 desktop overhaul into all nine individually tracked stages M10.14-M10.22 (planned patches 1.1.14-1.1.22), each with scope, dependencies, verification gates and spec/plan references. Live material feasibility is next; the duplicate broad popup task is retained as dropped history, viewer remains a separate V2 track, and no production stage is marked started or complete."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.22 (1.1.22): Stage 9/9: Validate and stage the desktop overhaul"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.21 (1.1.21): Stage 8/9: Integrate renderer lifecycle, packaging and viewer contracts"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.20 (1.1.20): Stage 7/9: Connect TSF snapshots with renderer failover"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.19 (1.1.19): Stage 6/9: Ship matching host fallback and keyboard regressions"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.18 (1.1.18): Stage 5/9: Complete glass windows, dock motion and recovery"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.17 (1.1.17): Stage 4/9: Build native layout, typography and Evergreen palette"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.16 (1.1.16): Stage 3/9: Implement renderer protocol, focus leases and arbitration"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.15 (1.1.15): Stage 2/9: Supply truthful AI lifecycle and suggestion origins"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Added task M10.14 (1.1.14): Stage 1/9: Prove live soft glass in a standalone native renderer"
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Prepared the V2 desktop overhaul spec and nine-stage implementation plan: separate native renderer, true GPU Gaussian blur and live-capture feasibility gate, focus/IPC failover, real AI/origin metadata, compact accessible dock, host fallback, lifecycle and rollout. Documents supersede the earlier Acrylic proposal; viewer redesign remains a separate V2 track. Owner requested both documents together; production execution and live capture have not started."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Corrected the native glass spike's blocky sparse-sample background: true separable Gaussian blur now supplies every lens/dispersion sample while foreground text stays sharp. Build completed without warnings; light/dark/frost offscreen renders succeeded. Blur is precomputed for the static fixture, not a production live-capture implementation."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Owner verified the C++ glass spike works and requested a softer finish. Refined curvature, nine-sample backdrop softness, reduced refraction and dispersion, broader non-clipping highlights, gentler shadows and antialiased status/selection edges. Rebuilt without warnings and exported light/dark/frost successfully; preserved the running first-pass executable alongside the revision."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Built a throwaway standalone C++/D3D11 liquid-glass material spike with a curved refraction shader, rim highlights, sharp text, Evergreen themes, drag/strength controls and a frost comparison. Successfully compiled without warnings and rendered light/dark/frost fixtures offscreen; controlled app-owned backdrop only, no desktop capture or installed TSF changes. Owner visual review and live-desktop feasibility remain pending."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Researched premade Windows liquid-glass renderers for V2: electron-liquid-glass is a packaged MIT native Electron addon; liquidDX11 is the closest native C++ source candidate; LiquidGlassWinUI depends on internal hooks pinned to one SDK. Recorded framework, desktop capture and fallback constraints in the native spec; no candidate installed or quality verified."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "The owner rejected plain Acrylic as too simple for the production menu. Researched richer native material options: custom transparent layering, specular edge highlights and composition lighting are candidates; genuine backdrop displacement requires separate feasibility validation and is not promised by the default DWM Acrylic path. Native production design remains unapproved pending the material choice."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Prepared the native V2 autocomplete production design after the owner's promotion request: real scheduler/status/origin data, compact non-activating information dock, Tense dash until V2.1, and a documented Acrylic-versus-exact-refraction material decision. Production interface/rendering changes await written-design review under the requested brainstorming workflow; no native code or installed DLL was changed."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Started M10.2."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Verified the compact glass revision in headless Chrome: countdown stays in the caret AI section, corner panel has no descriptions/context/duplicate preview, connection indicator and reduced motion work, correction acceptance and request lifecycle pass, and 27 responsive edge/scale combinations stay within bounds. Computed styles confirm 24% surface tint, active refraction and the actual viewer's Evergreen tokens; visual review remains with the owner."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Refined the approved prototype toward glanceable status: removed info descriptions, context receipt and duplicate next-word display; moved countdown/activity into the caret AI section; reduced corner panel to connection light and small collapsible tense label. Verified Evergreen palette against the actual viewer and CONTEXT.md; replaced opaque glass with transparent backdrop refraction and stronger bevel highlights."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Built the approved liquid-glass autocomplete prototype in tip/prototype: lightweight caret menu, separate bottom-left minimizable information, simulated idle/AI/tense/context/connection displays, origins, corrections and next-word preview. Headless Chrome checks passed lifecycle, acceptance, explicit selection, countdown reset, panel animation states, adaptive minimize/restore, retained preference, reduced motion and responsive edge/scale bounds. Native drawing and live telemetry remain unimplemented."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Started implementing the approved liquid-glass prototype: separate minimizable bottom-left information panel, caret suggestions with origins and correction comparisons, simulated idle/AI lifecycle, next-word preview and simulated V2.1 tense controls."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "The owner selected a separate information panel anchored to the screen's bottom-left corner, with a minimized state; the lightweight suggestions menu remains at the caret. This supersedes information attached beside or beneath the menu. Tense remains simulated for V2, with real detection planned for V2.1."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "The owner confirmed real tense detection belongs to V2.1; the V2 liquid-glass autocomplete prototype will simulate past, present, future and uncertain/mixed displays without adding a detector or changing ranking."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Refined the liquid-glass prototype brief: bottom-left collapsible information beside lightweight suggestions; keep next-word preview, suggestion origin, correction comparison, trigger explanations, context receipt and connection state; remove insertion preview. Adaptive footprint should preserve readable sizing and selected-row stability while relocating or collapsing information near edges; exact bottom-left anchoring remains to be clarified."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "The owner approved the revised brief for a maximalist liquid-glass autocomplete prototype using the attached glass guide, with an AI activity display, idle-trigger countdown and past/present/future tense display; brainstorming layout and additional features before changing prototype code, with real engine telemetry and native glass deferred to implementation planning."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Applied frontend-design and ui-animation to the V2 popup study: Phrase shelf now reserves streaming space, menu updates remain instant, and headless browser checks passed acceptance, correction, dismissal, seven scenarios, themes, reduced motion and responsive edge/scale combinations."
+    },
+    {
+      "date": "2026-10-02",
+      "text": "Started the V2 autocomplete design study ahead of the dashboard at the owner's request: rich and expressive visual character, three local throwaway menu variants, and a proposed native design; M10.1 awaits layout review and live-app audit."
+    },
     {
       "date": "2026-10-02",
       "text": "Released 1.1.13: The OCR-aware cloud prompt, three provider-playground scenarios and no-reasoning default are now released on main."
@@ -3393,6 +1859,1998 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "date": "2026-09-29",
       "text": "Engine word completion served over a named pipe, 74 tests passing (branch m1-engine-words)."
+    }
+  ],
+  "activeRelease": "2.0.0",
+  "releasePlans": {
+    "0.0.3": {
+      "title": "Foundations and TSF spike",
+      "goal": "Prove a TSF text service fixes the three failures of the old hook-based attempt: popup position, text sync and key handling.",
+      "done_when": "A throwaway TIP shows a popup at the caret, reads the real text and swallows Tab in the must-work apps.",
+      "scope": "medium"
+    },
+    "0.1.0": {
+      "title": "Word completion end-to-end",
+      "goal": "Type in any supported app and get a word dropdown at the caret, fed by the engine, accepted with Tab.",
+      "done_when": "The real DLL shows engine word suggestions at the caret in Notepad, Chrome, Edge and Discord, Tab/Up/Down/Esc behave as specified, Enter is never consumed, and gated fields stay silent.",
+      "scope": "medium"
+    },
+    "0.2.0": {
+      "title": "Smarter words",
+      "goal": "Rank words by the preceding words and by the user's own habits.",
+      "done_when": "After \"I'd like to\" the list shows \"know\" above \"knowledge\", and names or slang the user types a few times start appearing.",
+      "scope": "medium"
+    },
+    "0.3.0": {
+      "title": "Phrase suggestions",
+      "goal": "A greyed phrase continuation from a cheap cloud FIM model as the top popup row, accepted with Tab.",
+      "done_when": "Allow-listed apps show a streaming phrase row after a pause, Ctrl+Space works everywhere, and heavy use stays under $0.50 a day.",
+      "scope": "medium"
+    },
+    "0.4.0": {
+      "title": "Daily-driver polish",
+      "goal": "Completionist runs all day without attention and shows whether it's paying off.",
+      "done_when": "One-command install and uninstall, autostart at logon, tray pause, hot-reloaded config and a stats summary.",
+      "scope": "medium"
+    },
+    "0.5.0": {
+      "title": "N-gram suggestions and the personal log",
+      "goal": "Suggest the next word after a space and two- or three-word chunks while typing, all in one popup box, and keep a clean personal log of the words and trigrams you type.",
+      "done_when": "After a space the popup offers likely next words, chunks appear while typing, words, chunks and the phrase share one box, the popup stays quiet when nothing is likely, and the log holds only words and trigrams you typed, finished and used at least three times.",
+      "scope": "medium"
+    },
+    "0.6.0": {
+      "title": "Personal viewer",
+      "goal": "Let you see your personal dictionary and stats, remove words and change settings, from a page opened from the tray.",
+      "done_when": "The tray's Open viewer opens a page served by the engine on this machine. It lists learned words, trigrams and stats; removing a word there forgets it; changes in the settings panel reach config.toml and take effect without a restart; the API key can be typed in but is never shown back; it holds no typed-text history; and another website can't drive it.",
+      "scope": "medium"
+    },
+    "0.7.0": {
+      "title": "Typo-tolerant words",
+      "goal": "Still suggest the right word when the typed part has a typo, and show which letters were guessed.",
+      "done_when": "Typing \"moutian\" offers \"mountain\" with the guessed letters in a different colour, exact prefix matches still rank first, and lookup p95 stays under 10 ms.",
+      "scope": "medium"
+    },
+    "1.1.0": {
+      "title": "Reply-aware phrases",
+      "goal": "Phrase suggestions know what you're replying to.",
+      "done_when": "A phrase suggestion in a Discord reply reflects the last few messages in the channel.",
+      "scope": "medium"
+    },
+    "2.0.0": {
+      "title": "Desktop overhaul",
+      "goal": "Deliver the native soft-glass autocomplete and information dock through nine verified stages, alongside the separately designed Evergreen viewer overhaul.",
+      "done_when": "All nine desktop stages pass their checks: live soft glass, truthful status, safe focus and failover, readable layout, accessible dock, packaging and real-app validation. The separately designed Evergreen viewer is also complete. Native testing covers mixed DPI and both monitors; no full V2 release is claimed from desktop work alone.",
+      "scope": "large"
+    },
+    "2.1.0": {
+      "title": "Tense-aware suggestions",
+      "goal": "Use whether the current sentence is in past or present tense to rank suggestions that fit what the person is writing.",
+      "done_when": "Past and present sentence context can influence suggestion ranking in representative examples, while ambiguous or mixed-tense context leaves the existing ranking unchanged.",
+      "scope": "contained"
+    },
+    "3.0.0": {
+      "title": "Browser autocomplete",
+      "goal": "Reach web text fields directly with a Chrome extension that talks to the same engine.",
+      "done_when": "Inline ghost text works in a Chrome textarea through the extension.",
+      "scope": "large"
+    }
+  },
+  "tasks": [
+    {
+      "id": "M0.1",
+      "title": "Install VS 2022 Build Tools (MSVC v143, Windows SDK 10.0.26100)",
+      "status": "done",
+      "area": "toolchain",
+      "stories": [],
+      "notes": "CLI-only toolchain, no full Visual Studio IDE.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.3"
+    },
+    {
+      "id": "M0.2",
+      "title": "Build Microsoft's SampleIME unmodified",
+      "status": "done",
+      "area": "dll",
+      "stories": [],
+      "notes": "Link error LNK1295 fixed with `/p:WholeProgramOptimization=false`, retargeted to v143 and SDK 10.0.26100.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.3"
+    },
+    {
+      "id": "M0.3",
+      "title": "Spike TIP: popup at the caret, context length and input scope logging",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        47
+      ],
+      "notes": "`GetTextExt` never failed in ~830 inspections. Input scope must be read with `GetAppProperty`, not `GetProperty`.",
+      "refs": [
+        "tip/spike/CompletionistSpike.cpp",
+        "m0-tsf-spike"
+      ],
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.3"
+    },
+    {
+      "id": "M0.4",
+      "title": "Spike: swallow Tab and replace the current word with ITfRange::SetText",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        47
+      ],
+      "notes": "Plain `SetText` worked everywhere; the composition fallback was never needed.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.3"
+    },
+    {
+      "id": "M0.5",
+      "title": "Manual app matrix, rounds 1 and 2",
+      "status": "done",
+      "area": "test",
+      "stories": [
+        47
+      ],
+      "notes": "Works in Notepad, Discord, Chrome, Edge and Teams, and stays silent in password fields. Discord exposed 2,239 characters before the caret. Google Docs and the Google search box are out of scope.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.3"
+    },
+    {
+      "id": "M0.6",
+      "title": "Write up spike findings and verdict",
+      "status": "done",
+      "area": "docs",
+      "stories": [
+        47
+      ],
+      "notes": "Verdict: TSF works for Completionist.",
+      "refs": [
+        "tip/spike/README.md"
+      ],
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.3"
+    },
+    {
+      "id": "M0.7",
+      "title": "Scaffold the repository",
+      "status": "done",
+      "area": "repo",
+      "stories": [],
+      "notes": "README, gitignore and a standalone uv project for the engine.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.1"
+    },
+    {
+      "id": "M0.8",
+      "title": "Engine word completion over the named pipe",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "notes": "146,000-word frequency list, p95 under 10 ms, 74 tests.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.2"
+    },
+    {
+      "id": "M0.9",
+      "title": "Roadmap pages and agent guide",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "notes": "Task board, release timeline and the CLAUDE.md rules.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.4"
+    },
+    {
+      "id": "M0.11",
+      "title": "OpenRouter-only phrases",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "notes": "Models list in the config; DeepSeek and the benchmark tool removed; phrases held back when text follows the caret.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.6"
+    },
+    {
+      "id": "M0.12",
+      "title": "Highway map, Evergreen colors and the Completionist rename",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "notes": "CONTEXT.md added; old data folders move on first start.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.7"
+    },
+    {
+      "id": "M0.13",
+      "title": "Continue-only phrase prompt",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "notes": "Daily budget and price counting removed in favour of a spending limit on the OpenRouter key.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.8"
+    },
+    {
+      "id": "M0.14",
+      "title": "Stricter phrase prompt and the 0.5.0 to 2.0.0 plan",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "notes": "Thirty numbered rules and two worked examples in the prompt.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.9"
+    },
+    {
+      "id": "M0.15",
+      "title": "Groq default model and API key in the config",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "notes": "Llama 3.3 70B on Groq through OpenRouter, with a provider_order setting.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.10"
+    },
+    {
+      "id": "M0.16",
+      "title": "One-line launcher",
+      "status": "done",
+      "area": "install",
+      "stories": [],
+      "notes": "cd engine && uv run completionist.py",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.11"
+    },
+    {
+      "id": "M0.17",
+      "title": "Task board by release",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "notes": "Milestones shown as releases, plain titles, tasks sorted by status.",
+      "targetRelease": "0.0.3",
+      "shippedIn": "0.0.12"
+    },
+    {
+      "id": "M1.1",
+      "title": "Protocol codec: length-prefixed JSON frames",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "notes": "4-byte little-endian length, UTF-8 JSON, 1 MB cap. Streaming decoder handles split and merged frames.",
+      "refs": [
+        "engine/src/completionist_engine/protocol.py",
+        "m1-engine-words"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.13"
+    },
+    {
+      "id": "M1.2",
+      "title": "Word completer over the wordfreq vocabulary",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        1,
+        10,
+        12,
+        13
+      ],
+      "notes": "~146k words ranked by frequency. Matches case, excludes the exact typed word, capitalises \"i\". p95 lookup under 5 ms.",
+      "refs": [
+        "engine/src/completionist_engine/words.py",
+        "engine/src/completionist_engine/vocabulary.py"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.14"
+    },
+    {
+      "id": "M1.3",
+      "title": "TOML config and policy gating",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        31,
+        32,
+        33,
+        37
+      ],
+      "notes": "Block-list (editors, IDEs, terminals), silent input scopes (password, URL, email, number), allow-list for automatic phrases. Hot reload is 0.4.0.",
+      "refs": [
+        "engine/src/completionist_engine/config.py",
+        "engine/src/completionist_engine/policy.py"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.15"
+    },
+    {
+      "id": "M1.4",
+      "title": "Named-pipe server, client and probe CLI",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        48,
+        49
+      ],
+      "notes": "Real-pipe integration test asserts round-trip plus lookup p95 < 10 ms. 74 engine tests pass.",
+      "refs": [
+        "engine/src/completionist_engine/server.py",
+        "engine/src/completionist_engine/probe.py"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.16"
+    },
+    {
+      "id": "M1.5",
+      "title": "Merge m1-engine-words and m0-tsf-spike into main",
+      "status": "done",
+      "area": "repo",
+      "stories": [],
+      "notes": "Fast-forwarded main to the engine branch, then merged the spike branch. Released as v0.0.4.",
+      "refs": [
+        "main",
+        "v0.0.4"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.17"
+    },
+    {
+      "id": "M1.6",
+      "title": "TSF service shell from SampleIME: activation, key sink, edit sessions, registration",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        43
+      ],
+      "notes": "TSF shell written from the spike's proven code: activation, edit sessions, key sink, COM registration for en-US/CA/GB. Lifecycle smoke test (`tip/tests/load_test.ps1`) activates and tears it down 40 times on a real thread manager and the DLL stays unloadable.",
+      "refs": [
+        "tip/src/tsf_service.cpp",
+        "m1-tsf-dll"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.18"
+    },
+    {
+      "id": "M1.7",
+      "title": "Context reader: text around the caret, caret rect, input scope, app and title",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        14,
+        31,
+        32
+      ],
+      "notes": "Reads up to 2,000 characters before and 500 after the caret, the caret rect, input scope and app/title. Keyboard-disabled and password contexts send nothing. `E_FAIL` from `RequestEditSession` is retried shortly instead of treated as an error.",
+      "refs": [
+        "tip/src/tsf_service.cpp"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.19"
+    },
+    {
+      "id": "M1.8",
+      "title": "Pure popup state + key router with native tests",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        51
+      ],
+      "notes": "`PopupModel` has no TSF dependency and 14 native tests cover every key in every state (closed, open, stale, modifiers held). Enter is never consumed. The tests also cover the frame codec and JSON reader (15 more).",
+      "refs": [
+        "tip/src/popup_model.h",
+        "tip/tests/test_popup_model.cpp",
+        "tip/test.cmd"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.20"
+    },
+    {
+      "id": "M1.9",
+      "title": "Engine client on a worker thread",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        34,
+        35
+      ],
+      "notes": "Worker thread with overlapped I/O, request ids, stale replies dropped, reconnect with backoff (250 ms to 2 s), and a check that the engine runs as the same Windows user. `tip/tests/e2e.ps1` runs it against the real engine: no engine, late start, kill and restart all recover.",
+      "refs": [
+        "tip/src/engine_client.cpp",
+        "tip/tests/e2e.ps1"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.21"
+    },
+    {
+      "id": "M1.14",
+      "title": "TSF harness: real DLL, real engine, simulated app",
+      "status": "done",
+      "area": "test",
+      "stories": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        31,
+        51
+      ],
+      "notes": "`tip/tests/tsf_e2e.ps1` runs the unregistered DLL through real TSF against a stand-in text field (`ITextStoreACP`), with the real engine and n-gram data. 31 checks: popup under the caret, Down/Up/Tab/Esc, Enter never consumed, Tab left alone when the popup is closed or stale, no popup mid-word / with a selection / where keyboards are disabled, learned words offered, fast typing. Also passes as a DPI-unaware app. Key events go straight to the DLL's key interface because TSF only routes keys to a registered text service.",
+      "refs": [
+        "tip/tests/tsf_harness.cpp",
+        "tip/tests/tsf_e2e.ps1"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.22"
+    },
+    {
+      "id": "M1.10",
+      "title": "Popup rendering at the caret",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        2,
+        3,
+        36
+      ],
+      "notes": "Built and checked in the harness: word rows, typed prefix highlighted in blue, highlight row moves, popup opens just under the caret (screenshots reviewed), never takes focus, click-through, per-window DPI. Second-monitor and 150% checks happen in daily use, not as a gate.",
+      "refs": [
+        "tip/src/popup.cpp"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.23"
+    },
+    {
+      "id": "M1.11",
+      "title": "Keyboard icon and an enable-keyboard step",
+      "status": "done",
+      "area": "install",
+      "stories": [
+        43
+      ],
+      "notes": "Icon (`tip/assets/completionist.ico`) is compiled into the DLL, and `tip/register.ps1` plus `tip/enable-keyboard.ps1` do the install. Confirming Completionist shows in Settings happens in daily use, not as a gate.",
+      "refs": [
+        "tip/register.ps1",
+        "tip/enable-keyboard.ps1"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.24"
+    },
+    {
+      "id": "M1.12",
+      "title": "Manual app matrix for the real DLL",
+      "status": "dropped",
+      "area": "test",
+      "stories": [
+        2,
+        31,
+        36
+      ],
+      "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Notepad, Chrome (textarea, contenteditable, long text, password field, after `chrome://restart`), Edge, Discord, Slack, Obsidian, an older Electron app. 100% and 150% scaling. Enter still sends in Discord. The harness (0.1.0) already covers the logic; this checks each app's own quirks. Switch to the Completionist keyboard first, so the old Completionist Spike keyboard isn't also active.",
+      "targetRelease": "0.1.0"
+    },
+    {
+      "id": "M1.13",
+      "title": "Remove the Completionist Spike keyboard and unregister it",
+      "status": "dropped",
+      "area": "install",
+      "stories": [],
+      "notes": "Moved to 0.4.0 so 0.1.0 does not wait on a cleanup only the user can do. Originally: the user removes the Spike keyboard from the language list, then runs `tip/spike/register.ps1 -Unregister`.",
+      "targetRelease": "0.1.0"
+    },
+    {
+      "id": "M1.15",
+      "title": "Roadmap as a highway map, in the Evergreen color scheme",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "notes": "Shipped the highway map page, the restyled task board with highway stripes and filter, the retired timeline page, and a CONTEXT.md holding the Evergreen scheme.",
+      "refs": [
+        "branch worktree-roadmap-map",
+        "docs/roadmap/index.html",
+        "docs/roadmap/map-layout.js",
+        "docs/roadmap/map.js",
+        "docs/roadmap/page.js",
+        "docs/roadmap/tasks.html",
+        "CONTEXT.md"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.27"
+    },
+    {
+      "id": "M1.16",
+      "title": "Rename the app from Typer to Completionist",
+      "status": "done",
+      "area": "repo",
+      "stories": [],
+      "notes": "Renamed everywhere: the engine package and commands, pipe, DLL and its files, folders, install scripts, tests, docs and the roadmap pages. The engine moves old Typer folders on first start. The GitHub repo and checkout folder keep the name typer until the owner renames them. After merging, run `scripts/install.ps1` again.",
+      "refs": [
+        "branch rename-completionist",
+        "engine/src/completionist_engine/config.py",
+        "scripts/install.ps1",
+        "CONTEXT.md"
+      ],
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.28"
+    },
+    {
+      "id": "M1.17",
+      "title": "Make the roadmap easier to read: releases first, plain titles, tasks by status",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "refs": [
+        "branch m1-roadmap-readability",
+        "docs/roadmap/tasks.html",
+        "v0.0.12"
+      ],
+      "notes": "The M-numbers confuse: M2 is 0.2.0 but M5 is 1.1.0, and task ids like M1.14 sit before M1.10. The pages should show each milestone as its release and name (\"0.2.0 · Smarter words\", found through the release's `milestone` field), lead task rows with the plain title and show the id only as a small grey tag (ids stay as stable keys, never renumbered), and sort tasks doing, next, todo, blocked, done, dropped. Then update the wording in CLAUDE.md and CONTEXT.md. Files: tasks.html, common.js, page.js.",
+      "targetRelease": "0.1.0",
+      "shippedIn": "0.0.29"
+    },
+    {
+      "id": "M2.1",
+      "title": "N-gram builder: bigram and trigram tables from a public corpus",
+      "status": "done",
+      "area": "data",
+      "stories": [
+        11
+      ],
+      "notes": "`completionist-build-ngrams` counts words, bigrams and trigrams from text files or folders (`.txt`/`.gz`), prunes rare entries while counting so memory stays bounded, and writes a SQLite file. Built from WikiText-103: 81M words, 100k vocabulary, 0.8M bigrams, 1.6M trigrams, 66 MB, 6.5 minutes.",
+      "refs": [
+        "engine/src/completionist_engine/ngrams.py",
+        "engine/src/completionist_engine/build_ngrams.py"
+      ],
+      "targetRelease": "0.2.0",
+      "shippedIn": "0.1.1"
+    },
+    {
+      "id": "M2.2",
+      "title": "N-gram re-ranking in the word completer",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        11
+      ],
+      "notes": "The completer mixes Zipf frequency with bigram and trigram counts (contexts seen under 5 times are ignored). \"What do you th\" now ranks \"think\" first. Pipe round trip stays fast: p95 1.2 ms uncached against the real table.",
+      "refs": [
+        "engine/src/completionist_engine/words.py"
+      ],
+      "targetRelease": "0.2.0",
+      "shippedIn": "0.1.2"
+    },
+    {
+      "id": "M2.3",
+      "title": "Filter misspellings and junk out of the base vocabulary",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        10
+      ],
+      "notes": "Beyond the 20,000 most common words, a word must appear written lowercase at least 3 times in the corpus. \"tomorow\", \"tomorrowland\" and \"Updike\" no longer appear; the vocabulary went from 146k to 53k words.",
+      "refs": [
+        "engine/src/completionist_engine/vocabulary.py"
+      ],
+      "targetRelease": "0.2.0",
+      "shippedIn": "0.1.3"
+    },
+    {
+      "id": "M2.4",
+      "title": "Personal store: accept and typed-word counts in SQLite",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        16,
+        17
+      ],
+      "notes": "`PersonalStore` keeps word and word-pair counts in memory, saved to `personal.sqlite` every 10 s and on exit. Only plain lowercase English words are stored. Corrupt files are set aside; rare pairs are pruned past 300k.",
+      "refs": [
+        "engine/src/completionist_engine/personal.py"
+      ],
+      "targetRelease": "0.2.0",
+      "shippedIn": "0.1.4"
+    },
+    {
+      "id": "M2.5",
+      "title": "Promote new words to the vocabulary after N uses",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        15
+      ],
+      "notes": "A word outside the dictionary is suggested once used 3 times (`[learning] promote_after`). Learning counts only real typing, one character at a time, so pasted text, caret jumps and backspacing never count. Silent fields and block-listed apps never teach it anything.",
+      "refs": [
+        "engine/src/completionist_engine/learning.py",
+        "engine/src/completionist_engine/engine.py"
+      ],
+      "targetRelease": "0.2.0",
+      "shippedIn": "0.1.5"
+    },
+    {
+      "id": "M2.6",
+      "title": "Accept events name the accepted item",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        16
+      ],
+      "notes": "The DLL sends an `accept` event with the inserted word, and the engine learns it and the word before it. The protocol field is covered by tests on both sides.",
+      "refs": [
+        "tip/src/tsf_service.cpp",
+        "engine/src/completionist_engine/protocol.py"
+      ],
+      "targetRelease": "0.2.0",
+      "shippedIn": "0.1.6"
+    },
+    {
+      "id": "M2.7",
+      "title": "Check learning and n-gram ranking live through the DLL",
+      "status": "dropped",
+      "area": "test",
+      "stories": [
+        11,
+        15,
+        16
+      ],
+      "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Needs you: with the engine running and the Completionist keyboard on, type a made-up word (like \"zorblax\") three or more times, then confirm it shows up as a suggestion. Also check \"I'd like to kn\" puts \"know\" first.",
+      "targetRelease": "0.2.0"
+    },
+    {
+      "id": "M3.1",
+      "title": "Provider benchmark: time-to-first-token and quality",
+      "status": "dropped",
+      "area": "bench",
+      "stories": [
+        45
+      ],
+      "notes": "Dropped: the benchmark tool was deleted. Model choice is read off the OpenRouter model cards and swapped in the config; completionist-stats shows real latency and cost.",
+      "targetRelease": "0.3.0"
+    },
+    {
+      "id": "M3.2",
+      "title": "Benchmark time-to-first-token against context size",
+      "status": "dropped",
+      "area": "bench",
+      "stories": [
+        46
+      ],
+      "notes": "Dropped: the benchmark tool was deleted. Model choice is read off the OpenRouter model cards and swapped in the config; completionist-stats shows real latency and cost.",
+      "targetRelease": "0.3.0"
+    },
+    {
+      "id": "M3.3",
+      "title": "Phrase provider: OpenAI-compatible /completions with optional FIM",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        22,
+        27,
+        28,
+        29,
+        39,
+        40
+      ],
+      "notes": "`PhraseProvider` streams OpenAI-style `/completions` (plain or FIM with a suffix), reads usage from DeepSeek and OpenAI formats, and turns timeouts and HTTP errors into `ProviderError` without ever including the key. Settings live under `[phrase]`; the key is read from the environment variable named in `api_key_env`. Tested against a local fake server.",
+      "refs": [
+        "engine/src/completionist_engine/phrase_provider.py"
+      ],
+      "targetRelease": "0.3.0",
+      "shippedIn": "0.2.3"
+    },
+    {
+      "id": "M3.4",
+      "title": "Cache-friendly anchored context window",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        59
+      ],
+      "notes": "`anchored_window` cuts the text before the caret at a paragraph or sentence boundary, so the start of the prompt only moves every sentence or so instead of every keystroke. 400 keystrokes move it 5 times, so consecutive requests share a cached prefix.",
+      "refs": [
+        "engine/src/completionist_engine/context.py"
+      ],
+      "targetRelease": "0.3.0",
+      "shippedIn": "0.2.4"
+    },
+    {
+      "id": "M3.5",
+      "title": "Daily budget cap and per-request cost tracking (removed)",
+      "status": "dropped",
+      "area": "engine",
+      "stories": [
+        60,
+        61
+      ],
+      "notes": "Removed on the user's call: Completionist no longer counts spend or prices. A spending limit is set on the OpenRouter key itself.",
+      "refs": [
+        "engine/src/completionist_engine/budget.py"
+      ],
+      "targetRelease": "0.3.0"
+    },
+    {
+      "id": "M3.6",
+      "title": "Phrase scheduler state machine",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        18,
+        23,
+        24,
+        26
+      ],
+      "notes": "`PhraseScheduler` is a pure state machine with an injected clock: 350 ms pause in auto mode, hotkey mode never asks alone, typing along trims the phrase without a new request, anything else cancels and clears it, late chunks that contradict the typed text are dropped. 22 tests.",
+      "refs": [
+        "engine/src/completionist_engine/phrase_scheduler.py"
+      ],
+      "targetRelease": "0.3.0",
+      "shippedIn": "0.2.6"
+    },
+    {
+      "id": "M3.7",
+      "title": "Phrase push messages over the pipe",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        22
+      ],
+      "notes": "Replies carry `phrase` and `phrase_mode`; streamed text is pushed as `{\"type\":\"phrase\",\"id\",\"text\",\"done\"}` keyed to the newest request. Tested over a real named pipe with a fake provider, including that password fields never reach the provider.",
+      "refs": [
+        "engine/src/completionist_engine/phrases.py",
+        "engine/tests/test_phrases_pipe.py"
+      ],
+      "targetRelease": "0.3.0",
+      "shippedIn": "0.2.7"
+    },
+    {
+      "id": "M3.8",
+      "title": "Phrase row in the popup",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        18,
+        19,
+        20,
+        21
+      ],
+      "notes": "The popup gets a phrase row on top: typed part in blue, the phrase as ghost text, highlighted by default 150 ms after it appears so a late phrase can't steal a Tab (that Tab takes the word). Up/Down move through phrase and words. Checked in the TSF harness with a fake provider, in both auto and hotkey modes, and in a screenshot.",
+      "refs": [
+        "tip/src/popup_model.h",
+        "tip/src/popup.cpp",
+        "tip/tests/phrase_scenarios.h"
+      ],
+      "targetRelease": "0.3.0",
+      "shippedIn": "0.2.8"
+    },
+    {
+      "id": "M3.9",
+      "title": "Ctrl+Space hotkey requests a phrase in any app",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        25
+      ],
+      "notes": "Ctrl+Space asks for a phrase (also right after a space, with no word yet), Ctrl+Right inserts the next phrase word and keeps the rest, Esc quiets the popup for the word and stops phrase requests. The key is only taken where the engine says phrases are available, so Word's own Ctrl+Space is safe elsewhere.",
+      "refs": [
+        "tip/src/tsf_service.cpp"
+      ],
+      "targetRelease": "0.3.0",
+      "shippedIn": "0.2.9"
+    },
+    {
+      "id": "M3.10",
+      "title": "Fall back to words when the provider is slow or down",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        30
+      ],
+      "notes": "A provider error ends the phrase quietly (word suggestions carry on); three failures in a row pause phrases for 30 seconds; with no key, no failure pause or phrases switched off, nothing is ever requested.",
+      "refs": [
+        "engine/src/completionist_engine/phrases.py"
+      ],
+      "targetRelease": "0.3.0",
+      "shippedIn": "0.2.10"
+    },
+    {
+      "id": "M3.11",
+      "title": "Check phrases live with a real provider and key",
+      "status": "dropped",
+      "area": "test",
+      "stories": [
+        18,
+        19,
+        25,
+        59
+      ],
+      "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. Needs you: tray menu > Open settings file, add `api_key = \"...\"` under `[phrase]` (never in chat; it applies within seconds), then type in Notepad (allow-listed, phrases appear on their own) and press Ctrl+Space in Discord. `spend.json` in `%LOCALAPPDATA%\\Completionist` shows what it cost.",
+      "targetRelease": "0.3.0"
+    },
+    {
+      "id": "M3.12",
+      "title": "OpenRouter without FIM: prefix-only phrases, held back when text follows the caret on the same line",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "notes": "The user only has an OpenRouter key and it documents no `suffix`. fim=false now also skips phrases while non-blank text follows the caret on the same line. Which OpenRouter models take /completions is untested; bench/providers.example.toml has candidates.",
+      "refs": [
+        "branch openrouter-phrases",
+        "engine/src/completionist_engine/phrases.py"
+      ],
+      "targetRelease": "0.3.0",
+      "shippedIn": "0.2.12"
+    },
+    {
+      "id": "M4.1",
+      "title": "Tray icon with pause/resume and a global hotkey",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        41
+      ],
+      "notes": "Code and tests done; the tray and hotkey need a manual look on a real desktop.",
+      "refs": [
+        "branch m3-phrases",
+        "engine/src/completionist_engine",
+        "scripts/",
+        "tip/tests"
+      ],
+      "targetRelease": "0.4.0",
+      "shippedIn": "0.3.1"
+    },
+    {
+      "id": "M4.2",
+      "title": "Start the engine at logon",
+      "status": "done",
+      "area": "install",
+      "stories": [
+        42
+      ],
+      "notes": "scripts/install.ps1 creates the logon task (pythonw, no console). Written and syntax-checked; not yet run, because it needs the user (UAC, keyboard setting). Scripts parse cleanly; running them (UAC) is left to the user.",
+      "refs": [
+        "scripts/install.ps1",
+        "scripts/uninstall.ps1",
+        "version 0.4.0"
+      ],
+      "targetRelease": "0.4.0",
+      "shippedIn": "0.3.2"
+    },
+    {
+      "id": "M4.3",
+      "title": "Hot-reload the config file",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        38
+      ],
+      "notes": "ConfigWatcher polls mtime; a bad edit keeps the old config and logs why.",
+      "refs": [
+        "branch m3-phrases",
+        "engine/src/completionist_engine",
+        "scripts/",
+        "tip/tests"
+      ],
+      "targetRelease": "0.4.0",
+      "shippedIn": "0.3.3"
+    },
+    {
+      "id": "M4.4",
+      "title": "Install and uninstall scripts",
+      "status": "done",
+      "area": "install",
+      "stories": [
+        43,
+        44
+      ],
+      "notes": "install.ps1 / uninstall.ps1 written and syntax-checked; the user runs them (UAC and language settings are not mine to change). Scripts parse cleanly; running them (UAC) is left to the user.",
+      "refs": [
+        "scripts/install.ps1",
+        "scripts/uninstall.ps1",
+        "version 0.4.0"
+      ],
+      "targetRelease": "0.4.0",
+      "shippedIn": "0.3.4"
+    },
+    {
+      "id": "M4.5",
+      "title": "Metrics store: shown, accepted, keystrokes saved, provider latency",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        52,
+        53,
+        54,
+        56
+      ],
+      "notes": "SQLite counts and timings per day/app/provider; never text.",
+      "refs": [
+        "branch m3-phrases",
+        "engine/src/completionist_engine",
+        "scripts/",
+        "tip/tests"
+      ],
+      "targetRelease": "0.4.0",
+      "shippedIn": "0.3.5"
+    },
+    {
+      "id": "M4.6",
+      "title": "Stats summary from the CLI or tray",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        55
+      ],
+      "notes": "completionist-stats CLI and tray \"Show stats\".",
+      "refs": [
+        "branch m3-phrases",
+        "engine/src/completionist_engine",
+        "scripts/",
+        "tip/tests"
+      ],
+      "targetRelease": "0.4.0",
+      "shippedIn": "0.3.6"
+    },
+    {
+      "id": "M4.7",
+      "title": "Engine logging of request timings and provider errors",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        50
+      ],
+      "notes": "engine.log rotates; requests over 25 ms and provider errors are logged.",
+      "refs": [
+        "branch m3-phrases",
+        "engine/src/completionist_engine",
+        "scripts/",
+        "tip/tests"
+      ],
+      "targetRelease": "0.4.0",
+      "shippedIn": "0.3.7"
+    },
+    {
+      "id": "M4.8",
+      "title": "Resilience pass: engine crashes and restarts",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        34,
+        35
+      ],
+      "notes": "Harness scenarios R1/R2 kill and restart the engine: typing does not hang, keys pass through, the popup returns after reconnect. The harness needs the desktop foreground, so it is run only when the user is away.",
+      "refs": [
+        "branch m3-phrases",
+        "engine/src/completionist_engine",
+        "scripts/",
+        "tip/tests"
+      ],
+      "targetRelease": "0.4.0",
+      "shippedIn": "0.3.8"
+    },
+    {
+      "id": "M4.9",
+      "title": "Live check of install, tray, hotkey and logon start",
+      "status": "dropped",
+      "area": "install",
+      "stories": [
+        41,
+        42,
+        43,
+        44
+      ],
+      "notes": "Dropped: live checks no longer gate a milestone; it is a personal tool and daily use is the test. User runs .\\scripts\\install.ps1, checks the tray icon and Ctrl+Alt+P, reboots once to see the engine start by itself.",
+      "targetRelease": "0.4.0"
+    },
+    {
+      "id": "M4.10",
+      "title": "README demo GIF and a small web demo of the popup",
+      "status": "dropped",
+      "area": "docs",
+      "stories": [],
+      "notes": "Moved to 0.6.7 (0.7.0, the last release before 1.0) so 0.4.0 does not wait on it. Originally: the public showcase, a short GIF of the popup in use and a plain HTML page with made-up text that shows the ranking.",
+      "targetRelease": "0.4.0"
+    },
+    {
+      "id": "M4.11",
+      "title": "Remove the Completionist Spike keyboard and unregister it",
+      "status": "dropped",
+      "area": "install",
+      "stories": [],
+      "notes": "Moved from 0.1.0. The user removes it from the language list, then runs `tip/spike/register.ps1 -Unregister`. Moved to 0.6.8 so 0.4.0 does not wait on it.",
+      "targetRelease": "0.4.0"
+    },
+    {
+      "id": "M7.1",
+      "title": "Personal log admission: learn only words you typed, finished without correcting and used 3 times",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        66
+      ],
+      "notes": "Builds on the existing PersonalStore and `promote_after`. Adds: a word counts only when you finish it with a space or punctuation and didn't backspace over it (so typos are never learned, which also keeps the typo feature from learning its own mistakes). Silent fields, block-listed apps, pasted text and caret jumps already teach nothing. Keep it simple: no per-day rule, decay or never-learn list until junk actually shows up.",
+      "refs": [
+        "engine/src/completionist_engine/learning.py",
+        "branch m7-next-words"
+      ],
+      "targetRelease": "0.5.0",
+      "shippedIn": "0.4.1"
+    },
+    {
+      "id": "M7.2",
+      "title": "Personal trigram counts next to the word and pair counts",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        66,
+        17
+      ],
+      "notes": "A trigram is three words typed in a row within one sentence, never across punctuation, a newline or a window switch. Counts only, stored on disk locally. Admission follows 0.4.1.",
+      "refs": [
+        "engine/src/completionist_engine/personal.py",
+        "branch m7-next-words"
+      ],
+      "targetRelease": "0.5.0",
+      "shippedIn": "0.4.1"
+    },
+    {
+      "id": "M7.3",
+      "title": "`completionist-words` command: list and forget",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        67
+      ],
+      "notes": "`list` with search, `forget <word>` and `forget-recent 10m`. The smallest way to see and edit the log; the viewer (0.6.0) shows the same data.",
+      "refs": [
+        "engine/src/completionist_engine/personal.py",
+        "branch m7-kinds"
+      ],
+      "targetRelease": "0.5.0",
+      "shippedIn": "0.4.2"
+    },
+    {
+      "id": "M7.4",
+      "title": "Next-word candidates after a space, with a confidence threshold",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        62,
+        65
+      ],
+      "notes": "An empty prefix is allowed: rank continuations from the bigram and trigram tables and the personal pairs. Return nothing when no continuation is likely enough, and put the threshold in the config so it can be switched off. Built as WordCompleter.next_words, used by the engine after a space. Config: [words] next (default false until 0.4.2 lets the popup open after a space safely) and next_threshold (default 0.05; 0 offers the best few whatever the odds).",
+      "refs": [
+        "engine/src/completionist_engine/words.py",
+        "engine/src/completionist_engine/config.py",
+        "branch m7-next-words"
+      ],
+      "targetRelease": "0.5.0",
+      "shippedIn": "0.4.1"
+    },
+    {
+      "id": "M7.5",
+      "title": "Multi-word chunks from the n-gram tables",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        63
+      ],
+      "notes": "Extend the top continuation one word at a time while its probability stays above a cutoff, up to 3 words. Offer a chunk only when it reads coherently. Built as WordCompleter.chunks (cutoff 0.3, at most 3 words, never ends on the/a/of/to/and). Not yet in replies: 0.4.2 carries the kind and wires it in. Quality is limited by the WikiText corpus; judge it in 0.5.0.",
+      "refs": [
+        "engine/src/completionist_engine/words.py",
+        "branch m7-next-words"
+      ],
+      "targetRelease": "0.5.0",
+      "shippedIn": "0.4.1"
+    },
+    {
+      "id": "M7.6",
+      "title": "Protocol: each suggestion carries its kind (word, chunk or next)",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        64
+      ],
+      "notes": "The field is covered by tests on both the engine and DLL sides, like the `accept` event was.",
+      "refs": [
+        "engine/src/completionist_engine/protocol.py",
+        "tip/src/protocol.cpp",
+        "branch m7-kinds"
+      ],
+      "targetRelease": "0.5.0",
+      "shippedIn": "0.4.2"
+    },
+    {
+      "id": "M7.7",
+      "title": "Popup shows words, chunks and the phrase in one box",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        64
+      ],
+      "notes": "The phrase stays on top. First guess at the order: phrase, then chunks, then words. The row order gets polished in the UI redesign (2.0.0). Checked in the TSF harness with a screenshot. Built: the popup already drew the phrase row above the word rows, so chunks (engine-ordered first) and next words appear in the same box; the service now remembers each row's kind and sends it on accept. Not checked in the TSF harness: it steals focus, so it runs when you say you're away.",
+      "refs": [
+        "tip/src/tsf_service.cpp",
+        "tip/src/popup.cpp",
+        "branch m7-kinds"
+      ],
+      "targetRelease": "0.5.0",
+      "shippedIn": "0.4.2"
+    },
+    {
+      "id": "M7.8",
+      "title": "Open the popup after a space without stealing Tab or Enter",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        62,
+        7,
+        8
+      ],
+      "notes": "Today the popup closes on space (story 9), so this changes the key router and needs native tests for every key. A next-word row is not highlighted by default until you press Down, so Tab still indents or moves on, like the 150 ms no-steal idea for phrases. Built: next-word rows open with nothing highlighted, so Tab and Enter stay the app's until Up or Down highlights a row; Esc dismisses. 12 native tests cover every key. [words] next and chunks now default to on.",
+      "refs": [
+        "tip/src/popup_model.h",
+        "tip/tests/test_popup_model.cpp",
+        "tip/src/tsf_service.cpp",
+        "branch m7-kinds"
+      ],
+      "targetRelease": "0.5.0",
+      "shippedIn": "0.4.2"
+    },
+    {
+      "id": "M7.9",
+      "title": "Check next words and chunks live in real apps",
+      "status": "dropped",
+      "area": "test",
+      "stories": [
+        62,
+        63,
+        64,
+        65
+      ],
+      "notes": "Dropped for the release: live checks no longer gate a milestone (see the 2026-09-30 decision); daily use is the test. The checklist below stays for when you want to run it. Needs you. Checklist: (1) rebuild and register the DLL from the merged code (tip\build.cmd, then tip\register.ps1; restart Chrome with chrome://restart) and restart the engine. (2) In Notepad, Discord and Chrome type 'I would like to ' and check: a few next words appear with nothing highlighted; Tab still indents or moves on; Down then Tab takes one; Enter still sends or adds a line. (3) Type 'thank you for yo' and check a chunk can show above the words and Tab takes it. (4) Judge: helpful, or noisy? If noisy, raise [words] next_threshold (for example 0.15) or set next = false or chunks = false in config.toml. (5) If the base tables feel thin, the next step is a looser prune and a chat-style corpus, and only then. Logs are in %LOCALAPPDATA%\\Completionist (engine.log, tip.log); completionist-stats shows accepts.",
+      "targetRelease": "0.5.0"
+    },
+    {
+      "id": "M8.1",
+      "title": "Snapshot writer: personal dictionary and stats into one local HTML file",
+      "status": "dropped",
+      "area": "viewer",
+      "stories": [
+        68,
+        69
+      ],
+      "notes": "Dropped 2026-09-30: a page opened from disk can't remove words or save settings, so the viewer is served by the engine instead (0.6.0).",
+      "targetRelease": "0.6.0"
+    },
+    {
+      "id": "M8.2",
+      "title": "Viewer page: searchable, sortable dictionary with remove, a settings form and the stats, in the Evergreen theme",
+      "status": "done",
+      "area": "viewer",
+      "stories": [
+        67,
+        68,
+        69,
+        75
+      ],
+      "notes": "Built as one self-contained page the engine serves: a searchable, sortable dictionary of words with counts and a Remove button, a settings form (only changed fields are saved), and stats by day, app and provider speed, in the Evergreen colours. Left out: a trigram list, because the store has no way to list or remove a single trigram; forgetting a word still removes the pairs and triples it was in.",
+      "refs": [
+        "m8-viewer",
+        "engine/src/completionist_engine/viewer.html",
+        "0.6.0"
+      ],
+      "targetRelease": "0.6.0",
+      "shippedIn": "0.5.2"
+    },
+    {
+      "id": "M8.3",
+      "title": "Tray item: Open viewer",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        70
+      ],
+      "notes": "Next to the existing \"Show stats\" item; opens the engine's local address with its token.",
+      "refs": [
+        "m8-viewer",
+        "engine/src/completionist_engine/tray.py",
+        "engine/src/completionist_engine/app.py",
+        "0.6.0"
+      ],
+      "targetRelease": "0.6.0",
+      "shippedIn": "0.5.3"
+    },
+    {
+      "id": "M8.4",
+      "title": "Tests: the page serves counts and dictionary entries only, and other websites can't drive it",
+      "status": "done",
+      "area": "test",
+      "stories": [
+        17,
+        56
+      ],
+      "notes": "No typed-text history, no text from silent fields or blocked apps. Requests without the token or from another origin are refused.",
+      "refs": [
+        "m8-viewer",
+        "engine/tests/test_viewer.py",
+        "engine/tests/test_settings.py",
+        "0.6.0"
+      ],
+      "targetRelease": "0.6.0",
+      "shippedIn": "0.5.4"
+    },
+    {
+      "id": "M8.5",
+      "title": "Check the viewer live",
+      "status": "dropped",
+      "area": "test",
+      "stories": [
+        68,
+        69,
+        70
+      ],
+      "notes": "Dropped for the release: live checks no longer gate a milestone (see the 2026-09-30 decision); the viewer was driven in the browser pane instead. Checklist for when you want it: restart the engine, choose Open viewer in the tray, type for a while, check the dictionary and stats, remove a word, change the words limit and watch it apply within a couple of seconds, and type your key once to see the page say it is set but never show it.",
+      "targetRelease": "0.6.0"
+    },
+    {
+      "id": "M8.6",
+      "title": "Local viewer server in the engine, on this machine only",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        69,
+        70
+      ],
+      "notes": "Binds 127.0.0.1 only and needs a secret token that the tray's Open viewer puts in the address. Checks the Host and Origin headers so another website can't call it. Serves the page and a small JSON interface: list words, forget a word, read and write settings.",
+      "refs": [
+        "m8-viewer",
+        "engine/src/completionist_engine/viewer.py",
+        "0.6.0"
+      ],
+      "targetRelease": "0.6.0",
+      "shippedIn": "0.5.6"
+    },
+    {
+      "id": "M8.7",
+      "title": "Settings: show the config as a form and write changes back to config.toml",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        75
+      ],
+      "notes": "Only known options, validated, written back without losing the user's comments if practical. The phrase api_key is typed into the page by the user and saved to config.toml, but it is write-only: the engine never sends it to the page, the page shows only \"set\" or \"not set\", and it is never logged or printed in errors. The existing config hot reload applies changes.",
+      "refs": [
+        "m8-viewer",
+        "engine/src/completionist_engine/settings.py",
+        "engine/tests/test_settings.py",
+        "0.6.0"
+      ],
+      "targetRelease": "0.6.0",
+      "shippedIn": "0.5.7"
+    },
+    {
+      "id": "M8.8",
+      "title": "Trigrams: list and remove three-word phrases, in the store, the server and the viewer",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        67,
+        68
+      ],
+      "notes": "PersonalStore.trigrams(search) and forget_trigram(a, b, c); /api/trigrams and /api/forget-trigram; a Phrases tab. Removing one phrase leaves its words and two-word pairs, since other sentences use them.",
+      "refs": [
+        "m8-trigrams",
+        "engine/src/completionist_engine/personal.py",
+        "engine/src/completionist_engine/viewer.py",
+        "0.6.1"
+      ],
+      "targetRelease": "0.6.0",
+      "shippedIn": "0.6.1"
+    },
+    {
+      "id": "M8.9",
+      "title": "Viewer redesign: clearer hierarchy, motion and accessibility",
+      "status": "done",
+      "area": "viewer",
+      "stories": [
+        68,
+        69,
+        75
+      ],
+      "notes": "Rebuilt viewer.html: four tabs kept in the address hash, usage bars, a daily chart, switches and a save bar for settings, a two-step confirm before any remove, toasts, empty and loading states, dark mode, phone width, reduced motion, keyboard-initiated changes not animated. Checked against the ui-ux-designer, ui-animation and web-design-guidelines skills.",
+      "refs": [
+        "m8-trigrams",
+        "engine/src/completionist_engine/viewer.html",
+        "0.6.1"
+      ],
+      "targetRelease": "0.6.0",
+      "shippedIn": "0.6.1"
+    },
+    {
+      "id": "M9.9",
+      "title": "Versions replace milestones on the roadmap",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "refs": [
+        "branch roadmap-versions",
+        "scripts/check_roadmap.py",
+        "docs/roadmap/tasks.html",
+        "docs/roadmap/page.js",
+        "0.6.2"
+      ],
+      "notes": "Every task shows the version it ships in instead of an M-id. Shipped work shows the release it went out in (several tasks can share one); unshipped work gets one patch number each, counting up to the next release, so 0.6.10 comes before 0.7.0. The M-ids stay in the file as internal keys and the old log lines keep them. The checker enforces the version rule.",
+      "targetRelease": "0.7.0",
+      "shippedIn": "0.6.2"
+    },
+    {
+      "id": "M9.1",
+      "title": "Fuzzy index over the vocabulary and personal words",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        71
+      ],
+      "refs": [
+        "m9-fuzzy",
+        "engine/src/completionist_engine/fuzzy.py",
+        "engine/tests/test_fuzzy.py",
+        "0.6.3"
+      ],
+      "notes": "Tried SymSpell first as planned, but it corrects whole words and can't handle half-typed fragments (see the decision). Uses rapidfuzz instead: a first-letter bucket scan with OSA edit distance and an early cutoff (see the decision).",
+      "targetRelease": "0.7.0",
+      "shippedIn": "0.6.3"
+    },
+    {
+      "id": "M9.2",
+      "title": "Fuzzy candidates fill the rows after exact prefix matches",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        71,
+        73
+      ],
+      "refs": [
+        "m9-fuzzy",
+        "engine/src/completionist_engine/words.py",
+        "engine/src/completionist_engine/assemble.py",
+        "0.6.4"
+      ],
+      "notes": "Exact matches always come first. Corrections fill the remaining rows, or all of them when nothing matches. Edit distance 1 for short fragments and 2 for longer ones, and no correcting 1 to 2 letter fragments, names or learned words. Tests: moutian, definately, recieve.",
+      "targetRelease": "0.7.0",
+      "shippedIn": "0.6.4"
+    },
+    {
+      "id": "M9.3",
+      "title": "Protocol marks the guessed letters of each suggestion",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        72
+      ],
+      "refs": [
+        "m9-fuzzy",
+        "engine/src/completionist_engine/protocol.py",
+        "engine/src/completionist_engine/words.py",
+        "engine/src/completionist_engine/engine.py",
+        "tip/src/protocol.cpp",
+        "0.6.5"
+      ],
+      "notes": "Each item carries the positions it corrected. Tests on both sides. Builds on the suggestion kind from 0.4.2.",
+      "targetRelease": "0.7.0",
+      "shippedIn": "0.6.5"
+    },
+    {
+      "id": "M9.4",
+      "title": "Popup draws guessed letters in a third colour",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        72
+      ],
+      "refs": [
+        "m9-fuzzy",
+        "tip/src/popup.cpp",
+        "tip/src/popup.h",
+        "tip/src/tsf_service.cpp",
+        "0.6.6"
+      ],
+      "notes": "Guessed letters draw in amber (validated: 10.6 on the popup background, 5.0 on the highlight row). Native tests pass and the DLL builds; the TSF harness screenshot runs when you say you are away.",
+      "targetRelease": "0.7.0",
+      "shippedIn": "0.6.6"
+    },
+    {
+      "id": "M9.5",
+      "title": "Latency check with the fuzzy index on",
+      "status": "done",
+      "area": "test",
+      "stories": [
+        71
+      ],
+      "refs": [
+        "m9-fuzzy",
+        "engine/tests/test_server.py",
+        "0.6.7"
+      ],
+      "notes": "Lookup p95 stays under 10 ms over the real pipe (5 ms with typos typed; the fuzzy scan only runs when rows are unfilled).",
+      "targetRelease": "0.7.0",
+      "shippedIn": "0.6.7"
+    },
+    {
+      "id": "M9.6",
+      "title": "Check typo completion live in real apps",
+      "status": "dropped",
+      "area": "test",
+      "stories": [
+        71,
+        72,
+        73
+      ],
+      "notes": "Dropped for the release: live checks no longer gate a milestone (see the 2026-09-30 decision); daily use is the test. Checklist for when you want it: type moutian, definately, recieve and similar, and check that correct rare words aren't pushed aside.",
+      "targetRelease": "0.7.0"
+    },
+    {
+      "id": "M9.7",
+      "title": "README demo GIF and a small web demo of the popup",
+      "status": "dropped",
+      "area": "docs",
+      "stories": [],
+      "notes": "Dropped for the 0.7.0 release: a public showcase with made-up data needs the owner's OK before publishing, and daily use is the test. Checklist: a short GIF of the popup in use and a plain HTML page showing the ranking (no engine, no server, no real data).",
+      "targetRelease": "0.7.0"
+    },
+    {
+      "id": "M9.8",
+      "title": "Remove the Completionist Spike keyboard and unregister it",
+      "status": "dropped",
+      "area": "install",
+      "stories": [],
+      "notes": "Dropped for the 0.7.0 release: only the user can do it at a real desktop, and daily use is the test. Checklist: remove it from the language list, then run `tip/spike/register.ps1 -Unregister`.",
+      "targetRelease": "0.7.0"
+    },
+    {
+      "id": "M5.2",
+      "title": "Code-review fixes before 1.0",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        34,
+        35
+      ],
+      "refs": [
+        "release-1.0",
+        "engine/src/completionist_engine/phrase_scheduler.py",
+        "tip/src/tsf_service.cpp",
+        "0.7.2"
+      ],
+      "notes": "15 fixes from a full review: phrase and Esc suppression survive the sliding 8000-character window, DLL edit sessions hold the service alive, tray stats run on the engine loop, pause cancels phrases, personal-word promotion and chunk seeds, config encoding, viewer 500s, uninstall removes the roaming config, learning-off stops ranking.",
+      "targetRelease": "1.1.0",
+      "shippedIn": "0.7.2"
+    },
+    {
+      "id": "M5.3",
+      "title": "Evergreen tray and keyboard icon (no more Typer T)",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "refs": [
+        "tray-icon-evergreen",
+        "engine/src/completionist_engine/tray.py",
+        "tip/assets/make_icon.py",
+        "1.0.1"
+      ],
+      "notes": "The old icon was a blue square with a T for Typer. Now a pine-green square (Evergreen --sign) with a white C and a pink caret bar (--vms-ink); grey (--todo) when paused. Same drawing in the tray (Pillow) and the keyboard .ico (make_icon.py).",
+      "targetRelease": "1.1.0",
+      "shippedIn": "1.0.1"
+    },
+    {
+      "id": "M5.4",
+      "title": "Preferred Providers option in the viewer settings",
+      "status": "done",
+      "area": "viewer",
+      "stories": [],
+      "refs": [
+        "tray-icon-evergreen",
+        "engine/src/completionist_engine/settings.py",
+        "engine/src/completionist_engine/viewer.html",
+        "1.0.2"
+      ],
+      "notes": "provider_order (default Groq) is now a list box under Cloud Phrases in the viewer settings, one provider per line; an empty list lets OpenRouter choose.",
+      "targetRelease": "1.1.0",
+      "shippedIn": "1.0.2"
+    },
+    {
+      "id": "M5.5",
+      "title": "Requests log tab in the viewer",
+      "status": "done",
+      "area": "viewer",
+      "stories": [],
+      "refs": [
+        "tray-icon-evergreen",
+        "engine/src/completionist_engine/request_log.py",
+        "engine/src/completionist_engine/viewer.html",
+        "engine/src/completionist_engine/viewer.py",
+        "1.0.3"
+      ],
+      "notes": "Modelled on the flexrouter request log: a live table (time, app, answered by, suggestion, first text, took, result) with search and a result filter, a side sheet with the text sent, the suggestion and each model tried (and why it failed), and a two-step Clear Log. Results are OK, Failover, Failed and Cancelled (the user kept typing). Text is held in memory only, last 200.",
+      "targetRelease": "1.1.0",
+      "shippedIn": "1.0.3"
+    },
+    {
+      "id": "M5.6",
+      "title": "Advanced phrase settings and editable instructions in the viewer",
+      "status": "done",
+      "area": "viewer",
+      "stories": [],
+      "refs": [
+        "tray-icon-evergreen",
+        "engine/src/completionist_engine/settings.py",
+        "engine/src/completionist_engine/config.py",
+        "engine/src/completionist_engine/context.py",
+        "engine/src/completionist_engine/viewer.html",
+        "1.0.4"
+      ],
+      "notes": "Cloud Phrases gains an expandable Advanced section (max output length, temperature, seconds before asking, give-up timeout, text before and after the caret, send-text-after) and an expandable Instructions section holding the system prompt, new as [phrase] instructions with a Restore Built-in button. The wait is shown in seconds but the file keeps debounce_ms. base_url stays out of the page on purpose: it would let a page redirect the key and typed text.",
+      "targetRelease": "1.1.0",
+      "shippedIn": "1.0.4"
+    },
+    {
+      "id": "M5.1",
+      "title": "Reply-aware context from the surrounding window",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        57,
+        58
+      ],
+      "refs": [
+        "reply-aware-context",
+        "engine/src/completionist_engine/screen_context.py",
+        "engine/src/completionist_engine/screen_windows.py",
+        "engine/src/completionist_engine/context.py",
+        "engine/src/completionist_engine/phrases.py",
+        "1.0.5"
+      ],
+      "notes": "Windows OCR of the window in front, read in the background after a window or title has stayed in front for two looks (twice a second), never on the typing path. The text (the last 2000 characters, whole lines) goes first in the prompt as background; lines the person typed are removed. A capture is only handed over if its window is still in front. Skipped for blocked apps, while paused, without an API key, for the engine's own windows and for elevated programs. New [phrase] screen_context switch, on by default. UI Automation was measured and dropped: see decisions.",
+      "targetRelease": "1.1.0",
+      "shippedIn": "1.0.5"
+    },
+    {
+      "id": "M5.7",
+      "title": "Show the screenshot and extracted text in the Requests page",
+      "status": "done",
+      "area": "viewer",
+      "stories": [],
+      "refs": [
+        "reply-aware-context",
+        "engine/src/completionist_engine/viewer.py",
+        "engine/src/completionist_engine/viewer.html",
+        "engine/src/completionist_engine/request_log.py",
+        "1.0.6"
+      ],
+      "notes": "A request's side sheet gains Screen it was shown (the JPEG, fetched with the token and shown from an in-memory blob, click for full size), Text read from the screen, and Sent to the model when lines were removed. The screenshot is served by a token-guarded endpoint, the page may show blob images and nothing else, and the pictures live in memory with the log and are cleared with it.",
+      "targetRelease": "1.1.0",
+      "shippedIn": "1.0.6"
+    },
+    {
+      "id": "M10.4",
+      "title": "Expanded settings and collapsible Advanced tiles",
+      "status": "done",
+      "area": "viewer",
+      "stories": [],
+      "notes": "All 30 approved controls: routing, timing, writing, context/privacy, app profiles, popup and keys; defaults retained and behavior tested. Verified with 626 passing Python tests (one skip), 77 native tests, four settings-form tests and a clean x64 DLL build; live popup and provider checks remain manual.",
+      "refs": [
+        "main",
+        "codex/expanded-settings",
+        "1.1.1",
+        "docs/settings.md",
+        "engine/src/completionist_engine/settings.py",
+        "engine/src/completionist_engine/viewer.html",
+        "tip/src/popup_settings.h"
+      ],
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.1"
+    },
+    {
+      "id": "M10.5",
+      "title": "Use the current C icon in the viewer header",
+      "status": "done",
+      "area": "viewer",
+      "stories": [],
+      "refs": [
+        "engine/src/completionist_engine/viewer.html"
+      ],
+      "notes": "Replace the leftover Typer T header SVG with the Evergreen C and pink caret used by the tray and keyboard icons.",
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.2"
+    },
+    {
+      "id": "M10.6",
+      "title": "Keep single-letter words out of personal learning",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "refs": [
+        "engine/src/completionist_engine/personal.py",
+        "engine/tests/test_personal.py"
+      ],
+      "notes": "Typed or accepted single-letter words are not learned; old single-letter entries are removed on open. Word suggestions still start at the first letter.",
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.3"
+    },
+    {
+      "id": "M10.7",
+      "title": "Show full phrase request details and events",
+      "status": "done",
+      "area": "viewer",
+      "stories": [],
+      "refs": [
+        "engine/src/completionist_engine/request_log.py",
+        "engine/src/completionist_engine/phrases.py",
+        "engine/src/completionist_engine/viewer.py",
+        "engine/src/completionist_engine/viewer.html"
+      ],
+      "notes": "Keep full prompts and replies in memory and show the suffix, non-secret request settings and an event timeline beside the existing context, screenshot, outcome, timings and model attempts. Timings-only mode scrubs the added detail.",
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.4"
+    },
+    {
+      "id": "M10.8",
+      "title": "Show exact outgoing request and HTTP status",
+      "status": "done",
+      "area": "viewer",
+      "stories": [],
+      "refs": [
+        "engine/src/completionist_engine/phrase_provider.py",
+        "engine/tests/test_phrases.py",
+        "engine/tests/test_config_watch.py",
+        "AGENTS.MD"
+      ],
+      "notes": "The in-memory event timeline shows the exact outgoing JSON without the authorization header, followed by the HTTP status; the config watcher test uses monotonic file times, and the repository has a small AGENTS.MD pointer to CLAUDE.md.",
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.5"
+    },
+    {
+      "id": "M10.9",
+      "title": "Proportional highway lanes and a 3.0.0 browser lane",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "refs": [
+        "docs/roadmap/map-layout.js",
+        "docs/roadmap/map.js",
+        "scripts/map_layout.test.mjs"
+      ],
+      "notes": "The highway map's lane height now follows how many patch stops a highway carries, and a tall lane deals its stops into slot rows above and below the road. The Browser extension highway opens at 3.0.0, not 1.0.0.",
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.6"
+    },
+    {
+      "id": "M10.10",
+      "title": "Agent roadmap brief and edit helper",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "refs": [
+        "scripts/roadmap.py",
+        "scripts/test_roadmap_cli.py",
+        "CLAUDE.md"
+      ],
+      "notes": "scripts/roadmap.py brief writes a short git-ignored docs/roadmap/roadmap-brief.md for agents, and start, done, log and add-task make the routine roadmap edits without opening roadmap.js, undoing themselves if the checker rejects the result. CLAUDE.md tells agents to run the brief first and avoid roadmap.js.",
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.7"
+    },
+    {
+      "id": "M10.3",
+      "title": "Overhaul the dashboard (the viewer)",
+      "status": "next",
+      "area": "viewer",
+      "stories": [],
+      "notes": "Independent V2 viewer overhaul track. Desktop autocomplete scope now has a separate spec and nine-stage implementation plan, prioritised by the owner. The viewer still needs its own approved Words, Stats, Requests and Settings layout in Evergreen tokens. Existing settings remain authoritative; context receipt stays in the viewer. Native desktop completion alone does not finish the full 2.0.0 release.",
+      "targetRelease": "2.0.0",
+      "label": "Dashboard overhaul"
+    },
+    {
+      "id": "M10.1",
+      "title": "Scope the popup redesign: audit the popup in real apps and decide what else is included",
+      "status": "doing",
+      "area": "dll",
+      "stories": [],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Scope and document review for the V2 native desktop surfaces. The owner verified the C++ glass spike works and requested softer true Gaussian blur. The final spec and nine-stage plan are drafted; latest material review, joint document approval and live desktop capture/focus/DPI verification remain pending. No production renderer or installed DLL has been changed. M10.14 is the next feasibility stage; viewer redesign remains an independent V2 track.",
+      "targetRelease": "2.0.0",
+      "label": "Popup scope"
+    },
+    {
+      "id": "M10.2",
+      "title": "Redesign and rewrite the popup drawing",
+      "status": "dropped",
+      "area": "dll",
+      "stories": [
+        74
+      ],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Superseded by nine individually tracked desktop overhaul stages M10.14 through M10.22, matching Tasks 1 through 9 of the implementation plan. This broad drawing task is retained as history rather than duplicated implementation work; its patch number is preserved and no release is created. The separate renderer, real data, focus and IPC, layout, dock and fallback, TSF integration, packaging and validation now have their own scope and gates.",
+      "targetRelease": "2.0.0",
+      "label": "Superseded popup"
+    },
+    {
+      "id": "M10.11",
+      "title": "Explain Windows OCR context to the cloud model",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "refs": [
+        "engine/src/completionist_engine/context.py",
+        "docs/settings.md"
+      ],
+      "notes": "Update the phrase prompt to identify OCR text as locally recognized, imperfect background context and treat it as untrusted data; document that only recognized text is sent.",
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.11"
+    },
+    {
+      "id": "M10.12",
+      "title": "Copy the prompt test pack and disable reasoning by default",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "refs": [
+        "engine/src/completionist_engine/context.py",
+        "engine/src/completionist_engine/phrase_provider.py",
+        "engine/src/completionist_engine/viewer.html",
+        "docs/settings.md"
+      ],
+      "notes": "Add a Settings action that copies the built-in system prompt plus three provider-playground scenarios; switch phrase requests to chat completions so reasoning effort defaults to none and no thinking output is requested.",
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.12"
+    },
+    {
+      "id": "M10.13",
+      "title": "Ship OCR-aware prompt playground to main",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "refs": [
+        "engine/src/completionist_engine/context.py",
+        "engine/src/completionist_engine/phrase_provider.py",
+        "engine/src/completionist_engine/viewer.html"
+      ],
+      "notes": "Merge the Windows OCR-aware system prompt, three synthetic provider comparison scenarios, copy action and no-reasoning default into main.",
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.13"
+    },
+    {
+      "id": "M10.23",
+      "title": "Generate roadmap briefs at three detail levels",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "refs": [
+        "scripts/roadmap.py",
+        "scripts/test_roadmap_cli.py",
+        "CLAUDE.md"
+      ],
+      "notes": "Generated focused briefs: minimal shows doing/next/blocked tasks on one line each; medium adds full current notes and the five most recently shipped versions and their completed tasks; maximum alone retains full context. The default brief aliases minimal. Scope tests verify exclusions, recent history limits and lossless maximum data.",
+      "targetRelease": "2.0.0",
+      "shippedIn": "1.1.14"
+    },
+    {
+      "id": "M10.14",
+      "title": "Prove live soft glass in a standalone native renderer",
+      "status": "next",
+      "area": "dll",
+      "stories": [
+        74
+      ],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Dependency: reviewed V2 spec and plan. Prove two non-activating windows with real desktop refraction, proper GPU Gaussian blur, sharp foreground text and no capture feedback. Test exclusion failure, device loss, HDR/unsupported-session fallback, rotation and mixed DPI; verify focus stays in the typing app. Measure GPU/paint timing and idle repaint behavior. Owner-run live material review is the gate before integration; the static spike is not production proof.",
+      "targetRelease": "2.0.0",
+      "stage": 1,
+      "label": "Live glass proof"
+    },
+    {
+      "id": "M10.15",
+      "title": "Supply truthful AI lifecycle and suggestion origins",
+      "status": "todo",
+      "area": "engine",
+      "stories": [
+        74
+      ],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Dependency: Stage 1 feasibility gate; engine work may be developed independently after document review. Publish actual scheduled/working/streaming/ready/unavailable state, scheduler-derived wait and elapsed durations, trigger reason and aligned Local/Learned origins. Keep ranking unchanged and tense unavailable until V2.1. Fake-clock/provider tests cover reset, cancel, failure, manual/off modes and stale updates; native parsing tests cover legacy clients and malformed optional metadata.",
+      "targetRelease": "2.0.0",
+      "stage": 2,
+      "label": "AI lifecycle"
+    },
+    {
+      "id": "M10.16",
+      "title": "Implement renderer protocol, focus leases and arbitration",
+      "status": "todo",
+      "area": "dll",
+      "stories": [
+        74
+      ],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Dependency: Stage 1; establishes the shared interfaces used by later stages. Add versioned full-snapshot/acknowledgement framing, same-user/session pipe validation, actual peer PID checks, foreground eligibility and revision/generation arbitration. A 500 ms heartbeat expires after 1500 ms; revoked focus cannot be revived by old messages. Test malformed/oversize frames, negative coordinates, competing apps, host exit and disconnect; both surfaces must hide without stale content.",
+      "targetRelease": "2.0.0",
+      "stage": 3,
+      "label": "Renderer IPC"
+    },
+    {
+      "id": "M10.17",
+      "title": "Build native layout, typography and Evergreen palette",
+      "status": "todo",
+      "area": "dll",
+      "stories": [
+        74
+      ],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Dependency: Stages 2 and 3. Implement pure layout for the 330-DIP caret menu and 190-DIP bottom-left dock, measured font/width settings, origins, correction comparison, dotted guessed letters and exact partial-accept underline. Keep foreground sharp and pending AI targets stable. Test 100/150/200% DPI, negative/portrait monitors, every edge, small work areas and long Unicode content. Verify palette parity and generated light/dark fixture images.",
+      "targetRelease": "2.0.0",
+      "stage": 4,
+      "label": "Native layout"
+    },
+    {
+      "id": "M10.18",
+      "title": "Complete glass windows, dock motion and recovery",
+      "status": "todo",
+      "area": "dll",
+      "stories": [
+        74
+      ],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Dependency: Stages 1, 3 and 4. Compose final glass/text layers; implement the non-activating dock toggle, interruptible 180/220 ms collapse, auto-minimize/restore, manual preference, reduced motion and accessible states. Connection dot indicates the engine pipe only; V2 displays Tense dash. Test high contrast, transparency disabled, exclusion/device/capture failure and cleanup. Successful-current-presentation acknowledgements are required; no frozen captured background or focus theft.",
+      "targetRelease": "2.0.0",
+      "stage": 5,
+      "label": "Glass & motion"
+    },
+    {
+      "id": "M10.19",
+      "title": "Ship matching host fallback and keyboard regressions",
+      "status": "todo",
+      "area": "dll",
+      "stories": [
+        74
+      ],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Dependency: Stages 2 and 4. Redraw the in-host opaque fallback with shared Evergreen layout, corrections/origins, partial underline and truthful compact AI status. Preserve the existing popup HWND for engine messages/timers. Add worker-to-UI connection notifications. Test status-only Tab passthrough, unchanged Enter, after-space unselected Tab, the 150 ms phrase guard, explicit-selection persistence, stale keys and configured shortcuts. Build a review artifact without installing it.",
+      "targetRelease": "2.0.0",
+      "stage": 6,
+      "label": "Host fallback"
+    },
+    {
+      "id": "M10.20",
+      "title": "Connect TSF snapshots with renderer failover",
+      "status": "todo",
+      "area": "dll",
+      "stories": [
+        74
+      ],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Dependency: Stages 3, 5 and 6. Add asynchronous renderer client, canonical physical-pixel caret conversion and current-focus full snapshots; the DLL remains insertion/keyboard authority. Coalesce shows, prioritize hides and cap the queue at 32. Suppress fallback only for matching presented acknowledgements; restore after disconnect/unavailable or 250 ms without acknowledgement. Fake-peer tests cover old revisions, bad peers, delays, renderer kill and focus races; manually verify host DPI-awareness modes.",
+      "targetRelease": "2.0.0",
+      "stage": 7,
+      "label": "TSF integration"
+    },
+    {
+      "id": "M10.21",
+      "title": "Integrate renderer lifecycle, packaging and viewer contracts",
+      "status": "todo",
+      "area": "install",
+      "stories": [
+        74
+      ],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Dependency: Stage 7. Python supervises one hidden native renderer from a known local path, with at most three crash restarts in 60 seconds and owned-child shutdown. Test missing binaries, duplicate session instance, retry exhaustion and clean exit. Package paired DLL/renderer artifacts and preserve rollback versions; installation/UAC remains user-run. Existing viewer settings stay authoritative and context receipt stays in Requests; dashboard layout remains a separate V2 track.",
+      "targetRelease": "2.0.0",
+      "stage": 8,
+      "label": "Packaging"
+    },
+    {
+      "id": "M10.22",
+      "title": "Validate and stage the desktop overhaul",
+      "status": "todo",
+      "area": "test",
+      "stories": [
+        74
+      ],
+      "refs": [
+        "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
+        "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
+        "codex/native-autocomplete-v2"
+      ],
+      "notes": "Dependency: all preceding stages. Run engine/native/renderer tests and both production builds; then owner-run Notepad, Chrome and Electron checks at 100/150/200%, both monitors/all edges, themes, accessibility, motion, real AI lifecycle, correction/partial acceptance and engine/renderer failure. Measure timing and idle targets, document actual results and paired-artifact rollback. Run focus-stealing harness only while the owner is away. Enable by default only after gates pass; full V2 also requires the viewer track.",
+      "targetRelease": "2.0.0",
+      "stage": 9,
+      "label": "Validation"
+    },
+    {
+      "id": "roadmap-release-atlas",
+      "targetRelease": "2.0.0",
+      "title": "Separate release destinations from roadwork and build the Release atlas",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "notes": "Implemented concept A: release destinations, independent completion and explicit shipping, flat tasks with stable IDs and local stages, scope-based atlas regions, expandable shipping history, migrated task board and briefs. Verified all 91 released records and all 122 original task identities and historical facts survive. Validation: 23 Python tests, 8 Node geometry tests, JavaScript syntax checks and browser task selection, historical writing, expansion, search, future destinations and 390px/1440px layouts. Local HTTP preview verified; direct file navigation is blocked by the test browser protocol policy. No release or tag created.",
+      "label": "Release atlas",
+      "completed": "2026-10-02",
+      "refs": [
+        "codex/roadmap-release-atlas",
+        "scripts/roadmap.py",
+        "scripts/check_roadmap.py",
+        "scripts/migrate_roadmap.py",
+        "docs/roadmap/map-layout.js",
+        "docs/roadmap/map.js",
+        "docs/roadmap/page.js",
+        "docs/roadmap/tasks.html"
+      ]
+    },
+    {
+      "id": "M11.1",
+      "title": "Use sentence tense when ranking word suggestions",
+      "status": "todo",
+      "area": "engine",
+      "stories": [],
+      "notes": "Detect whether the current sentence is in past or present tense from available context and use it as a ranking signal. Keep typed-prefix and context evidence in consideration; if tense is ambiguous or mixed, do not force a tense-based change.",
+      "targetRelease": "2.1.0",
+      "label": "Tense-aware ranking"
+    },
+    {
+      "id": "M6.1",
+      "title": "Chrome extension over Native Messaging",
+      "status": "todo",
+      "area": "extension",
+      "stories": [],
+      "notes": "Inline ghost text and page context in web fields. Moved from 1.1.1 to 2.0.1 (2026-10-01), then to 2.1.1 (2026-10-01) to leave room for the tense-aware suggestions milestone; it still leads the 3.0.0 major release after the dashboard and popup redesign.",
+      "targetRelease": "3.0.0",
+      "label": "Chrome extension"
     }
   ]
 };

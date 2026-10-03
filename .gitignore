@@ -30,3 +30,6 @@ data/out/
 
 # Generated roadmap brief for agents (python scripts/roadmap.py brief)
 docs/roadmap/roadmap-brief.md
+docs/roadmap/roadmap-brief-minimal.md
+docs/roadmap/roadmap-brief-medium.md
+docs/roadmap/roadmap-brief-maximum.md
