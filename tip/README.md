@@ -31,7 +31,9 @@ A C++ TSF text service. Windows loads it into every app that has text input; it 
 
 ## Install
 
-Most people should run `..\scripts\install.ps1`, which does all of this and also sets up the engine. By hand: apps keep the DLL loaded (and locked). `build.cmd` renames the old DLL out of the way, so rebuilding always works, but an app only picks up the new build after it restarts. Chrome keeps running in the background: use `chrome://restart`.
+Most people should run `..\scripts\install.ps1`, which builds the renderer before the TSF DLL, saves the previous DLL/renderer pair under `out\rollback`, then copies the pair before DLL registration. If registration fails, it restores the previous pair. `-SkipBuild` reuses the existing pair and fails if either artifact is missing. The install script does not force-stop Python processes; close the running engine normally before reinstalling so its renderer child exits cleanly. The renderer is opt-in through `completionist-engine --serve-renderer`; ordinary startup keeps the in-host opaque popup until the owner-run live capture, focus, DPI and failure checks pass. Opt-in starts the known `tip\out\CompletionistRenderer.exe` path with `--serve`; a missing or unavailable renderer leaves suggestions on the host popup.
+
+Apps keep the DLL loaded (and locked). `build.cmd` renames the old DLL out of the way, so rebuilding always works, but an app only picks up the new build after it restarts. Chrome keeps running in the background: use `chrome://restart`. The native renderer lifecycle has only been checked with fake process and session-probe fixtures; live/native acceptance is still unrun.
 
 ```powershell
 .\build.cmd

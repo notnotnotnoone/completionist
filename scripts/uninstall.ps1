@@ -7,13 +7,15 @@ $ErrorActionPreference = "Stop"
 
 $repo = Split-Path -Parent $PSScriptRoot
 $tip = Join-Path $repo "tip"
+$renderer = Join-Path $tip "out\CompletionistRenderer.exe"
 $taskName = "Completionist engine"
 
 function Step($text) { Write-Host "`n==> $text" -ForegroundColor Cyan }
 
 Step "Stopping the engine"
-Get-CimInstance Win32_Process | Where-Object { $_.Name -match "^pythonw?\.exe$" -and $_.CommandLine -like "*completionist_engine*" } |
-    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
+    Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+}
 
 Step "Logon task"
 if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
@@ -26,6 +28,14 @@ Step "Removing the keyboard"
 
 Step "Unregistering the DLL (approve the UAC prompt)"
 if (Test-Path (Join-Path $tip "out\CompletionistTip.dll")) { & (Join-Path $tip "register.ps1") -Unregister } else { "No DLL build found; nothing to unregister." }
+
+# Remove only the renderer artifact installed at this checkout's known path.
+if (Test-Path -LiteralPath $renderer) {
+    $root = [IO.Path]::GetFullPath($repo).TrimEnd('\') + '\'
+    $resolved = [IO.Path]::GetFullPath($renderer)
+    if (-not $resolved.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { throw "Refusing to remove a path outside this checkout: $resolved" }
+    Remove-Item -LiteralPath $resolved -Force
+}
 
 if ($DeleteData) {
     Step "Deleting data"

@@ -31,6 +31,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, default=default_config_path())
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     parser.add_argument("--no-tray", action="store_true", help="don't show the tray icon or register the pause hotkey")
+    parser.add_argument(
+        "--serve-renderer", action="store_true",
+        help="opt in to the experimental native renderer (live acceptance is still required)",
+    )
     args = parser.parse_args(argv)
 
     config_error = None
@@ -78,6 +82,7 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
     hotkey = None
     registered_pause_hotkey = config.pause_hotkey
     viewer = None
+    renderer = None
 
     def toggle_pause() -> bool:
         engine.paused = not engine.paused
@@ -88,6 +93,10 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
 
     server = await start_server(engine, args.pipe)  # first: if the pipe is taken, nothing else has started
     logger.info("listening on %s", args.pipe)
+    if args.serve_renderer:
+        from completionist_engine.renderer_process import RendererProcess
+
+        renderer = RendererProcess()
 
     screen_task = None
     accessible_task = None
@@ -149,9 +158,13 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
         while True:
             await asyncio.sleep(_FLUSH_SECONDS)
             assembled.flush()
+            if renderer is not None:
+                renderer.poll(time.monotonic())
 
     flush_task = asyncio.create_task(flush_regularly())
     try:
+        if renderer is not None:
+            renderer.start()
         await stop.wait()
         logger.info("quit requested")
     finally:
@@ -163,6 +176,8 @@ async def _serve(assembled: Assembled, args: argparse.Namespace, config: Config)
             accessible_task.cancel()
         if hotkey is not None:
             hotkey.stop()
+        if renderer is not None:
+            renderer.stop()
         if tray is not None:
             tray.stop()
         if viewer is not None:

@@ -14,6 +14,10 @@ $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
 $engine = Join-Path $repo "engine"
 $tip = Join-Path $repo "tip"
+$out = Join-Path $tip "out"
+$rendererBuild = Join-Path $tip "renderer\out\CompletionistRenderer.exe"
+$rendererInstall = Join-Path $out "CompletionistRenderer.exe"
+$rollback = Join-Path $out "rollback"
 $taskName = "Completionist engine"
 
 function Step($text) { Write-Host "`n==> $text" -ForegroundColor Cyan }
@@ -28,31 +32,70 @@ try {
 $pythonw = Join-Path $engine ".venv\Scripts\pythonw.exe"
 if (-not (Test-Path $pythonw)) { throw "$pythonw not found after uv sync" }
 
-Step "Text service DLL"
-if ($SkipBuild) {
-    if (-not (Test-Path (Join-Path $tip "out\CompletionistTip.dll"))) { throw "-SkipBuild given but tip\out\CompletionistTip.dll doesn't exist" }
-    "Reusing the existing build."
-} else {
-    & (Join-Path $tip "build.cmd")
-    if ($LASTEXITCODE -ne 0) { throw "DLL build failed (needs the VS 2022 Build Tools with the C++ workload)" }
+function Assert-OwnedPath($path) {
+    $root = [IO.Path]::GetFullPath($repo).TrimEnd('\') + '\'
+    $full = [IO.Path]::GetFullPath($path)
+    if (-not $full.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to modify a path outside this checkout: $full"
+    }
+    return $full
 }
 
-Step "Registering with Windows (approve the UAC prompt)"
-& (Join-Path $tip "register.ps1")
+# Save the current artifact pair before either build can replace one. The fixed
+# rollback directory is inside this checkout and is deliberately retained.
+$null = Assert-OwnedPath $rendererInstall
+$null = Assert-OwnedPath $rollback
+New-Item -ItemType Directory -Force -Path $rollback | Out-Null
+$dllPath = Join-Path $out "CompletionistTip.dll"
+$oldDll = Join-Path $rollback "CompletionistTip.dll"
+$oldRenderer = Join-Path $rollback "CompletionistRenderer.exe"
+Remove-Item -LiteralPath (Assert-OwnedPath $oldDll), (Assert-OwnedPath $oldRenderer) -Force -ErrorAction SilentlyContinue
+if (Test-Path $dllPath) { Copy-Item -LiteralPath (Assert-OwnedPath $dllPath) -Destination (Assert-OwnedPath $oldDll) -Force }
+if (Test-Path $rendererInstall) { Copy-Item -LiteralPath (Assert-OwnedPath $rendererInstall) -Destination (Assert-OwnedPath $oldRenderer) -Force }
+$hadDll = Test-Path $oldDll
+$hadRenderer = Test-Path $oldRenderer
+
+try {
+    if ($SkipBuild) {
+        if (-not (Test-Path $dllPath)) { throw "-SkipBuild given but $dllPath doesn't exist" }
+        if (-not (Test-Path $rendererInstall)) { throw "-SkipBuild requires the paired renderer at $rendererInstall" }
+        $rendererBuild = $rendererInstall
+        "Reusing the existing DLL/renderer pair."
+    } else {
+        Step "Building renderer artifact"
+        & (Join-Path $tip "renderer\build.cmd")
+        if ($LASTEXITCODE -ne 0) { throw "Renderer build failed (needs the VS 2022 Build Tools and Windows SDK)" }
+        if (-not (Test-Path $rendererBuild)) { throw "Renderer build did not produce $rendererBuild" }
+
+        Step "Text service DLL"
+        & (Join-Path $tip "build.cmd")
+        if ($LASTEXITCODE -ne 0) { throw "DLL build failed (needs the VS 2022 Build Tools with the C++ workload)" }
+    }
+
+    # Install the renderer before registration activates the new DLL. The engine
+    # still keeps external rendering disabled unless explicitly opted in.
+    if ($rendererBuild -ne $rendererInstall) {
+        Copy-Item -LiteralPath $rendererBuild -Destination (Assert-OwnedPath $rendererInstall) -Force
+    }
+    Step "Registering with Windows (approve the UAC prompt)"
+    & (Join-Path $tip "register.ps1")
+    if ($LASTEXITCODE -ne 0) { throw "DLL registration failed" }
+} catch {
+    # Restore the prior DLL/renderer pair only at these verified checkout paths.
+    if ($hadDll) { Copy-Item -LiteralPath (Assert-OwnedPath $oldDll) -Destination (Assert-OwnedPath $dllPath) -Force }
+    elseif (Test-Path $dllPath) { Remove-Item -LiteralPath (Assert-OwnedPath $dllPath) -Force }
+    if ($hadRenderer) { Copy-Item -LiteralPath (Assert-OwnedPath $oldRenderer) -Destination (Assert-OwnedPath $rendererInstall) -Force }
+    elseif (Test-Path $rendererInstall) { Remove-Item -LiteralPath (Assert-OwnedPath $rendererInstall) -Force }
+    throw
+}
 
 if (-not $NoKeyboard) {
     Step "Adding the Completionist keyboard"
     & (Join-Path $tip "enable-keyboard.ps1")
 }
 
-# Leftovers from before the rename (the app was called Typer): stop the old engine and remove its logon task.
-Get-CimInstance Win32_Process | Where-Object { $_.Name -match "^pythonw?\.exe$" -and $_.CommandLine -like "*typer_engine*" } |
-    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+# Leftovers from before the rename (the app was called Typer): remove its logon task.
 if (Get-ScheduledTask -TaskName "Typer engine" -ErrorAction SilentlyContinue) { Unregister-ScheduledTask -TaskName "Typer engine" -Confirm:$false }
-
-# A running engine holds the pipe; stop any so the new one takes over.
-Get-CimInstance Win32_Process | Where-Object { $_.Name -match "^pythonw?\.exe$" -and $_.CommandLine -like "*completionist_engine*" } |
-    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
 if (-not $NoStartup) {
     Step "Logon task: '$taskName'"

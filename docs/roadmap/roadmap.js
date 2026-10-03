@@ -1282,6 +1282,18 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "M10.21 adds opt-in renderer supervision, bounded owned-child shutdown, fake-only tests, and paired DLL/renderer rollback; native and live acceptance stay UNRUN."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Completed M10.21 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-03",
+      "text": "Started M10.21 toward 2.0.0."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Recorded Task7 single-review client source and encoder parity fix through9d725e7; alternate DLL compiled, native/DPI gates unrun."
     },
     {
@@ -3972,7 +3984,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.21",
       "title": "Integrate renderer lifecycle, packaging and viewer contracts",
-      "status": "todo",
+      "status": "done",
       "area": "install",
       "stories": [
         74
@@ -3980,12 +3992,19 @@ window.COMPLETIONIST_ROADMAP = {
       "refs": [
         "docs/superpowers/specs/2026-10-02-v2-desktop-overhaul.md",
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
-        "codex/native-autocomplete-v2"
+        "codex/native-autocomplete-v2",
+        "codex/v2-overhaul",
+        "engine/src/completionist_engine/renderer_process.py",
+        "engine/tests/test_renderer_process.py",
+        "scripts/install.ps1",
+        "scripts/uninstall.ps1",
+        "tip/README.md"
       ],
-      "notes": "Dependency: Stage 7. Python supervises one hidden native renderer from a known local path, with at most three crash restarts in 60 seconds and owned-child shutdown. Test missing binaries, duplicate session instance, retry exhaustion and clean exit. Package paired DLL/renderer artifacts and preserve rollback versions; installation/UAC remains user-run. Existing viewer settings stay authoritative and context receipt stays in Requests; dashboard layout remains a separate V2 track.",
+      "notes": "Fake-only supervision and source-level paired installation checks passed. Renderer remains CLI opt-in; native and live acceptance gates are UNRUN.",
       "targetRelease": "2.0.0",
       "stage": 8,
-      "label": "Packaging"
+      "label": "Packaging",
+      "completed": "2026-10-03"
     },
     {
       "id": "M10.22",
