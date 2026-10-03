@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-03",
+      "text": "Fix Task 1b review: opaque fallback, shared fixture material, Windows build floor, and production resource-retirement probes."
+    },
+    {
+      "date": "2026-10-03",
       "text": "Complete Task 1b standalone lens material and opt-in controlled fixture source; compile-only verification passes, live acceptance remains pending."
     },
     {

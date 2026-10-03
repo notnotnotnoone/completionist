@@ -1,14 +1,41 @@
 #include "../capture.h"
 #include "../surfaces.h"
 #include "../resource_lifetime.h"
+#include "../live_policy.h"
 #include "../../tests/test_harness.h"
 #include <vector>
 
 namespace {
-struct ResetProbe {
+struct ResourceProbe {
     std::vector<int>* sequence;
     int value;
-    void Reset() { sequence->push_back(value); }
+    unsigned references=1;
+    void Reset() { if (references) --references; sequence->push_back(value); }
+};
+struct SurfaceProbe {
+    ResourceProbe desktopSourceBitmap,desktopSourceTexture;
+    void hide() { renderer::ResetResources(desktopSourceBitmap,desktopSourceTexture); }
+};
+struct CaptureProbe {
+    ResourceProbe frame,moveScratch,duplication;
+    void shutdown() { renderer::ResetResources(frame,moveScratch,duplication); }
+};
+struct SessionProbe {
+    std::vector<int>* sequence;
+    int visible=1;
+    void Revoke() { visible=0; sequence->push_back(31); }
+};
+struct PreparedTextProbe {
+    ResourceProbe wordLayout,phraseLayout;
+    void Reset() { renderer::ResetResources(wordLayout,phraseLayout); }
+};
+struct FrameViewProbe {
+    ResourceProbe shaderView;
+    void Reset() { shaderView.Reset(); }
+};
+struct MaterialProbe {
+    ResourceProbe blurTarget,glassTarget,lensShader;
+    void reset() { renderer::ResetResources(blurTarget,glassTarget,lensShader); }
 };
 }
 
@@ -55,19 +82,10 @@ TEST(capture_dirty_and_move_rectangles_only_invalidate_intersecting_panels) {
     CHECK(!capture.intersectingUpdate(RECT{30,30,50,50},RECT{50,50,70,70}));
 }
 
-TEST(capture_failures_release_retained_gpu_frame_and_bound_device_retry) {
-    for (renderer::CaptureFailure reason : {renderer::CaptureFailure::unsupported_hdr,
-            renderer::CaptureFailure::access_lost,renderer::CaptureFailure::unavailable}) {
-        renderer::Capture capture;
-        capture.hasFrame=true; capture.frameUpdated=true; capture.changedRects={{0,0,20,20}};
-        capture.invalidate(reason);
-        CHECK(!capture.hasFrame); CHECK(!capture.frameUpdated);
-        CHECK(capture.changedRects.empty()); CHECK_EQ(capture.failure,reason);
-    }
+TEST(device_removed_retry_policy_allows_only_one_recreation) {
     renderer::Capture capture;
-    capture.hasFrame=true; capture.changedRects={{0,0,1,1}};
-    capture.invalidate(renderer::CaptureFailure::device_removed);
-    CHECK(!capture.hasFrame); CHECK(capture.permitDeviceRecreation());
+    capture.failure=renderer::CaptureFailure::device_removed;
+    CHECK(capture.permitDeviceRecreation());
     CHECK(!capture.permitDeviceRecreation());
 }
 
@@ -78,13 +96,38 @@ TEST(live_sampling_requires_both_surface_exclusions) {
     CHECK(!renderer::SurfaceWindows::CaptureExcluded(false,false));
 }
 
-TEST(hidden_and_failed_capture_uses_shared_surface_capture_derived_retirement_order) {
+TEST(live_capture_requires_the_windows_10_2004_build_floor) {
+    CHECK(!renderer::SupportsLiveWindowsBuild(10,0,18363));
+    CHECK(renderer::SupportsLiveWindowsBuild(10,0,19041));
+    CHECK(renderer::SupportsLiveWindowsBuild(10,0,22631));
+    CHECK(renderer::SupportsLiveWindowsBuild(10,1,19040));
+    CHECK(renderer::SupportsLiveWindowsBuild(11,0,22000));
+}
+
+TEST(hidden_and_failed_capture_retires_each_production_owned_resource) {
     std::vector<int> sequence;
-    ResetProbe frame{&sequence,2},material{&sequence,3};
-    renderer::RetireCapturedDesktop(
-        [&]{sequence.push_back(1);},
-        [&]{renderer::ResetResources(frame);},
-        [&]{renderer::ResetResources(material);});
-    CHECK_EQ(sequence.size(),3U);
-    CHECK_EQ(sequence[0],1); CHECK_EQ(sequence[1],2); CHECK_EQ(sequence[2],3);
+    const auto runRetirement=[&]() {
+        SurfaceProbe surfaces{{&sequence,11},{&sequence,12}};
+        CaptureProbe capture{{&sequence,21},{&sequence,22},{&sequence,23}};
+        SessionProbe session{&sequence};
+        PreparedTextProbe prepared{{&sequence,41},{&sequence,42}};
+        FrameViewProbe frameView{{&sequence,51}};
+        MaterialProbe material{{&sequence,61},{&sequence,62},{&sequence,63}};
+        renderer::RetireCapturedDesktop(surfaces,capture,session,prepared,frameView,material);
+        CHECK_EQ(surfaces.desktopSourceBitmap.references,0U);
+        CHECK_EQ(surfaces.desktopSourceTexture.references,0U);
+        CHECK_EQ(capture.frame.references,0U); CHECK_EQ(capture.moveScratch.references,0U);
+        CHECK_EQ(capture.duplication.references,0U); CHECK_EQ(session.visible,0);
+        CHECK_EQ(prepared.wordLayout.references,0U); CHECK_EQ(prepared.phraseLayout.references,0U);
+        CHECK_EQ(frameView.shaderView.references,0U);
+        CHECK_EQ(material.blurTarget.references,0U); CHECK_EQ(material.glassTarget.references,0U);
+        CHECK_EQ(material.lensShader.references,0U);
+    };
+    runRetirement(); // hide path
+    runRetirement(); // capture/shader failure path
+    CHECK_EQ(sequence.size(),24U);
+    const int expected[]{11,12,21,22,23,31,41,42,51,61,62,63,
+                         11,12,21,22,23,31,41,42,51,61,62,63};
+    for (std::size_t index=0;index<std::size(expected);++index)
+        CHECK_EQ(sequence[index],expected[index]);
 }

@@ -156,13 +156,7 @@ bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark, int font
     drawing->SetTarget(target.Get());
     drawing->SetDpi(static_cast<float>(dpi), static_cast<float>(dpi));
     drawing->BeginDraw();
-    ComPtr<ID2D1SolidColorBrush> shadow;
-    ComPtr<ID2D1SolidColorBrush> glass;
     const auto& colors = dark ? palette::kDark : palette::kLight;
-    bool resourcesReady = SUCCEEDED(drawing->CreateSolidColorBrush(D2D1::ColorF(0, 0.06f), &shadow)) &&
-        SUCCEEDED(drawing->CreateSolidColorBrush(D2D1::ColorF(
-            static_cast<float>(colors.sign.r) / 255.0f, static_cast<float>(colors.sign.g) / 255.0f,
-            static_cast<float>(colors.sign.b) / 255.0f, 0.22f), &glass));
 
     completionist::render::Snapshot snapshot{};
     snapshot.caret = {static_cast<LONG>(36 * dpi / 96), static_cast<LONG>(98 * dpi / 96),
@@ -209,37 +203,29 @@ bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark, int font
         static_cast<float>(dpi), static_cast<float>(dpi));
     materialReady = materialReady && SUCCEEDED(blur.glassTexture.As(&glassSurface)) &&
         SUCCEEDED(drawing->CreateBitmapFromDxgiSurface(glassSurface.Get(), &glassProperties, &glassLayer));
-    if (resourcesReady && laidOut && materialReady) {
+    bool sharpTextDrawn = false;
+    if (laidOut && materialReady) {
         drawing->DrawBitmap(glassLayer.Get(), D2D1::RectF(0, 0, static_cast<float>(width) / (static_cast<float>(dpi) / 96.0f),
             static_cast<float>(height) / (static_cast<float>(dpi) / 96.0f)), 1.0f,
             D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
         const float scale = static_cast<float>(dpi) / 96.0f;
-        auto menuRect = D2D1::RectF(static_cast<float>(layout.menuBounds.left) / scale,
-            static_cast<float>(layout.menuBounds.top) / scale, static_cast<float>(layout.menuBounds.right) / scale,
-            static_cast<float>(layout.menuBounds.bottom) / scale);
-        auto dockRect = D2D1::RectF(static_cast<float>(layout.dockBounds.left) / scale,
-            static_cast<float>(layout.dockBounds.top) / scale, static_cast<float>(layout.dockBounds.right) / scale,
-            static_cast<float>(layout.dockBounds.bottom) / scale);
-        drawing->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(menuRect.left, menuRect.top + 5,
-            menuRect.right, menuRect.bottom + 5), 26, 26), shadow.Get());
-        drawing->FillRoundedRectangle(D2D1::RoundedRect(menuRect, 26, 26), glass.Get());
-        drawing->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(dockRect.left, dockRect.top + 4,
-            dockRect.right, dockRect.bottom + 4), 16, 16), shadow.Get());
-        drawing->FillRoundedRectangle(D2D1::RoundedRect(dockRect, 16, 16), glass.Get());
-
-        drawing->SetTransform(D2D1::Matrix3x2F::Translation(menuRect.left, menuRect.top));
+        drawing->SetTransform(D2D1::Matrix3x2F::Translation(
+            static_cast<float>(layout.menuBounds.left) / scale,
+            static_cast<float>(layout.menuBounds.top) / scale));
         const bool menuDrawn = textRenderer.Draw(drawing.Get(), snapshot, layout, prepared, colors,
                                                   renderer::text::Surface::Menu);
-        drawing->SetTransform(D2D1::Matrix3x2F::Translation(dockRect.left, dockRect.top));
+        drawing->SetTransform(D2D1::Matrix3x2F::Translation(
+            static_cast<float>(layout.dockBounds.left) / scale,
+            static_cast<float>(layout.dockBounds.top) / scale));
         const bool dockDrawn = textRenderer.Draw(drawing.Get(), snapshot, layout, prepared, colors,
                                                   renderer::text::Surface::Dock);
+        sharpTextDrawn = menuDrawn && dockDrawn;
         drawing->SetTransform(D2D1::Matrix3x2F::Identity());
         prepared.Reset();
-        if (!menuDrawn || !dockDrawn) resourcesReady = false;
     }
     const HRESULT drawResult = drawing->EndDraw();
     drawing->SetTarget(nullptr);
-    if (!resourcesReady || !laidOut || FAILED(drawResult)) return false;
+    if (!laidOut || !materialReady || !sharpTextDrawn || FAILED(drawResult)) return false;
     return savePng(outputPath, context.Get(), blur.outputTexture.Get());
 }
 

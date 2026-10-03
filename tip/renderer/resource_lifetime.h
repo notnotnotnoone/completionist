@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 namespace renderer {
 
 template<class... Resources>
@@ -9,11 +7,15 @@ void ResetResources(Resources&... resources) {
     (resources.Reset(),...);
 }
 
-template<class HideSurfaces,class StopCapture,class ReleaseDerived>
-void RetireCapturedDesktop(HideSurfaces&& hide,StopCapture&& stopCapture,ReleaseDerived&& releaseDerived) {
-    std::forward<HideSurfaces>(hide)();
-    std::forward<StopCapture>(stopCapture)();
-    std::forward<ReleaseDerived>(releaseDerived)();
+template<class Surfaces,class Capture,class Session,class PreparedText,class FrameView,class Material>
+void RetireCapturedDesktop(Surfaces& surfaces,Capture& capture,Session& session,PreparedText& prepared,
+                           FrameView& frameView,Material& material) {
+    surfaces.hide();
+    capture.shutdown();
+    session.Revoke();
+    prepared.Reset();
+    frameView.Reset();
+    material.reset();
 }
 
 }

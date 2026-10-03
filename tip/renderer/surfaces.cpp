@@ -104,24 +104,22 @@ bool SurfaceWindows::present(Panel& panel, const wchar_t* title, float width, fl
     panel.drawing->SetDpi(dpi,dpi);
     panel.drawing->BeginDraw();
     panel.drawing->Clear(D2D1::ColorF(0, 0.0f));
-    ComPtr<ID2D1SolidColorBrush> fill;
     ComPtr<ID2D1SolidColorBrush> text;
     ComPtr<IDWriteTextFormat> format;
     const COLORREF systemFill=GetSysColor(COLOR_WINDOW),systemText=GetSysColor(COLOR_WINDOWTEXT);
     const D2D1_COLOR_F fillColor=systemColors ? D2D1::ColorF(GetRValue(systemFill)/255.0f,
         GetGValue(systemFill)/255.0f,GetBValue(systemFill)/255.0f,1.0f) :
-        D2D1::ColorF(10.f/255.f,90.f/255.f,61.f/255.f,0.78f);
+        D2D1::ColorF(10.f/255.f,90.f/255.f,61.f/255.f,1.0f);
     const D2D1_COLOR_F textColor=systemColors ? D2D1::ColorF(GetRValue(systemText)/255.0f,
         GetGValue(systemText)/255.0f,GetBValue(systemText)/255.0f,1.0f) : D2D1::ColorF(1,1,1,1);
-    const bool ready = SUCCEEDED(panel.drawing->CreateSolidColorBrush(fillColor, &fill)) &&
-        SUCCEEDED(panel.drawing->CreateSolidColorBrush(textColor, &text)) &&
+    const bool ready = SUCCEEDED(panel.drawing->CreateSolidColorBrush(textColor, &text)) &&
         SUCCEEDED(writeFactory->CreateTextFormat(L"Segoe UI", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
             DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 16.0f, L"en-us", &format));
     if (ready) {
+        // Failure fallback is fully opaque, including outside high-contrast mode.
+        panel.drawing->Clear(fillColor);
         const float scale=dpi/96.0f;
         const float dipWidth=width/scale,dipHeight=height/scale;
-        const auto rect = D2D1::RoundedRect(D2D1::RectF(1, 1, dipWidth - 1, dipHeight - 1), 25, 25);
-        panel.drawing->FillRoundedRectangle(rect, fill.Get());
         panel.drawing->DrawTextW(title, static_cast<UINT32>(wcslen(title)), format.Get(),
                                  D2D1::RectF(16, 12, dipWidth - 16, dipHeight - 8), text.Get(),
                                  D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_NATURAL);

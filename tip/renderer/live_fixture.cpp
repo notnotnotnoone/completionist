@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include <windows.h>
+#include <winternl.h>
 #include <wtsapi32.h>
 #include <d3d11.h>
 #include <dxgi1_6.h>
@@ -15,6 +16,7 @@
 #include "material.h"
 #include "surfaces.h"
 #include "session.h"
+#include "live_policy.h"
 #include "resource_lifetime.h"
 
 namespace renderer {
@@ -118,6 +120,16 @@ completionist::render::Snapshot FixtureSnapshot(HWND host,uint64_t generation,ui
 
 uint64_t MonotonicMilliseconds() { return GetTickCount64(); }
 
+bool SupportsLivePlatform() {
+    using VersionQuery = NTSTATUS (NTAPI*)(PRTL_OSVERSIONINFOW);
+    const HMODULE native = GetModuleHandleW(L"ntdll.dll");
+    const auto query = native ? reinterpret_cast<VersionQuery>(GetProcAddress(native,"RtlGetVersion")) : nullptr;
+    RTL_OSVERSIONINFOW version{};
+    version.dwOSVersionInfoSize=sizeof(version);
+    return query && query(&version)>=0 &&
+        SupportsLiveWindowsBuild(version.dwMajorVersion,version.dwMinorVersion,version.dwBuildNumber);
+}
+
 void PresentOpaqueFixture(SurfaceWindows& surfaces,HWND host,HMONITOR monitor,bool systemColors) {
     MONITORINFO info{sizeof(info)}; RECT hostBounds{};
     if (!GetMonitorInfoW(monitor,&info) || !GetWindowRect(host,&hostBounds)) { surfaces.hide(); return; }
@@ -142,8 +154,7 @@ void GraphicsWorker(HostState* host,HINSTANCE instance) {
     uint64_t opaqueRevision=UINT64_MAX;
     auto releaseRenderedCapture=[&]() {
         const bool hadSession=session.visible();
-        RetireCapturedDesktop([&]{surfaces.hide();},[&]{capture.shutdown();},
-            [&]{session.Revoke(); prepared.Reset(); ResetResources(frameView); material.reset();});
+        RetireCapturedDesktop(surfaces,capture,session,prepared,frameView,material);
         if (hadSession) ++sessionGeneration;
         hasPresented=false;
     };
@@ -287,6 +298,7 @@ void GraphicsWorker(HostState* host,HINSTANCE instance) {
 }
 
 int runLiveFixture() {
+    if (!SupportsLivePlatform()) return ERROR_OLD_WIN_VERSION;
     if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) &&
         !AreDpiAwarenessContextsEqual(GetDpiAwarenessContextForProcess(GetCurrentProcess()),
                                      DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) return ERROR_ACCESS_DENIED;
