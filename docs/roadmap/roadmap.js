@@ -2,7 +2,7 @@ window.COMPLETIONIST_ROADMAP = {
   "schema": 4,
   "project": "Completionist",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
-  "updated": "2026-10-03",
+  "updated": "2026-10-04",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
   "now": "Building toward 2.0.0: nine native desktop stages plus the viewer and scope tracks. Live soft-glass feasibility is next. Latest recorded shipped release is 1.1.14; tense-aware ranking targets 2.1.0 and the browser client targets 3.0.0.",
@@ -1280,6 +1280,34 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-04",
+      "text": "Restored the highway map with per-task dots across shipped history (replaces the compressed-history atlas drawing); data, tooling and task board unchanged."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Completed highway-map-restore toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Started highway-map-restore toward 2.0.0."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Added task highway-map-restore toward 2.0.0: Restore the highway map with per-task dots across shipped history"
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Add a bounded native test launcher with per-process fault-dialog suppression and a five-program allowlist."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Started quiet-native-test-launcher toward 2.0.0."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Added task quiet-native-test-launcher toward 2.0.0: Guard bounded native test runs from fault dialogs"
+    },
     {
       "date": "2026-10-03",
       "text": "Task 9 review fix: rollback instructions now release TSF/engine/renderer file locks before restoring artifacts, then relaunch apps. No rollback commands were run."
@@ -4093,6 +4121,36 @@ window.COMPLETIONIST_ROADMAP = {
         "engine/src/completionist_engine/viewer.html",
         "engine/tests/viewer_browser.cjs",
         ".superpowers/sdd/2026-10-02-v2-desktop-overhaul/viewer-report.md"
+      ]
+    },
+    {
+      "id": "quiet-native-test-launcher",
+      "targetRelease": "2.0.0",
+      "title": "Guard bounded native test runs from fault dialogs",
+      "status": "doing",
+      "area": "dll",
+      "stories": [
+        1
+      ],
+      "notes": "",
+      "label": "Quiet native tests"
+    },
+    {
+      "id": "highway-map-restore",
+      "targetRelease": "2.0.0",
+      "title": "Restore the highway map with per-task dots across shipped history",
+      "status": "done",
+      "area": "docs",
+      "stories": [
+        1
+      ],
+      "notes": "Restored the old highway map (history from the last pre-redesign commit) and adapted it to schema 4: every shipped task is a dot on its lane with the release as a small caption, releases without recorded tasks keep release stops, unshipped work sits in scope-wide regions. Layout tests rewritten (10 pass); checked in the browser at the start, 1.0 and 2.0.0 regions.",
+      "label": "Highway map restore",
+      "completed": "2026-10-04",
+      "refs": [
+        "roadmap-highway-restore",
+        "docs/roadmap/map-layout.js",
+        "docs/roadmap/map.js"
       ]
     },
     {
