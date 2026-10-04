@@ -1282,6 +1282,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-04",
+      "text": "Quiet runner protected self-check passed; first staged host suite exited 1 with incomplete output, so remaining native suites were not run."
+    },
+    {
+      "date": "2026-10-04",
       "text": "Restored the highway map with per-task dots across shipped history (replaces the compressed-history atlas drawing); data, tooling and task board unchanged."
     },
     {
