@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
@@ -105,25 +106,32 @@ std::wstring Quote(const std::wstring& value) {
     return quoted;
 }
 
-void DrainBounded(HANDLE pipe, const std::filesystem::path& logPath) {
-    Handle output(CreateFileW(logPath.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
-        CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+void DrainBounded(HANDLE pipe, Handle output, std::atomic_bool* logOk) {
     std::array<char, 8192> buffer{};
     DWORD kept = 0;
+    bool canWrite = true;
     for (;;) {
         DWORD read = 0;
-        if (!ReadFile(pipe, buffer.data(), static_cast<DWORD>(buffer.size()), &read, nullptr) || !read)
+        if (!ReadFile(pipe, buffer.data(), static_cast<DWORD>(buffer.size()), &read, nullptr)) {
+            if (GetLastError() != ERROR_BROKEN_PIPE) logOk->store(false);
             break;
-        if (!output || kept >= kLogPayloadLimit) continue;
+        }
+        if (!read) break;
+        if (!canWrite || kept >= kLogPayloadLimit) continue;
         const DWORD amount = std::min<DWORD>(read, kLogPayloadLimit - kept);
         DWORD written = 0;
-        if (amount && WriteFile(output.get(), buffer.data(), amount, &written, nullptr))
+        if (amount && WriteFile(output.get(), buffer.data(), amount, &written, nullptr) && written == amount) {
             kept += written;
+        } else {
+            canWrite = false;
+            logOk->store(false);
+        }
     }
-    if (output && kept == kLogPayloadLimit) {
+    if (canWrite && kept == kLogPayloadLimit) {
         DWORD written = 0;
-        WriteFile(output.get(), kTruncationMarker,
-                  static_cast<DWORD>(sizeof(kTruncationMarker) - 1), &written, nullptr);
+        if (!WriteFile(output.get(), kTruncationMarker,
+                       static_cast<DWORD>(sizeof(kTruncationMarker) - 1), &written, nullptr) ||
+            written != sizeof(kTruncationMarker) - 1) logOk->store(false);
     }
 }
 
@@ -140,6 +148,21 @@ bool CreateJob(Handle& job) {
 bool Launch(const std::filesystem::path& executable, const std::wstring& childArguments,
             DWORD timeoutMs, const std::filesystem::path& logBase, RunResult* result) {
     if (!ConfigureFaultSuppression()) return false;
+
+    const auto stdoutPath = std::filesystem::path(logBase.wstring() + L".stdout.log");
+    const auto stderrPath = std::filesystem::path(logBase.wstring() + L".stderr.log");
+    Handle stdoutLog(CreateFileW(stdoutPath.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+        CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (!stdoutLog) {
+        std::wcerr << L"unable to create log " << stdoutPath.wstring() << L" error=" << GetLastError() << L"\n";
+        return false;
+    }
+    Handle stderrLog(CreateFileW(stderrPath.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+        CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (!stderrLog) {
+        std::wcerr << L"unable to create log " << stderrPath.wstring() << L" error=" << GetLastError() << L"\n";
+        return false;
+    }
 
     SECURITY_ATTRIBUTES security{sizeof(security), nullptr, TRUE};
     Handle stdoutRead, stdoutWrite, stderrRead, stderrWrite;
@@ -176,8 +199,10 @@ bool Launch(const std::filesystem::path& executable, const std::wstring& childAr
         WaitForSingleObject(processHandle.get(), INFINITE);
         return false;
     }
-    std::thread stdoutDrain(DrainBounded, stdoutRead.get(), logBase.wstring() + L".stdout.log");
-    std::thread stderrDrain(DrainBounded, stderrRead.get(), logBase.wstring() + L".stderr.log");
+    std::atomic_bool stdoutLogOk{true};
+    std::atomic_bool stderrLogOk{true};
+    std::thread stdoutDrain(DrainBounded, stdoutRead.get(), std::move(stdoutLog), &stdoutLogOk);
+    std::thread stderrDrain(DrainBounded, stderrRead.get(), std::move(stderrLog), &stderrLogOk);
     const DWORD previousSuspendCount = ResumeThread(threadHandle.get());
     if (previousSuspendCount == static_cast<DWORD>(-1)) {
         TerminateJobObject(job.get(), ERROR_PROCESS_ABORTED);
@@ -202,6 +227,10 @@ bool Launch(const std::filesystem::path& executable, const std::wstring& childAr
     stderrDrain.join();
     stdoutRead = Handle();
     stderrRead = Handle();
+    if (!stdoutLogOk.load() || !stderrLogOk.load()) {
+        std::wcerr << L"log write or pipe drain failed for " << logBase.wstring() << L"\n";
+        return false;
+    }
     return wait == WAIT_OBJECT_0 || wait == WAIT_TIMEOUT;
 }
 

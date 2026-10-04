@@ -1298,6 +1298,10 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "date": "2026-10-04",
+      "text": "Preflight both bounded log files before launching a test and surface drain or write errors."
+    },
+    {
+      "date": "2026-10-04",
       "text": "Add a bounded native test launcher with per-process fault-dialog suppression and a five-program allowlist."
     },
     {
