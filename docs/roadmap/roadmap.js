@@ -1282,6 +1282,22 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-04",
+      "text": "Backfilled short labels on every shipped task so map dots read cleanly; documented labelling and map behaviour in CLAUDE.md."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Completed backfill-shipped-task-labels toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Started backfill-shipped-task-labels toward 2.0.0."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Added task backfill-shipped-task-labels toward 2.0.0: Backfill short labels on shipped tasks and document labelling in CLAUDE.md"
+    },
+    {
+      "date": "2026-10-04",
       "text": "Enable the V2 host and normal engine renderer startup by owner request; preserve --no-serve-renderer rollback and record live acceptance as pending."
     },
     {
@@ -2216,6 +2232,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.1",
       "title": "Install VS 2022 Build Tools (MSVC v143, Windows SDK 10.0.26100)",
+      "label": "Build Tools install",
       "status": "done",
       "area": "toolchain",
       "stories": [],
@@ -2226,6 +2243,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.2",
       "title": "Build Microsoft's SampleIME unmodified",
+      "label": "Build SampleIME",
       "status": "done",
       "area": "dll",
       "stories": [],
@@ -2236,6 +2254,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.3",
       "title": "Spike TIP: popup at the caret, context length and input scope logging",
+      "label": "TIP popup spike",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -2252,6 +2271,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.4",
       "title": "Spike: swallow Tab and replace the current word with ITfRange::SetText",
+      "label": "Tab swallow spike",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -2264,6 +2284,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.5",
       "title": "Manual app matrix, rounds 1 and 2",
+      "label": "App matrix tests",
       "status": "done",
       "area": "test",
       "stories": [
@@ -2276,6 +2297,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.6",
       "title": "Write up spike findings and verdict",
+      "label": "Spike verdict",
       "status": "done",
       "area": "docs",
       "stories": [
@@ -2291,6 +2313,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.7",
       "title": "Scaffold the repository",
+      "label": "Repo scaffold",
       "status": "done",
       "area": "repo",
       "stories": [],
@@ -2301,6 +2324,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.8",
       "title": "Engine word completion over the named pipe",
+      "label": "Pipe word completion",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -2311,6 +2335,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.9",
       "title": "Roadmap pages and agent guide",
+      "label": "Roadmap pages",
       "status": "done",
       "area": "docs",
       "stories": [],
@@ -2321,6 +2346,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.11",
       "title": "OpenRouter-only phrases",
+      "label": "OpenRouter phrases",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -2331,6 +2357,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.12",
       "title": "Highway map, Evergreen colors and the Completionist rename",
+      "label": "Highway map and rename",
       "status": "done",
       "area": "docs",
       "stories": [],
@@ -2341,6 +2368,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.13",
       "title": "Continue-only phrase prompt",
+      "label": "Continue-only prompt",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -2351,6 +2379,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.14",
       "title": "Stricter phrase prompt and the 0.5.0 to 2.0.0 plan",
+      "label": "Stricter phrase prompt",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -2361,6 +2390,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.15",
       "title": "Groq default model and API key in the config",
+      "label": "Groq default model",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -2371,6 +2401,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.16",
       "title": "One-line launcher",
+      "label": "One-line launcher",
       "status": "done",
       "area": "install",
       "stories": [],
@@ -2381,6 +2412,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M0.17",
       "title": "Task board by release",
+      "label": "Task board",
       "status": "done",
       "area": "docs",
       "stories": [],
@@ -2391,6 +2423,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.1",
       "title": "Protocol codec: length-prefixed JSON frames",
+      "label": "Protocol codec",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -2405,6 +2438,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.2",
       "title": "Word completer over the wordfreq vocabulary",
+      "label": "Word completer",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2424,6 +2458,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.3",
       "title": "TOML config and policy gating",
+      "label": "Config and policy",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2443,6 +2478,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.4",
       "title": "Named-pipe server, client and probe CLI",
+      "label": "Pipe server and client",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2460,6 +2496,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.5",
       "title": "Merge m1-engine-words and m0-tsf-spike into main",
+      "label": "Merge engine and spike",
       "status": "done",
       "area": "repo",
       "stories": [],
@@ -2474,6 +2511,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.6",
       "title": "TSF service shell from SampleIME: activation, key sink, edit sessions, registration",
+      "label": "TSF service shell",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -2490,6 +2528,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.7",
       "title": "Context reader: text around the caret, caret rect, input scope, app and title",
+      "label": "Context reader",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -2507,6 +2546,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.8",
       "title": "Pure popup state + key router with native tests",
+      "label": "Popup state and keys",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -2530,6 +2570,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.9",
       "title": "Engine client on a worker thread",
+      "label": "Engine client thread",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -2547,6 +2588,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.14",
       "title": "TSF harness: real DLL, real engine, simulated app",
+      "label": "TSF test harness",
       "status": "done",
       "area": "test",
       "stories": [
@@ -2571,6 +2613,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.10",
       "title": "Popup rendering at the caret",
+      "label": "Popup at the caret",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -2588,6 +2631,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.11",
       "title": "Keyboard icon and an enable-keyboard step",
+      "label": "Keyboard icon",
       "status": "done",
       "area": "install",
       "stories": [
@@ -2626,6 +2670,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.15",
       "title": "Roadmap as a highway map, in the Evergreen color scheme",
+      "label": "Roadmap highway map",
       "status": "done",
       "area": "docs",
       "stories": [],
@@ -2645,6 +2690,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.16",
       "title": "Rename the app from Typer to Completionist",
+      "label": "Rename to Completionist",
       "status": "done",
       "area": "repo",
       "stories": [],
@@ -2661,6 +2707,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M1.17",
       "title": "Make the roadmap easier to read: releases first, plain titles, tasks by status",
+      "label": "Roadmap readability",
       "status": "done",
       "area": "docs",
       "stories": [],
@@ -2676,6 +2723,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M2.1",
       "title": "N-gram builder: bigram and trigram tables from a public corpus",
+      "label": "N-gram builder",
       "status": "done",
       "area": "data",
       "stories": [
@@ -2692,6 +2740,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M2.2",
       "title": "N-gram re-ranking in the word completer",
+      "label": "N-gram re-ranking",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2707,6 +2756,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M2.3",
       "title": "Filter misspellings and junk out of the base vocabulary",
+      "label": "Vocabulary cleanup",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2722,6 +2772,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M2.4",
       "title": "Personal store: accept and typed-word counts in SQLite",
+      "label": "Personal store",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2738,6 +2789,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M2.5",
       "title": "Promote new words to the vocabulary after N uses",
+      "label": "Promote new words",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2754,6 +2806,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M2.6",
       "title": "Accept events name the accepted item",
+      "label": "Accept events",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -2805,6 +2858,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M3.3",
       "title": "Phrase provider: OpenAI-compatible /completions with optional FIM",
+      "label": "Phrase provider",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2825,6 +2879,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M3.4",
       "title": "Cache-friendly anchored context window",
+      "label": "Anchored context",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2855,6 +2910,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M3.6",
       "title": "Phrase scheduler state machine",
+      "label": "Phrase scheduler",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2873,6 +2929,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M3.7",
       "title": "Phrase push messages over the pipe",
+      "label": "Phrase push messages",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2889,6 +2946,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M3.8",
       "title": "Phrase row in the popup",
+      "label": "Phrase popup row",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -2909,6 +2967,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M3.9",
       "title": "Ctrl+Space hotkey requests a phrase in any app",
+      "label": "Ctrl+Space phrases",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -2924,6 +2983,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M3.10",
       "title": "Fall back to words when the provider is slow or down",
+      "label": "Slow-provider fallback",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2953,6 +3013,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M3.12",
       "title": "OpenRouter without FIM: prefix-only phrases, held back when text follows the caret on the same line",
+      "label": "OpenRouter prefix phrases",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -2967,6 +3028,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M4.1",
       "title": "Tray icon with pause/resume and a global hotkey",
+      "label": "Tray and hotkey",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -2985,6 +3047,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M4.2",
       "title": "Start the engine at logon",
+      "label": "Start at logon",
       "status": "done",
       "area": "install",
       "stories": [
@@ -3002,6 +3065,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M4.3",
       "title": "Hot-reload the config file",
+      "label": "Config hot reload",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3020,6 +3084,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M4.4",
       "title": "Install and uninstall scripts",
+      "label": "Install scripts",
       "status": "done",
       "area": "install",
       "stories": [
@@ -3038,6 +3103,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M4.5",
       "title": "Metrics store: shown, accepted, keystrokes saved, provider latency",
+      "label": "Metrics store",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3059,6 +3125,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M4.6",
       "title": "Stats summary from the CLI or tray",
+      "label": "Stats summary",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3077,6 +3144,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M4.7",
       "title": "Engine logging of request timings and provider errors",
+      "label": "Request logging",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3095,6 +3163,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M4.8",
       "title": "Resilience pass: engine crashes and restarts",
+      "label": "Crash resilience",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -3146,6 +3215,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M7.1",
       "title": "Personal log admission: learn only words you typed, finished without correcting and used 3 times",
+      "label": "Personal log admission",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3162,6 +3232,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M7.2",
       "title": "Personal trigram counts next to the word and pair counts",
+      "label": "Personal trigrams",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3179,6 +3250,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M7.3",
       "title": "`completionist-words` command: list and forget",
+      "label": "Words command",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3195,6 +3267,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M7.4",
       "title": "Next-word candidates after a space, with a confidence threshold",
+      "label": "Next-word candidates",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3213,6 +3286,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M7.5",
       "title": "Multi-word chunks from the n-gram tables",
+      "label": "Multi-word chunks",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3229,6 +3303,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M7.6",
       "title": "Protocol: each suggestion carries its kind (word, chunk or next)",
+      "label": "Suggestion kinds",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3246,6 +3321,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M7.7",
       "title": "Popup shows words, chunks and the phrase in one box",
+      "label": "One popup box",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -3263,6 +3339,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M7.8",
       "title": "Open the popup after a space without stealing Tab or Enter",
+      "label": "Popup after space",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -3309,6 +3386,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M8.2",
       "title": "Viewer page: searchable, sortable dictionary with remove, a settings form and the stats, in the Evergreen theme",
+      "label": "Viewer page",
       "status": "done",
       "area": "viewer",
       "stories": [
@@ -3329,6 +3407,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M8.3",
       "title": "Tray item: Open viewer",
+      "label": "Open viewer in tray",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3347,6 +3426,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M8.4",
       "title": "Tests: the page serves counts and dictionary entries only, and other websites can't drive it",
+      "label": "Viewer safety tests",
       "status": "done",
       "area": "test",
       "stories": [
@@ -3379,6 +3459,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M8.6",
       "title": "Local viewer server in the engine, on this machine only",
+      "label": "Local viewer server",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3397,6 +3478,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M8.7",
       "title": "Settings: show the config as a form and write changes back to config.toml",
+      "label": "Settings form",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3415,6 +3497,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M8.8",
       "title": "Trigrams: list and remove three-word phrases, in the store, the server and the viewer",
+      "label": "Trigram viewer",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3434,6 +3517,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M8.9",
       "title": "Viewer redesign: clearer hierarchy, motion and accessibility",
+      "label": "Viewer redesign",
       "status": "done",
       "area": "viewer",
       "stories": [
@@ -3453,6 +3537,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M9.9",
       "title": "Versions replace milestones on the roadmap",
+      "label": "Versions replace milestones",
       "status": "done",
       "area": "docs",
       "stories": [],
@@ -3470,6 +3555,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M9.1",
       "title": "Fuzzy index over the vocabulary and personal words",
+      "label": "Fuzzy index",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3488,6 +3574,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M9.2",
       "title": "Fuzzy candidates fill the rows after exact prefix matches",
+      "label": "Fuzzy candidates",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3507,6 +3594,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M9.3",
       "title": "Protocol marks the guessed letters of each suggestion",
+      "label": "Guessed-letter marks",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3527,6 +3615,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M9.4",
       "title": "Popup draws guessed letters in a third colour",
+      "label": "Guessed-letter colour",
       "status": "done",
       "area": "dll",
       "stories": [
@@ -3546,6 +3635,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M9.5",
       "title": "Latency check with the fuzzy index on",
+      "label": "Fuzzy latency check",
       "status": "done",
       "area": "test",
       "stories": [
@@ -3594,6 +3684,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M5.2",
       "title": "Code-review fixes before 1.0",
+      "label": "Pre-1.0 review fixes",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3613,6 +3704,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M5.3",
       "title": "Evergreen tray and keyboard icon (no more Typer T)",
+      "label": "Evergreen icon",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -3629,6 +3721,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M5.4",
       "title": "Preferred Providers option in the viewer settings",
+      "label": "Preferred Providers",
       "status": "done",
       "area": "viewer",
       "stories": [],
@@ -3645,6 +3738,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M5.5",
       "title": "Requests log tab in the viewer",
+      "label": "Requests log tab",
       "status": "done",
       "area": "viewer",
       "stories": [],
@@ -3662,6 +3756,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M5.6",
       "title": "Advanced phrase settings and editable instructions in the viewer",
+      "label": "Advanced phrase settings",
       "status": "done",
       "area": "viewer",
       "stories": [],
@@ -3680,6 +3775,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M5.1",
       "title": "Reply-aware context from the surrounding window",
+      "label": "Reply-aware context",
       "status": "done",
       "area": "engine",
       "stories": [
@@ -3701,6 +3797,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M5.7",
       "title": "Show the screenshot and extracted text in the Requests page",
+      "label": "Screenshot in Requests",
       "status": "done",
       "area": "viewer",
       "stories": [],
@@ -3718,6 +3815,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.4",
       "title": "Expanded settings and collapsible Advanced tiles",
+      "label": "Expanded settings",
       "status": "done",
       "area": "viewer",
       "stories": [],
@@ -3737,6 +3835,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.5",
       "title": "Use the current C icon in the viewer header",
+      "label": "Viewer header icon",
       "status": "done",
       "area": "viewer",
       "stories": [],
@@ -3750,6 +3849,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.6",
       "title": "Keep single-letter words out of personal learning",
+      "label": "No single-letter words",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -3764,6 +3864,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.7",
       "title": "Show full phrase request details and events",
+      "label": "Phrase request details",
       "status": "done",
       "area": "viewer",
       "stories": [],
@@ -3780,6 +3881,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.8",
       "title": "Show exact outgoing request and HTTP status",
+      "label": "Exact request and status",
       "status": "done",
       "area": "viewer",
       "stories": [],
@@ -3796,6 +3898,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.9",
       "title": "Proportional highway lanes and a 3.0.0 browser lane",
+      "label": "Proportional lanes",
       "status": "done",
       "area": "docs",
       "stories": [],
@@ -3811,6 +3914,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.10",
       "title": "Agent roadmap brief and edit helper",
+      "label": "Agent roadmap brief",
       "status": "done",
       "area": "docs",
       "stories": [],
@@ -3874,6 +3978,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.11",
       "title": "Explain Windows OCR context to the cloud model",
+      "label": "OCR context for cloud",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -3888,6 +3993,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.12",
       "title": "Copy the prompt test pack and disable reasoning by default",
+      "label": "Prompt test pack",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -3904,6 +4010,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.13",
       "title": "Ship OCR-aware prompt playground to main",
+      "label": "OCR prompt playground",
       "status": "done",
       "area": "engine",
       "stories": [],
@@ -3919,6 +4026,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.23",
       "title": "Generate roadmap briefs at three detail levels",
+      "label": "Brief detail levels",
       "status": "done",
       "area": "docs",
       "stories": [],
@@ -4140,6 +4248,7 @@ window.COMPLETIONIST_ROADMAP = {
       "id": "fix-requests-clear-list-race-found-in-m10-3-review",
       "targetRelease": "2.0.0",
       "title": "Fix Requests clear/list race found in M10.3 review",
+      "label": "Requests race fix",
       "status": "done",
       "area": "viewer",
       "stories": [],
@@ -4197,6 +4306,23 @@ window.COMPLETIONIST_ROADMAP = {
       "refs": [
         "tip/src/render_client.h",
         "engine/src/completionist_engine/app.py"
+      ]
+    },
+    {
+      "id": "backfill-shipped-task-labels",
+      "targetRelease": "2.0.0",
+      "title": "Backfill short labels on shipped tasks and document labelling in CLAUDE.md",
+      "status": "done",
+      "area": "docs",
+      "stories": [
+        1
+      ],
+      "notes": "Added short labels to all 92 shipped tasks and a Labels and the map section to CLAUDE.md. Checker passes.",
+      "label": "Task label backfill",
+      "completed": "2026-10-04",
+      "refs": [
+        "roadmap-task-labels",
+        "CLAUDE.md"
       ]
     },
     {

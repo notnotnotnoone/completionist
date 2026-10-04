@@ -44,6 +44,15 @@ python scripts/roadmap.py log "What changed and why."
 
 When starting work, mark the task doing. On completion, add references and mark it done; the helper promotes the next waiting task when appropriate. Keep story links, planned release writing, decisions and risks current. Add new discoveries as tasks; do not make software versions for them. Set `updated` to today's date and prepend a log entry with every change.
 
+### Labels and the map
+
+- **Every task gets a short `--label`.** Use 2-4 words, about 28 characters at most, naming the thing and not the action ("Fuzzy index", not "Build the fuzzy index"). Dots on the map show the label. Without one, the map falls back to the full title, trimmed with an ellipsis.
+- **How the map draws work:** each task is a dot on its highway's lane. Shipped tasks are grouped under the release that shipped them, with the release number as a small caption under the first dot. A run of dots between two signs shows how much work a release took. Major and minor releases are signs. A shipped release with no recorded task keeps a release stop.
+- **Never create a release to make a dot appear.** A task is already visible as a dot.
+- **`--area` chooses the lane.** The areas-to-highway mapping is `highways` in `roadmap.js`, so pick the area on purpose.
+- **`shippedIn` places a done task in history.** The `release` helper sets it. Do not set it by hand.
+- **After changing map code,** run `node --test scripts/map_layout.test.mjs` and look at the page. Shipped-history behaviour is covered by those tests.
+
 ### Shipping and version meaning
 
 PATCH means a real small fix, regression, polish or maintenance release. MINOR means a coherent capability. MAJOR means a major product, interface or architecture expansion. Use judgment, not task counts. Do not reserve patch numbers for future work. Neither a commit, merge nor the last completed task automatically ships a release.
