@@ -139,7 +139,7 @@ TEST(render_parser_enforces_frame_and_bounded_array_limits) {
     for (std::size_t i = 0; i < kMaxMarksPerCandidate + 1; ++i) tooManyMarks.words[0].marks.push_back(static_cast<int>(i));
     CHECK(EncodeShow(tooManyMarks).empty());
     Snapshot tooMuchText = Sample();
-    tooMuchText.words = {{std::wstring(kMaxTextBytes / 4 + 1, L'x'), "local", {}}};
+    tooMuchText.words = {{std::wstring(kMaxTextBytes + 1, L'x'), "local", {}}};
     CHECK(EncodeShow(tooMuchText).empty());
 }
 
@@ -230,6 +230,8 @@ TEST(render_selection_supports_phrase_only_and_empty_pending_shelf) {
     Snapshot shelf = Sample();
     shelf.words.clear();
     shelf.phrase.clear();
+    shelf.partialBegin = 0;
+    shelf.partialLength = 0;
     shelf.selection = -2;
     shelf.ai = AiState::Working;
     CHECK(ParseShow(Body(EncodeShow(shelf))).has_value());

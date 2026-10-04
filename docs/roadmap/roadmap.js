@@ -1282,6 +1282,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-04",
+      "text": "Corrected two invalid render protocol test fixtures; protected quiet-runner self-check and the 100-test host suite passed. Other native suites remain unrun."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Capture the test runner's native exit diagnostic and make the flags fixture verify inherited mode before runner setup."
+    },
+    {
+      "date": "2026-10-04",
       "text": "Quiet runner protected self-check passed; first staged host suite exited 1 with incomplete output, so remaining native suites were not run."
     },
     {
@@ -4135,13 +4143,14 @@ window.COMPLETIONIST_ROADMAP = {
       "id": "quiet-native-test-launcher",
       "targetRelease": "2.0.0",
       "title": "Guard bounded native test runs from fault dialogs",
-      "status": "doing",
+      "status": "done",
       "area": "dll",
       "stories": [
         1
       ],
-      "notes": "",
-      "label": "Quiet native tests"
+      "notes": "Added a fail-closed hidden launcher with bounded output, timeout and owned-job cleanup. Protected self-check passed; corrected host suite passed (100 tests). The other four allowlisted suites remain unrun.",
+      "label": "Quiet native tests",
+      "completed": "2026-10-04"
     },
     {
       "id": "highway-map-restore",

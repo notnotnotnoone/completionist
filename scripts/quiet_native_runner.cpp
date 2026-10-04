@@ -60,6 +60,8 @@ struct RunResult {
     bool timedOut = false;
 };
 
+UINT gInheritedErrorMode = 0;
+
 std::filesystem::path ModulePath() {
     std::vector<wchar_t> buffer(32768);
     const DWORD length = GetModuleFileNameW(nullptr, buffer.data(),
@@ -286,9 +288,8 @@ int RunTarget(const std::wstring& targetName, DWORD timeout) {
 
 int Fixture(const std::wstring& name) {
     if (name == L"flags") {
-        const UINT mode = GetErrorMode();
-        std::wcout << L"error_mode=0x" << std::hex << mode << L"\n";
-        return (mode & kErrorMode) == kErrorMode ? 0 : 10;
+        std::wcout << L"inherited_error_mode=0x" << std::hex << gInheritedErrorMode << L"\n";
+        return (gInheritedErrorMode & kErrorMode) == kErrorMode ? 0 : 10;
     }
     if (name == L"crash") {
         RaiseException(0xE0424242, EXCEPTION_NONCONTINUABLE, 0, nullptr);
@@ -327,6 +328,7 @@ int SelfCheck() {
 } // namespace
 
 int wmain(int argc, wchar_t** argv) {
+    gInheritedErrorMode = GetErrorMode();
     if (!ConfigureFaultSuppression()) {
         std::wcerr << L"quiet native runner: could not suppress Windows fault UI.\n";
         return 2;

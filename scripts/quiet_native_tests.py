@@ -86,8 +86,16 @@ def main() -> int:
             cwd=root,
             check=False,
             creationflags=CREATE_NO_WINDOW,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=args.timeout_ms / 1000 + 30,
         )
+        if completed.stdout:
+            print(completed.stdout, end="")
+        if completed.stderr:
+            print(completed.stderr, end="", file=sys.stderr)
     except subprocess.TimeoutExpired:
         print("quiet-native-tests: launcher exceeded its outer safety timeout", file=sys.stderr)
         return 124
