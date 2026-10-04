@@ -18,8 +18,8 @@
 namespace completionist::render {
 
 constexpr UINT kRenderClientNoticeMessage = WM_APP + 0x371;
-// Stage 1 live and real-app acceptance gates have not passed yet.
-constexpr bool kExternalRendererActivationEnabled = false;
+// V2 is enabled for owner-led daily-use testing; fallback remains available.
+constexpr bool kExternalRendererActivationEnabled = true;
 constexpr uint64_t kFallbackDeadlineMs = 250;
 constexpr uint64_t kHeartbeatIntervalMs = 500;
 uint64_t NextRenderGeneration();

@@ -128,3 +128,9 @@ if (Test-Path "$rollback/CompletionistRenderer.exe") {
 ```
 
 This task did not install or register the staged pair. Registration, keyboard settings and any future install remain owner-run. Restart apps only after restoring the pair so they load the restored DLL.
+
+## Owner-authorized V2 activation — 2026-10-04
+
+The owner explicitly requested enabling V2 and merging for daily-use testing. The host activation gate is enabled and normal engine startup supervises the paired renderer by default. --no-serve-renderer keeps the legacy popup available for rollback. Earlier staged/disabled descriptions above record historical checks, not the current activation default. Live glass, real-app focus, accessibility and performance acceptance remain unverified; the owner will report problems during daily use. No installer, registration, keyboard change, live renderer or focus harness was launched by this activation change.
+
+Activation validation: renderer and enabled DLL builds exited 0; mocked engine startup and renderer-supervisor checks passed (12 tests). Corrected host suite passed under the quiet guard (100 tests, 0 failed), and protected guard self-check passed. Four other native suites and live checks remain unrun under the owner-directed daily-use approach.

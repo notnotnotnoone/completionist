@@ -73,7 +73,7 @@ try {
     }
 
     # Install the renderer before registration activates the new DLL. The engine
-    # still keeps external rendering disabled unless explicitly opted in.
+    # starts V2 by default; --no-serve-renderer retains the legacy popup.
     if ($rendererBuild -ne $rendererInstall) {
         Copy-Item -LiteralPath $rendererBuild -Destination (Assert-OwnedPath $rendererInstall) -Force
     }

@@ -1282,6 +1282,18 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-04",
+      "text": "Enable the V2 host and normal engine renderer startup by owner request; preserve --no-serve-renderer rollback and record live acceptance as pending."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Completed enable-v2-daily-use toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-04",
+      "text": "Added task enable-v2-daily-use toward 2.0.0: Enable V2 by default for owner daily-use testing"
+    },
+    {
+      "date": "2026-10-04",
       "text": "Corrected two invalid render protocol test fixtures; protected quiet-runner self-check and the 100-test host suite passed. Other native suites remain unrun."
     },
     {
@@ -4168,6 +4180,23 @@ window.COMPLETIONIST_ROADMAP = {
         "roadmap-highway-restore",
         "docs/roadmap/map-layout.js",
         "docs/roadmap/map.js"
+      ]
+    },
+    {
+      "id": "enable-v2-daily-use",
+      "targetRelease": "2.0.0",
+      "title": "Enable V2 by default for owner daily-use testing",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        1
+      ],
+      "notes": "Owner authorized daily-use testing. DLL and renderer builds passed; 12 startup/supervisor tests and 100 guarded host tests passed. Live visual/focus/performance acceptance remains owner-led.",
+      "label": "Enable V2",
+      "completed": "2026-10-04",
+      "refs": [
+        "tip/src/render_client.h",
+        "engine/src/completionist_engine/app.py"
       ]
     },
     {

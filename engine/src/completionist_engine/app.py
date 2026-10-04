@@ -32,8 +32,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     parser.add_argument("--no-tray", action="store_true", help="don't show the tray icon or register the pause hotkey")
     parser.add_argument(
-        "--serve-renderer", action="store_true",
-        help="opt in to the experimental native renderer (live acceptance is still required)",
+        "--serve-renderer", action=argparse.BooleanOptionalAction, default=True,
+        help="start the V2 native renderer (default); --no-serve-renderer uses the legacy popup",
     )
     args = parser.parse_args(argv)
 
