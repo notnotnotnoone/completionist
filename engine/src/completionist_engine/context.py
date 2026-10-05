@@ -141,8 +141,21 @@ def screen_for_prompt(screen: str, before: str) -> str:
     return "\n".join(kept).strip()
 
 
+def word_note(partial: str, known: bool, hints: tuple[str, ...] = ()) -> str:
+    """What the model is told about the word at the caret: start a new word, or finish this one."""
+    if not partial:
+        return ""
+    if known:
+        return f'"{partial}" is a complete word. Start your continuation with a space.'
+    note = f'The text ends partway through the word "{partial}". Start your continuation by finishing that word, with no space before it.'
+    if hints:
+        note += " Likely words: " + ", ".join(hints) + "."
+    return note
+
+
 def build_messages(
-    app: str, title: str, window: str, instructions: str = "", screen: str = "", screen_source: str = "ocr"
+    app: str, title: str, window: str, instructions: str = "", screen: str = "", screen_source: str = "ocr",
+    note: str = "",
 ) -> tuple[str, str]:
     """Return a stable system prompt and request-specific user message for Chat Completions."""
     system = instructions.strip() or INSTRUCTIONS
@@ -155,6 +168,8 @@ def build_messages(
     if screen.strip():
         intro = _SCREEN_INTROS.get(screen_source, _SCREEN_INTROS["ocr"])
         sections.append(f"{intro}\n<screen>\n{screen.strip()}\n</screen>")
+    if note:
+        sections.append(f"WORD AT THE CURSOR: {note}")
     sections.append(f"TEXT TO CONTINUE:\n{window}")
     return system, "\n\n".join(sections)
 

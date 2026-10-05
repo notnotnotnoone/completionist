@@ -75,6 +75,12 @@ class Request:
     """The text service is holding its popup back here, so there's no point asking for a phrase."""
     kind: str = "word"
     """For `accept` events: "word", "chunk", "next", "phrase" (all of it) or "phrase_word" (one word of it)."""
+    partial: str = field(default="", compare=False)
+    """Engine-side only, never on the wire: the word being typed at the caret, if any."""
+    partial_known: bool = field(default=True, compare=False)
+    """Engine-side only: whether `partial` is a whole dictionary word (the phrase then starts with a space)."""
+    word_hints: tuple[str, ...] = field(default=(), compare=False)
+    """Engine-side only: the top word suggestions for `partial`, shown to the phrase model."""
 
 
 def parse_request(message: dict[str, Any]) -> Request:

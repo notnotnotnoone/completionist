@@ -514,3 +514,43 @@ def test_a_capture_with_no_text_is_logged_but_adds_nothing_to_the_prompt():
     assert "<screen>" not in user_message(received[0].body)
     (entry,), _ = service.log.recent()
     assert entry.screen is not None and entry.screen_sent == ""
+
+
+def _hotkey_phrase(request: Request, chunks: list[str]):
+    async def scenario():
+        async with fake_provider(Script(chunks=chunks)) as (url, received):
+            service = make_service(url)
+            pushes: list[PhraseUpdate] = []
+            session = service.open_session(pushes.append)
+            session.on_hotkey(request, "hotkey")
+            await settle(pushes)
+            session.close()
+            await service.aclose()
+            return pushes, received
+
+    return asyncio.run(scenario())
+
+
+def test_a_phrase_after_a_whole_dictionary_word_starts_with_a_space():
+    request = Request(id=1, event="hotkey", app="notepad.exe", title="Notes", before="this is",
+                      partial="is", partial_known=True, word_hints=("is", "isn't"))
+    pushes, received = _hotkey_phrase(request, ["a simple", " text file"])
+    assert pushes[-1].text == " a simple text file"
+    assert '"is" is a complete word' in user_message(received[0].body)
+
+
+def test_a_phrase_after_a_half_typed_word_finishes_it_and_sees_the_top_words():
+    request = Request(id=1, event="hotkey", app="notepad.exe", title="Notes", before="the separ",
+                      partial="separ", partial_known=False, word_hints=("separate", "separated", "separately"))
+    pushes, received = _hotkey_phrase(request, [" ate the two"])
+    assert pushes[-1].text == "ate the two"
+    message = user_message(received[0].body)
+    assert 'partway through the word "separ"' in message
+    assert "Likely words: separate, separated, separately." in message
+
+
+def test_punctuation_after_a_whole_word_gets_no_space():
+    request = Request(id=1, event="hotkey", app="notepad.exe", title="Notes", before="this is",
+                      partial="is", partial_known=True)
+    pushes, _ = _hotkey_phrase(request, [", I think"])
+    assert pushes[-1].text == ", I think"

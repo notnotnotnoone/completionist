@@ -1306,6 +1306,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Completed phrase-word-boundary toward 2.2.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task phrase-word-boundary toward 2.2.0: Start AI phrases with a space after a whole word, finish half-typed words with the top word hints"
+    },
+    {
+      "date": "2026-10-05",
       "text": "Started fallback-popup-prototype toward 2.2.0."
     },
     {
@@ -4641,6 +4649,24 @@ window.COMPLETIONIST_ROADMAP = {
       "notes": "Inline ghost text and page context in web fields. Moved from 1.1.1 to 2.0.1 (2026-10-01), then to 2.1.1 (2026-10-01) to leave room for the tense-aware suggestions milestone; it still leads the 3.0.0 major release after the dashboard and popup redesign.",
       "targetRelease": "3.0.0",
       "label": "Chrome extension"
+    },
+    {
+      "id": "phrase-word-boundary",
+      "targetRelease": "2.2.0",
+      "title": "Start AI phrases with a space after a whole word, finish half-typed words with the top word hints",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        1
+      ],
+      "notes": "Whole dictionary word at the caret: the phrase gets a leading space (not before punctuation). Half-typed word: no space, the model is told to finish it and sees the top 5 word suggestions. Engine pytest passes (660). IRL check pending: type 'this is' and a half word like 'separ' in Notepad and wait for the AI phrase.",
+      "label": "Phrase word boundary",
+      "completed": "2026-10-05",
+      "refs": [
+        "engine/src/completionist_engine/writing.py",
+        "engine/src/completionist_engine/context.py",
+        "engine/src/completionist_engine/engine.py"
+      ]
     },
     {
       "id": "fallback-popup-prototype",
