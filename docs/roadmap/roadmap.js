@@ -2,7 +2,7 @@ window.COMPLETIONIST_ROADMAP = {
   "schema": 4,
   "project": "Completionist",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
-  "updated": "2026-10-04",
+  "updated": "2026-10-05",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
   "now": "Building toward 2.0.0: nine native desktop stages plus the viewer and scope tracks. Live soft-glass feasibility is next. Latest recorded shipped release is 1.1.14; tense-aware ranking targets 2.1.0 and the browser client targets 3.0.0.",
@@ -1280,6 +1280,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-05",
+      "text": "Testing policy for 2.0.0: simple engine pytest suite only, everything else verified IRL by the owner; recorded in CLAUDE.md. Linux cloud check: 589 engine tests pass; 7 modules and 1 test need Windows (pystray display, winrt) and were not run here. No native build possible on this host, so stages 1, 3-7 and 9 stay open pending owner IRL checks."
+    },
     {
       "date": "2026-10-04",
       "text": "Backfilled short labels on every shipped task so map dots read cleanly; documented labelling and map behaviour in CLAUDE.md."

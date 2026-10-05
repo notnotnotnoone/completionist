@@ -121,7 +121,7 @@ The current design and implementation plan are `docs/superpowers/specs/2026-10-0
 - **No AI or vision for caret or screen tracking.** The caret comes from TSF only.
 - **uv:** the engine is standalone. Never run `uv init` or `uv sync` from the parent `Experiments` folder, which would turn it into a workspace and clobber its `.venv`. Use `--no-workspace` when creating projects.
 - **Git:** work on a branch per chunk of work. Ask before pushing to `main`.
-- **Tests:** TDD with pytest for engine modules, testing behaviour through public interfaces with small injected fixtures. The DLL's key router is pure logic with native tests; the TSF plumbing is tested manually.
+- **Tests (2.0.0 onward):** keep one simple pytest suite for the engine (`cd engine && uv run pytest`) and nothing more automated. Don't write new native test suites, harnesses, fixtures, review artifacts or elaborate verification plans, and don't run the existing native ones. Verify everything else in real life: the user runs the build in real apps and reports back, and the agent reads the logs. New or changed engine behaviour gets a small pytest case through the public interface; DLL and renderer changes get an IRL checklist for the user instead of tests. Roadmap tasks close on IRL verification, with the note saying what the user checked.
 
 ## Prompt Rewriting
 
