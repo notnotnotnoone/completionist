@@ -1306,6 +1306,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Diagnosing the glass renderer: no app ever connects to it. Added renderer.log and DLL connection logging; compiled the renderer as UTF-8, which fixes the garbled correction arrow."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started glass-renderer-takeover toward 2.2.0."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Completed phrase-word-boundary toward 2.2.0; no release was created."
     },
     {
@@ -4684,7 +4692,7 @@ window.COMPLETIONIST_ROADMAP = {
       "id": "glass-renderer-takeover",
       "targetRelease": "2.2.0",
       "title": "Find why the running glass renderer never draws the popup, and fix it",
-      "status": "todo",
+      "status": "doing",
       "area": "dll",
       "stories": [
         1

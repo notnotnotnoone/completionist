@@ -618,6 +618,10 @@ private:
         content.triggerReason = triggerReason_;
         content.engineConnected = engineConnected_;
         popup_.Show(content, model_.selection(now), caret_);
+        if (publishExternal && rendererEligible_ != loggedEligible_) {
+            loggedEligible_ = rendererEligible_;
+            LogDebug(L"renderer %s for this window", rendererEligible_ ? L"eligible" : L"not eligible");
+        }
         if (publishExternal && completionist::render::kExternalRendererActivationEnabled && rendererEligible_ && renderClient_) {
             externalPresented_ = false;
             const auto physicalCaret = PhysicalCaret(caretWindow_, caret_);
@@ -646,6 +650,7 @@ private:
                 }
                 renderClient_->Publish(std::move(snapshot));
             } else {
+                LogDebug(L"renderer skipped: caret position could not be converted to screen pixels");
                 HideExternal();
             }
         }
@@ -1112,6 +1117,7 @@ private:
     std::string renderSession_;
     std::uint64_t renderRevision_ = 0;
     bool rendererEligible_ = false;
+    bool loggedEligible_ = true;  // so the first ineligible render is logged
     bool externalPresented_ = false;
     std::vector<std::wstring> words_;
     std::vector<std::string> kinds_;  // what each of words_ is: "word", "chunk" or "next"

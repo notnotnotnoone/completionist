@@ -2,6 +2,8 @@
 #define NOMINMAX
 #include "render_client.h"
 
+#include "log.h"
+
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -92,17 +94,37 @@ std::wstring PipeName() {
     return L"\\\\.\\pipe\\completionist-renderer-v2-" + std::to_wstring(session) + L"-" + std::to_wstring(auth);
 }
 
+// Why the last connection attempt failed, so a run of identical failures is logged once.
+std::wstring g_lastConnectFailure;  // worker threads only; a benign race at worst repeats a log line
+
+HANDLE ConnectFailed(const std::wstring& reason, DWORD error) {
+    const std::wstring key = reason + L":" + std::to_wstring(error);
+    if (key != g_lastConnectFailure) {
+        g_lastConnectFailure = key;
+        completionist::LogDebug(L"renderer connect failed: %s (error %lu)", reason.c_str(), error);
+    }
+    return INVALID_HANDLE_VALUE;
+}
+
 HANDLE Connect() {
     const std::wstring name = PipeName();
-    if (name.empty()) return INVALID_HANDLE_VALUE;
-    if (!WaitNamedPipeW(name.c_str(), 50)) return INVALID_HANDLE_VALUE;
+    if (name.empty()) return ConnectFailed(L"no pipe name (logon identity unreadable)", GetLastError());
+    if (!WaitNamedPipeW(name.c_str(), 50)) return ConnectFailed(L"wait " + name, GetLastError());
     HANDLE pipe = CreateFileW(name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
-    if (pipe == INVALID_HANDLE_VALUE) return pipe;
+    if (pipe == INVALID_HANDLE_VALUE) return ConnectFailed(L"open " + name, GetLastError());
     DWORD mode = PIPE_READMODE_BYTE;
-    if (!SetNamedPipeHandleState(pipe, &mode, nullptr, nullptr) || !ValidateRendererServer(pipe)) {
+    if (!SetNamedPipeHandleState(pipe, &mode, nullptr, nullptr)) {
+        const DWORD error = GetLastError();
         CloseHandle(pipe);
-        return INVALID_HANDLE_VALUE;
+        return ConnectFailed(L"pipe mode", error);
     }
+    if (!ValidateRendererServer(pipe)) {
+        const DWORD error = GetLastError();
+        CloseHandle(pipe);
+        return ConnectFailed(L"renderer process failed identity check", error);
+    }
+    g_lastConnectFailure.clear();
+    completionist::LogDebug(L"renderer connected");
     return pipe;
 }
 
@@ -278,6 +300,7 @@ void RenderClient::Start() {
     if (started_) return;
     stopping_ = false;
     started_ = true;
+    completionist::LogDebug(L"renderer client started");
     worker_ = std::thread([this] { Worker(); });
 }
 
@@ -351,7 +374,10 @@ void RenderClient::Worker() {
     uint64_t lastHeartbeat = 0;
     auto disconnect = [&] {
         const bool wasConnected = pipe != INVALID_HANDLE_VALUE;
-        if (wasConnected) CloseHandle(pipe);
+        if (wasConnected) {
+            CloseHandle(pipe);
+            completionist::LogDebug(L"renderer disconnected");
+        }
         pipe = INVALID_HANDLE_VALUE;
         bool changed = false;
         {
@@ -405,6 +431,8 @@ void RenderClient::Worker() {
                     accepted = state_.OnAck(*ack);
                 }
                 if (accepted) Notify(*ack);
+                completionist::LogDebug(L"renderer ack rev=%llu presented=%d accepted=%d", ack->revision,
+                                        ack->presented ? 1 : 0, accepted ? 1 : 0);
             }
         }
         bool timedOut = false;
@@ -412,7 +440,10 @@ void RenderClient::Worker() {
             std::lock_guard lock(mutex_);
             timedOut = state_.Tick(NowMs());
         }
-        if (timedOut) Notify();
+        if (timedOut) {
+            completionist::LogDebug(L"renderer did not answer in time; host popup stays");
+            Notify();
+        }
         if (!alive) { disconnect(); continue; }
         if (NowMs() - lastHeartbeat >= kHeartbeatIntervalMs) {
             std::optional<Snapshot> current;

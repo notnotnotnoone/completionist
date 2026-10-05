@@ -24,6 +24,7 @@
 #include "live_policy.h"
 #include "output_color_space.h"
 #include "system_change.h"
+#include "renderer_log.h"
 
 namespace renderer {
 namespace {
@@ -45,12 +46,18 @@ public:
         DWORD pid = 0;
         const HWND foreground = GetForegroundWindow();
         if (foreground) GetWindowThreadProcessId(foreground, &pid);
-        if (foreground != host || pid != snapshot.owner.pid || !IsWindowVisible(host)) { Hide(); return false; }
-        if (!DpiReady()) { Hide(); return false; }
+        if (foreground != host || pid != snapshot.owner.pid || !IsWindowVisible(host)) {
+            Log(L"present skipped: host %p is not the visible foreground window (%p, pid=%lu)", host, foreground, pid);
+            Hide(); return false;
+        }
+        if (!DpiReady()) { Log(L"present skipped: DPI awareness unavailable"); Hide(); return false; }
         const RECT caret{snapshot.caret.left,snapshot.caret.top,snapshot.caret.right,snapshot.caret.bottom};
         const HMONITOR monitor = MonitorFromRect(&caret, MONITOR_DEFAULTTONEAREST);
         if (!monitor || (graphicsReady_ && monitor != activeMonitor_)) ResetGraphics();
-        if (!graphicsReady_ && !CreateGraphics(monitor)) return PresentOpaque(snapshot, host, monitor, false);
+        if (!graphicsReady_ && !CreateGraphics(monitor)) {
+            Log(L"graphics device could not be created; drawing opaque");
+            return PresentOpaque(snapshot, host, monitor, false);
+        }
 
         unsigned dpi=96;
         UINT dpiX=96,dpiY=96;
@@ -109,8 +116,16 @@ public:
         } else { mode=MaterialMode::Opaque; currentMode_=mode; }
             }
         }
-        if (mode!=MaterialMode::Glass || !capture_.hasFrame) return PresentOpaque(snapshot,host,monitor,highContrast);
-        return PresentGlass(snapshot,layout,dpi,renderer);
+        if (mode!=MaterialMode::Glass || !capture_.hasFrame) {
+            Log(L"drawing opaque: mode=%d frame=%d capture=%d excluded=%d composition=%d hdr=%d contrast=%d failure=%d",
+                static_cast<int>(mode), capture_.hasFrame ? 1 : 0, captureReady_ ? 1 : 0, surfaces_.captureExcluded() ? 1 : 0,
+                composition ? 1 : 0, outputColorSpace_!=OutputColorSpace::Sdr709 ? 1 : 0, highContrast ? 1 : 0,
+                static_cast<int>(capture_.failure));
+            return PresentOpaque(snapshot,host,monitor,highContrast);
+        }
+        const bool glass=PresentGlass(snapshot,layout,dpi,renderer);
+        if (!glass) Log(L"glass draw failed");
+        return glass;
     }
 
     void Hide() {

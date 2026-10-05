@@ -8,6 +8,7 @@
 
 #include "production_renderer_pipe.h"
 #include "windows.h"
+#include "renderer_log.h"
 
 namespace renderer {
 namespace {
@@ -99,7 +100,11 @@ DWORD ProductionRendererPipe::Run(HANDLE stopEvent) {
         }
         if (WaitForSingleObject(stopEvent, 0) == WAIT_OBJECT_0) { CloseHandle(pipe); break; }
         if (!clientConnected) { CloseHandle(pipe); continue; }
+        ULONG clientPid = 0;
+        GetNamedPipeClientProcessId(pipe, &clientPid);
+        Log(L"client connected pid=%lu", clientPid);
         ServeClient(pipe, stopEvent);
+        Log(L"client released pid=%lu", clientPid);
         DisconnectNamedPipe(pipe);
         CloseHandle(pipe);
         // ServeClient owns revocation for a peer it actually accepted. A rejected
@@ -122,6 +127,7 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
             if (foreground) GetWindowThreadProcessId(foreground, &foregroundPid);
             if (foregroundPid != current->owner.pid ||
                 reinterpret_cast<uint64_t>(foreground) != current->owner.hostHwnd) {
+                Log(L"owner pid=%lu lost the foreground (now pid=%lu)", current->owner.pid, foregroundPid);
                 if (session_.RevokeIfCurrent(current->owner)) hide_();
                 connected = false;
                 break;
@@ -137,9 +143,14 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
             if (pending.size() < static_cast<std::size_t>(length) + 4) break;
             if (!TakeFrame(&pending, &body)) { connected = false; break; }
             if (auto snapshot = completionist::render::ParseShow(body)) {
-                if (!Validate(snapshot->owner, pipe)) { connected = false; break; }
+                if (!Validate(snapshot->owner, pipe)) {
+                    Log(L"show rev=%llu from pid=%lu rejected: client validation failed", snapshot->revision, snapshot->owner.pid);
+                    connected = false; break;
+                }
                 const DWORD foreground = ForegroundPid();
                 if (!session_.Accept(*snapshot, foreground, NowMs())) {
+                    Log(L"show rev=%llu from pid=%lu refused by session (foreground pid=%lu, words=%zu, selection=%d)",
+                        snapshot->revision, snapshot->owner.pid, foreground, snapshot->words.size(), snapshot->selection);
                     const auto ack = completionist::render::EncodeAck({snapshot->owner, snapshot->revision, false});
                     if (ack.empty() || !WriteFrame(pipe, ack)) { connected = false; break; }
                     continue;
@@ -150,6 +161,8 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
                 const bool stillCurrent = session_.current() &&
                     completionist::render::IsCurrentAck(*session_.current(), {snapshot->owner, snapshot->revision, true}) &&
                     Validate(snapshot->owner, pipe) && session_.Heartbeat(snapshot->owner, ForegroundPid(), NowMs());
+                Log(L"show rev=%llu from pid=%lu drawn=%d current=%d", snapshot->revision, snapshot->owner.pid,
+                    drawn ? 1 : 0, stillCurrent ? 1 : 0);
                 if (!drawn || !stillCurrent) {
                     if (session_.RevokeIfCurrent(snapshot->owner)) hide_();
                 }
@@ -159,7 +172,10 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
                 continue;
             }
             const auto command = completionist::render::ParseCommand(body);
-            if (!command || !Validate(command->owner, pipe)) { connected = false; break; }
+            if (!command || !Validate(command->owner, pipe)) {
+                Log(L"command rejected (parsed=%d)", command ? 1 : 0);
+                connected = false; break;
+            }
             const DWORD foreground = ForegroundPid();
             if (command->command == Command::Heartbeat) {
                 if (!session_.Heartbeat(command->owner, foreground, NowMs())) { connected = false; break; }
