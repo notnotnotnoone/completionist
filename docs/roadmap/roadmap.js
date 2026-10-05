@@ -984,7 +984,12 @@ window.COMPLETIONIST_ROADMAP = {
       "status": "planned",
       "title": "Tense-aware suggestions",
       "milestone": "M11",
-      "text": "This release will make the tense of the current sentence one signal in word suggestion ranking. When the surrounding text indicates past or present tense, Completionist can favour suggestions that fit the sentence while still weighing the typed prefix and nearby word context. If the sentence is ambiguous or mixes tenses, the current ranking remains in place."
+      "text": "This release makes the tense of the sentence you are typing one more signal when ranking word suggestions. A small local rule check reads the verb forms and time words already in the sentence, using a public Wiktionary-derived word table, and decides whether it is clearly past or present. When it is, verb forms that fit are lifted a little and forms that clash are pushed down harder, so \"Yesterday we h\" stops offering \"has\". When the sentence mixes tenses or gives no sign, ranking is exactly what it was before. The information dock now shows Past, Present or a dash instead of its placeholder, and one setting, words.tense_aware, turns the whole thing off. No AI is involved and nothing new is sent to the cloud; phrase suggestions are unchanged.",
+      "highways": [
+        "engine",
+        "tsf",
+        "tooling"
+      ]
     },
     {
       "version": "3.0.0",
@@ -1280,6 +1285,10 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-05",
+      "text": "Tidied the 2.1.0 release plan: goal, done-when, planned writing and touched highways now match the built design."
+    },
     {
       "date": "2026-10-05",
       "text": "Dock now shows the real tense: engine reply, DLL, render pipe, renderer text and accessibility name. Not compiled on Windows yet."
@@ -2333,8 +2342,8 @@ window.COMPLETIONIST_ROADMAP = {
     },
     "2.1.0": {
       "title": "Tense-aware suggestions",
-      "goal": "Use whether the current sentence is in past or present tense to rank suggestions that fit what the person is writing.",
-      "done_when": "Past and present sentence context can influence suggestion ranking in representative examples, while ambiguous or mixed-tense context leaves the existing ranking unchanged.",
+      "goal": "Use whether the sentence being typed is clearly past or present to lift verb forms that fit it and push down verb forms that clash, and show the detected tense in the information dock.",
+      "done_when": "In a clearly past or present sentence the matching verb forms rank higher and clashing ones lower; unclear or mixed-tense sentences rank exactly as before; the dock reads Past, Present or a dash to match; the words.tense_aware switch turns it off; the owner has confirmed all of this in real apps.",
       "scope": "contained"
     },
     "3.0.0": {
