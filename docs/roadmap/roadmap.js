@@ -1001,8 +1001,18 @@ window.COMPLETIONIST_ROADMAP = {
       "validation": "Engine pytest suite passes (tests/test_tense.py plus the existing suite, apart from one Windows-only test). Protocol files compile and round-trip on Linux. Shipped at the owner's direction before real-app verification: the DLL and renderer changes have not been compiled or run on Windows."
     },
     {
-      "version": "3.0.0",
+      "version": "2.2.0",
       "status": "next",
+      "title": "Glass popup that matches the prototype",
+      "highways": [
+        "tsf",
+        "tooling"
+      ],
+      "text": "2.0.0 was marked shipped before anyone saw it running, and the first real-app check on 2026-10-05 failed: Notepad showed the old opaque fallback popup in a green skin, not the glass renderer, and the fallback itself did not match the approved browser prototype. This release fixes that honestly. First the plain in-app popup is redrawn to match the prototype: a soft pink AI strip with its label, the typed text clearly visible, a space between the typed word and the phrase, small right-aligned origin pills, a shortcut footer and a tighter box. Then the glass renderer, which is already built and running but never takes over, is traced and fixed so it actually draws the popup and the corner dock, with text that stays readable over busy backgrounds and no garbled characters. Each step ends with a build the owner looks at in real apps, and nothing is called done until the owner has seen it on screen."
+    },
+    {
+      "version": "3.0.0",
+      "status": "planned",
       "title": "Autocomplete in the browser",
       "milestone": "M6",
       "highways": [
@@ -1294,6 +1304,22 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-05",
+      "text": "Started fallback-popup-prototype toward 2.2.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task glass-renderer-takeover toward 2.2.0: Find why the running glass renderer never draws the popup, and fix it"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task fallback-popup-prototype toward 2.2.0: Redraw the in-app fallback popup to match the approved prototype"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "First real-app check of V2 failed: Notepad shows the opaque fallback popup, not the glass renderer, and it does not match the prototype. Added 2.2.0 to fix this; 2.0.0 stays recorded as shipped unverified."
+    },
     {
       "date": "2026-10-05",
       "text": "Shipped 2.0.0 and 2.1.0 at the owner's direction, both before real-app verification; tags go on the merge commit."
@@ -2307,7 +2333,7 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "Engine word completion served over a named pipe, 74 tests passing (branch m1-engine-words)."
     }
   ],
-  "activeRelease": "3.0.0",
+  "activeRelease": "2.2.0",
   "releasePlans": {
     "0.0.3": {
       "title": "Foundations and TSF spike",
@@ -2380,6 +2406,12 @@ window.COMPLETIONIST_ROADMAP = {
       "goal": "Reach web text fields directly with a Chrome extension that talks to the same engine.",
       "done_when": "Inline ghost text works in a Chrome textarea through the extension.",
       "scope": "large"
+    },
+    "2.2.0": {
+      "title": "Glass popup that matches the prototype",
+      "goal": "Make what the owner actually sees while typing look like the approved V2 prototype, first in the plain popup and then as real glass.",
+      "done_when": "In Notepad and Chrome the owner sees the glass popup and corner dock drawn by the renderer, matching the prototype's layout, with readable text in light and dark; the plain fallback popup matches the same layout; the owner has confirmed both on screen.",
+      "scope": "medium"
     }
   },
   "tasks": [
@@ -4609,6 +4641,30 @@ window.COMPLETIONIST_ROADMAP = {
       "notes": "Inline ghost text and page context in web fields. Moved from 1.1.1 to 2.0.1 (2026-10-01), then to 2.1.1 (2026-10-01) to leave room for the tense-aware suggestions milestone; it still leads the 3.0.0 major release after the dashboard and popup redesign.",
       "targetRelease": "3.0.0",
       "label": "Chrome extension"
+    },
+    {
+      "id": "fallback-popup-prototype",
+      "targetRelease": "2.2.0",
+      "title": "Redraw the in-app fallback popup to match the approved prototype",
+      "status": "doing",
+      "area": "dll",
+      "stories": [
+        1
+      ],
+      "notes": "From the owner's Notepad screenshot: missing space ('isa simple…'), loud full magenta AI row, near-invisible typed prefix, 'Local' as loose grey text on every row, oversized empty box, stray dot, no shortcut footer.",
+      "label": "Prototype fallback popup"
+    },
+    {
+      "id": "glass-renderer-takeover",
+      "targetRelease": "2.2.0",
+      "title": "Find why the running glass renderer never draws the popup, and fix it",
+      "status": "todo",
+      "area": "dll",
+      "stories": [
+        1
+      ],
+      "notes": "CompletionistRenderer.exe --serve is running but Notepad shows the host fallback; tip.log has no renderer lines. Its fixture images also show a garbled arrow, overlapping AI text and unreadable text over busy backdrops.",
+      "label": "Glass renderer takeover"
     }
   ]
 };
