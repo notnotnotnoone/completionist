@@ -784,6 +784,7 @@ const GROUPS = [
     ["phrase.writing_style", "select", "Writing Style", "Tells the model how to phrase its continuation.", choice("writing_style")],
     ["phrase.preserve_casing", "bool", "Preserve Your Casing", "Ask the model to follow intentional casing, including lowercase messages."],
     ["words.typo_correction", "bool", "Typo Correction", "Include fuzzy word matches; off keeps exact prefix matches."],
+    ["words.tense_aware", "bool", "Tense-aware words", "Lift past or present verb forms that fit the sentence and push down ones that clash; off keeps the usual ranking."],
     ["phrase.multiline", "bool", "Multiline Completions", "Allow line breaks in phrase continuations."],
     ["phrase.avoid_phrases", "list", "Avoid These Phrases", "One per line. Matching replies are suppressed; replies are buffered before showing."],
     ["phrase.max_tokens", "number", "Maximum Output Tokens", "Short limits this cap; Longer allows at least 120 tokens.", number(1)],

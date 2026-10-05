@@ -183,7 +183,7 @@ Trees CreateTrees(HWND menuWindow,HWND dockWindow,const completionist::render::S
         const completionist::layout::DipRect connection{content.left,content.top,content.right,content.top+18.0f};
         const completionist::layout::DipRect tense{content.left,content.top+20.0f,content.right,content.bottom};
         AddItem(dock,s.engineConnected?L"Engine connected":L"Engine offline",DipBounds(connection,layout.dockBounds,dpi),UIA_TextControlTypeId);
-        AddItem(dock,L"Tense —",DipBounds(tense,layout.dockBounds,dpi),UIA_TextControlTypeId);
+        AddItem(dock,completionist::render::TenseText(s),DipBounds(tense,layout.dockBounds,dpi),UIA_TextControlTypeId);
     }
     dock->toggleIndex=static_cast<int>(dock->items.size());
     const LONG button=MulDiv(36,static_cast<int>(dpi),96);

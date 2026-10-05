@@ -160,7 +160,7 @@ std::string EncodeRequest(const Request& r) {
 std::optional<WordReply> ParseWordReply(std::string_view body) {
     auto document = detail::Parser(body).ParseDocument({
         "id", "type", "replace", "words", "popup", "kinds", "marks", "phrase", "phrase_done", "phrase_mode",
-        "phrase_state", "phrase_wait_ms", "phrase_elapsed_ms", "trigger_reason", "origins", "text", "done"});
+        "phrase_state", "phrase_wait_ms", "phrase_elapsed_ms", "trigger_reason", "origins", "tense", "text", "done"});
     if (!document || document->type != Json::Type::Object) return std::nullopt;
     const Json* type = document->Find("type");
     const Json* id = document->Find("id");
@@ -193,6 +193,9 @@ std::optional<WordReply> ParseWordReply(std::string_view body) {
         duration("phrase_elapsed_ms", &reply.phrase_elapsed_ms);
         if (const Json* reason = document->Find("trigger_reason"); reason && reason->type == Json::Type::String)
             reply.trigger_reason = reason->string;
+        if (const Json* tense = document->Find("tense");
+            tense && tense->type == Json::Type::String && (tense->string == "past" || tense->string == "present"))
+            reply.tense = tense->string;
         if (const Json* origins = document->Find("origins"); origins && origins->type == Json::Type::Array && !origins->truncated &&
             origins->array.size() == reply.words.size()) {
             std::vector<std::string> parsed;

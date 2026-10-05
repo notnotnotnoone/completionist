@@ -30,7 +30,12 @@ struct Snapshot {
     uint32_t partialBegin, partialLength;
     AiState ai; uint32_t waitMs, elapsedMs; std::string triggerReason;
     bool engineConnected; completionist::PopupSettings settings;
+    std::string tense;  // "", "past" or "present"; empty is shown as a dash
 };
+// What the dock's tense line says. The wording is shared so the screen and screen readers agree.
+inline std::wstring TenseText(const Snapshot& s) {
+    return s.tense == "past" ? L"Tense Past" : s.tense == "present" ? L"Tense Present" : L"Tense \u2014";
+}
 struct Ack { Identity owner; uint64_t revision; bool presented; };
 struct CommandMessage { Command command; Identity owner; uint64_t revision = 0; };
 

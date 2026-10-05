@@ -18,7 +18,7 @@ from completionist_engine.config import ConfigError, load_config, _PHRASE_CHECKS
 from completionist_engine.context import INSTRUCTIONS, PROMPT_TEST_SCENARIOS
 
 EDITABLE: dict[str, frozenset[str]] = {
-    "words": frozenset({"limit", "next", "chunks", "next_threshold", "typo_correction"}),
+    "words": frozenset({"limit", "next", "chunks", "next_threshold", "typo_correction", "tense_aware"}),
     "learning": frozenset({"enabled", "promote_after"}),
     "phrase": frozenset({
         "enabled", "api_key", "models", "provider_order", "max_tokens", "temperature", "timeout", "debounce",
@@ -63,6 +63,7 @@ def read_settings(path: Path) -> dict[str, dict[str, Any]]:
         "hotkeys": {"pause": config.pause_hotkey},
     }  # fmt: skip
     result["words"]["typo_correction"] = config.typo_correction
+    result["words"]["tense_aware"] = config.tense_aware
     result["popup"] = asdict(config.popup)
     result["privacy"] = {"private_mode": config.private_mode, "pause_minutes": config.pause_minutes}
     result["hotkeys"].update(partial_accept=config.partial_accept_hotkey, dismiss=config.dismiss_hotkey)

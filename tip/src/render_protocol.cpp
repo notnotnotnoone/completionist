@@ -148,7 +148,7 @@ std::optional<Json> Document(std::string_view body) {
     auto value = Parser(body).ParseDocument({
         "schema", "type", "owner", "revision", "caret", "words", "selection", "typed_fragment", "phrase",
         "phrase_lead", "partial_begin", "partial_length", "ai", "wait_ms", "elapsed_ms", "trigger_reason",
-        "engine_connected", "settings", "presented", "command"});
+        "engine_connected", "tense", "settings", "presented", "command"});
     if (!value || value->type != Json::Type::Object) return std::nullopt;
     return value;
 }
@@ -180,7 +180,8 @@ std::string EncodeShow(const Snapshot& s) {
     if (!validText(s.typedFragment) || !validText(s.phrase) || !validText(s.phraseLead) ||
         s.settings.font_size < 7 || s.settings.font_size > 24 || !std::isfinite(s.settings.width_scale) ||
         s.settings.width_scale < .5 || s.settings.width_scale > 2.0 ||
-        s.waitMs > 600000 || s.elapsedMs > 600000) return {};
+        s.waitMs > 600000 || s.elapsedMs > 600000 ||
+        (!s.tense.empty() && s.tense != "past" && s.tense != "present")) return {};
     const bool hasPhrase = !s.phrase.empty();
     if ((s.selection == -1 && !hasPhrase) || (s.selection >= 0 && static_cast<std::size_t>(s.selection) >= s.words.size()) ||
         s.selection < -2 || static_cast<uint64_t>(s.partialBegin) + s.partialLength > s.phrase.size()) return {};
@@ -220,7 +221,10 @@ std::string EncodeShow(const Snapshot& s) {
     body += ",\"wait_ms\":" + std::to_string(s.waitMs) + ",\"elapsed_ms\":" + std::to_string(s.elapsedMs);
     body += ",\"trigger_reason\":";
     JsonString(body, reason);
-    body += std::string(",\"engine_connected\":") + (s.engineConnected ? "true" : "false") + ",\"settings\":";
+    body += std::string(",\"engine_connected\":") + (s.engineConnected ? "true" : "false");
+    body += ",\"tense\":";
+    JsonString(body, s.tense);
+    body += ",\"settings\":";
     AddSettings(body, s.settings);
     body.push_back('}');
     std::string frame;
@@ -284,6 +288,10 @@ std::optional<Snapshot> ParseShow(std::string_view body) {
     result.elapsedMs = static_cast<uint32_t>(number);
     if (!String(document->Find("trigger_reason"), &result.triggerReason, 256)) return std::nullopt;
     if (!Boolean(document->Find("engine_connected"), &result.engineConnected)) return std::nullopt;
+    if (document->Find("tense")) {  // optional: an older sender leaves it out
+        if (!String(document->Find("tense"), &result.tense, 16) || (!result.tense.empty() && result.tense != "past" && result.tense != "present"))
+            return std::nullopt;
+    }
     if (!ParseSettings(document->Find("settings"), &result.settings)) return std::nullopt;
     const bool hasPhrase = !result.phrase.empty();
     if (result.selection == -1 && !hasPhrase) return std::nullopt;

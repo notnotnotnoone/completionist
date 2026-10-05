@@ -175,12 +175,13 @@ class Session:
                 engine._personal.record_typed(word, context)
         else:
             self._learner.reset()
-        completion = engine._completer.complete(request.before, limit=config.word_limit, typo_correction=config.typo_correction)
+        completion = engine._completer.complete(request.before, limit=config.word_limit, typo_correction=config.typo_correction, tense_aware=config.tense_aware)
+        tense = engine._completer.tense_of(request.before) if config.tense_aware else "none"
         words, kinds, origins = completion.words, ("word",) * len(completion.words), completion.origins
         marks: tuple[tuple[int, ...], ...] = completion.marks
         if config.next_words and not words:
             completion = engine._completer.next_words(
-                request.before, limit=config.word_limit, threshold=config.next_threshold
+                request.before, limit=config.word_limit, threshold=config.next_threshold, tense_aware=config.tense_aware
             )
             words, kinds = completion.words, ("next",) * len(completion.words)
             origins = completion.origins
@@ -217,6 +218,7 @@ class Session:
             phrase_mode=phrase_mode,
             popup=self._popup_settings(),
             origins=origins,
+            tense=tense if tense != "none" else None,
             **status,
         )
 

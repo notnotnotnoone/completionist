@@ -6,13 +6,14 @@ Ranking starts from how common each word is in English, then adjusts for the wor
 
 import re
 from bisect import bisect_left
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from functools import lru_cache
 from heapq import nlargest
 
 from completionist_engine.counts import NO_COUNTS, Counts, CountSource
 from completionist_engine.fuzzy import FuzzyIndex, guessed_positions
+from completionist_engine.tense import Tense, detect_tense
 
 # A word is a letter followed by letters or apostrophes. Only the tail of the text matters.
 _WORD_AT_END = re.compile(r"[^\W\d_](?:[^\W\d_]|')*$")
@@ -35,6 +36,8 @@ _PERSONAL_SMOOTHING = 500.0
 _PERSONAL_BIGRAM_SMOOTHING = 3.0
 _BASE_CANDIDATES = 24
 _HANGING = frozenset({"the", "a", "an", "of", "to", "and", "or", "but"})  # a chunk never ends on these
+_TENSE_FIT = 1.15  # a verb form that matches the sentence's tense is lifted a little
+_TENSE_CLASH = 0.6  # one that clearly doesn't is pushed down harder
 _NGRAM_ORDERS = (1, 2)  # context lengths asked of the n-gram source: bigram, then trigram
 
 
@@ -80,13 +83,15 @@ class WordCompleter:
         personal: CountSource | None = None,
         promote_after: int = 3,
         fuzzy: FuzzyIndex | None = None,
+        tense_forms: Mapping[str, str] | None = None,
     ) -> None:
         """`vocabulary` is (word, weight) pairs; a higher weight ranks the word higher.
 
         `ngrams` re-ranks by the words before the one being typed; `personal` boosts the writer's own
         words and adds ones outside the dictionary once they've been used `promote_after` times.
         `fuzzy` offers guesses when the typed fragment has a typo; without one (or when it holds
-        no words) only exact prefix matches are offered.
+        no words) only exact prefix matches are offered. `tense_forms` (word to P, S or s, see tense.py)
+        lets a past or present sentence lift verb forms that fit it and push down ones that don't.
         """
         weights: dict[str, float] = {}
         for word, weight in vocabulary:
@@ -103,21 +108,30 @@ class WordCompleter:
         self._personal = personal
         self._promote_after = promote_after
         self._fuzzy = fuzzy
+        self._tense_forms = tense_forms or {}
         self._ranked = lru_cache(maxsize=4096)(self._rank)
 
     def set_promote_after(self, promote_after: int) -> None:
         self._promote_after = promote_after
 
-    def complete(self, before: str, limit: int = 5, *, typo_correction: bool = True) -> Completion:
+    def tense_of(self, before: str) -> Tense:
+        """The tense of the sentence `before` ends in, ignoring the word being typed."""
+        if not self._tense_forms:
+            return "none"
+        typed = current_word(before)
+        return detect_tense(sentence_words(before[: len(before) - len(typed)]), self._tense_forms)
+
+    def complete(self, before: str, limit: int = 5, *, typo_correction: bool = True, tense_aware: bool = False) -> Completion:
         prefix = current_word(before)
         if not prefix:
             return Completion(replace=0, words=())
         key = prefix.lower()
-        if self._ngrams is None and self._personal is None and self._fuzzy is None:
+        tense = self.tense_of(before) if tense_aware else "none"
+        if self._ngrams is None and self._personal is None and self._fuzzy is None and tense == "none":
             words = self._ranked(key, limit)  # frequency alone
             cased = tuple(dict.fromkeys(_match_case(word, prefix) for word in words))
             return Completion(replace=len(prefix), words=cased, origins=("local",) * len(cased))
-        words, marks = self._rerank(key, previous_words(before, 2), limit, typo_correction=typo_correction)
+        words, marks = self._rerank(key, previous_words(before, 2), limit, typo_correction=typo_correction, tense=tense)
         seen: dict[str, tuple[tuple[int, ...], str]] = {}
         for word, mark in zip(words, marks):
             seen.setdefault(_match_case(word, prefix), (mark, self._origin(word)))
@@ -126,7 +140,7 @@ class WordCompleter:
                           marks=tuple(value[0] for value in seen.values()),
                           origins=tuple(value[1] for value in seen.values()))
 
-    def next_words(self, before: str, limit: int = 5, threshold: float = 0.05) -> Completion:
+    def next_words(self, before: str, limit: int = 5, threshold: float = 0.05, *, tense_aware: bool = False) -> Completion:
         """Likely words to follow the last one, offered after a space and before any letter is typed.
 
         Only words that score at least `threshold` (roughly, their chance of coming next) are
@@ -139,6 +153,9 @@ class WordCompleter:
         if not context:
             return nothing
         scores = self._next_scores(context)
+        tense = self.tense_of(before) if tense_aware else "none"
+        if tense != "none":
+            scores = {w: p * self._tense_factor(w, tense) for w, p in scores.items()}
         likely = [(p, w) for w, p in scores.items() if p > 0 and p >= threshold]
         likely.sort(key=lambda pair: (-pair[0], pair[1]))
         words = tuple(_display(w) for _, w in likely[:limit])
@@ -206,7 +223,15 @@ class WordCompleter:
                         scores[word] = scores.get(word, 0.0) + n / (counts.total + _PERSONAL_BIGRAM_SMOOTHING)
         return scores
 
-    def _rerank(self, key: str, context: tuple[str, ...], limit: int, *, typo_correction: bool = True) -> tuple[tuple[str, ...], tuple[tuple[int, ...], ...]]:
+    def _tense_factor(self, word: str, tense: Tense) -> float:
+        code = self._tense_forms.get(word)
+        if code is None:
+            return 1.0
+        if (code == "P") == (tense == "past"):
+            return _TENSE_FIT
+        return _TENSE_CLASH if code != "s" else 1.0  # a word that is also a noun is never pushed down
+
+    def _rerank(self, key: str, context: tuple[str, ...], limit: int, *, typo_correction: bool = True, tense: Tense = "none") -> tuple[tuple[str, ...], tuple[tuple[int, ...], ...]]:
         # Evidence from the n-gram tables: a bigram (last word) and a trigram (last two words).
         ngram_counts = [NO_COUNTS, NO_COUNTS]
         if self._ngrams is not None:
@@ -230,6 +255,8 @@ class WordCompleter:
         candidates.pop(key, None)  # never suggest the word already typed
 
         scored = [(self._score(w, ngram_counts, personal_uni, personal_bi), w) for w in candidates]
+        if tense != "none":
+            scored = [(p * self._tense_factor(w, tense), w) for p, w in scored]
         scored.sort(key=lambda pair: (-pair[0], pair[1]))
         exact = [w for _, w in scored if w.startswith(key)][:limit]
         if len(exact) >= limit or self._fuzzy is None or not typo_correction:

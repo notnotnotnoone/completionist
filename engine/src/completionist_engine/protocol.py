@@ -124,6 +124,8 @@ class WordReply:
     phrase_elapsed_ms: int | None = None
     trigger_reason: str | None = None
     origins: tuple[str, ...] = field(default=(), compare=False)
+    tense: str | None = None
+    """"past" or "present" when the sentence being typed is clearly one or the other; None (left out of the message) otherwise, which the dock shows as a dash."""
 
     def to_message(self) -> dict[str, Any]:
         message: dict[str, Any] = {"id": self.id, "type": "words", "replace": self.replace, "words": list(self.words)}
@@ -141,6 +143,8 @@ class WordReply:
         _add_status(message, self.phrase_state, self.phrase_wait_ms, self.phrase_elapsed_ms, self.trigger_reason)
         if len(self.origins) == len(self.words) and self.origins:
             message["origins"] = list(self.origins)
+        if self.tense is not None:
+            message["tense"] = self.tense
         return message
 
 

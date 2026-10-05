@@ -24,7 +24,7 @@ Choose **Lowest latency** to send `provider.sort = "latency"`. Sorting takes pre
 
 Automatic suggestions can follow the app list, run in every allowed app, or be disabled in favor of Ctrl+Space. Minimum text, sentence boundaries and dismissal cooldown apply to automatic requests; manual requests bypass those gates. Short completions stop at eight words, sentence completions stop at a sentence ending, and longer continuations allow at least 120 output tokens. Style and spelling are instructions to the model rather than a local grammar checker.
 
-Excluded phrases are checked across the whole reply, so replies are buffered when this list is nonempty. A reply containing an excluded phrase is suppressed. Disabling typo correction keeps exact-prefix word matches. Multiline completions can insert line breaks when accepted, although the compact popup displays them on one line.
+Excluded phrases are checked across the whole reply, so replies are buffered when this list is nonempty. A reply containing an excluded phrase is suppressed. Disabling typo correction keeps exact-prefix word matches. `words.tense_aware` (on by default) lifts verb forms that fit the sentence's past or present tense and pushes down clashing ones; when the tense is unclear the ranking is unchanged. Multiline completions can insert line breaks when accepted, although the compact popup displays them on one line.
 
 ## Context, preview and privacy
 

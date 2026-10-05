@@ -984,7 +984,12 @@ window.COMPLETIONIST_ROADMAP = {
       "status": "planned",
       "title": "Tense-aware suggestions",
       "milestone": "M11",
-      "text": "This release will make the tense of the current sentence one signal in word suggestion ranking. When the surrounding text indicates past or present tense, Completionist can favour suggestions that fit the sentence while still weighing the typed prefix and nearby word context. If the sentence is ambiguous or mixes tenses, the current ranking remains in place."
+      "text": "This release makes the tense of the sentence you are typing one more signal when ranking word suggestions. A small local rule check reads the verb forms and time words already in the sentence, using a public Wiktionary-derived word table, and decides whether it is clearly past or present. When it is, verb forms that fit are lifted a little and forms that clash are pushed down harder, so \"Yesterday we h\" stops offering \"has\". When the sentence mixes tenses or gives no sign, ranking is exactly what it was before. The information dock now shows Past, Present or a dash instead of its placeholder, and one setting, words.tense_aware, turns the whole thing off. No AI is involved and nothing new is sent to the cloud; phrase suggestions are unchanged.",
+      "highways": [
+        "engine",
+        "tsf",
+        "tooling"
+      ]
     },
     {
       "version": "3.0.0",
@@ -1280,6 +1285,82 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-05",
+      "text": "Tidied the 2.1.0 release plan: goal, done-when, planned writing and touched highways now match the built design."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Dock now shows the real tense: engine reply, DLL, render pipe, renderer text and accessibility name. Not compiled on Windows yet."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed tense-dock-value toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started tense-dock-value toward 2.1.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added NOTICE crediting UniMorph for the tense word table."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Built the engine side of 2.1.0 tense-aware suggestions: UniMorph word table, detector, demote/lift ranking, words.tense_aware switch, tense field on replies. Dock display still to do."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M11.1 toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed tense-detector toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed tense-verb-forms toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started M11.1 toward 2.1.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started tense-verb-forms toward 2.1.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started tense-detector toward 2.1.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Drafted the 2.1.0 tense-aware suggestions PRD and split M11.1 into detector, verb-form, dock and IRL tasks."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed tense-prd toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task tense-irl-check toward 2.1.0: Verify tense-aware suggestions in real apps"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task tense-dock-value toward 2.1.0: Report detected tense to the information dock"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task tense-verb-forms toward 2.1.0: Add verb-form table for tense matching"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task tense-detector toward 2.1.0: Detect past or present tense from the current sentence"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task tense-prd toward 2.1.0: Write the 2.1.0 tense-aware suggestions PRD"
+    },
     {
       "date": "2026-10-05",
       "text": "Marked all 2.0.0 tasks done (waiting for owner IRL verification) and made 'done, waiting for verification' the default once code is written; recorded in CLAUDE.md."
@@ -2261,8 +2342,8 @@ window.COMPLETIONIST_ROADMAP = {
     },
     "2.1.0": {
       "title": "Tense-aware suggestions",
-      "goal": "Use whether the current sentence is in past or present tense to rank suggestions that fit what the person is writing.",
-      "done_when": "Past and present sentence context can influence suggestion ranking in representative examples, while ambiguous or mixed-tense context leaves the existing ranking unchanged.",
+      "goal": "Use whether the sentence being typed is clearly past or present to lift verb forms that fit it and push down verb forms that clash, and show the detected tense in the information dock.",
+      "done_when": "In a clearly past or present sentence the matching verb forms rank higher and clashing ones lower; unclear or mixed-tense sentences rank exactly as before; the dock reads Past, Present or a dash to match; the words.tense_aware switch turns it off; the owner has confirmed all of this in real apps.",
       "scope": "contained"
     },
     "3.0.0": {
@@ -4379,14 +4460,91 @@ window.COMPLETIONIST_ROADMAP = {
       ]
     },
     {
+      "id": "tense-prd",
+      "targetRelease": "2.1.0",
+      "title": "Write the 2.1.0 tense-aware suggestions PRD",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "notes": "PRD drafted; awaiting owner review of open questions.",
+      "label": "2.1 PRD",
+      "completed": "2026-10-05",
+      "refs": [
+        "docs/superpowers/specs/2026-10-05-v2-1-tense-aware-suggestions-prd.md"
+      ]
+    },
+    {
       "id": "M11.1",
       "title": "Use sentence tense when ranking word suggestions",
-      "status": "todo",
+      "status": "done",
       "area": "engine",
       "stories": [],
-      "notes": "Detect whether the current sentence is in past or present tense from available context and use it as a ranking signal. Keep typed-prefix and context evidence in consideration; if tense is ambiguous or mixed, do not force a tense-based change.",
+      "notes": "Clashing tense demoted x0.6, matching lifted x1.15, noun lookalikes never demoted; words.tense_aware switch (default on) added to config and viewer. Code written and engine pytest passes (tests/test_tense.py); not yet tried in real apps. IRL verification pending.",
       "targetRelease": "2.1.0",
-      "label": "Tense-aware ranking"
+      "label": "Tense-aware ranking",
+      "completed": "2026-10-05",
+      "refs": [
+        "engine/src/completionist_engine/words.py",
+        "engine/src/completionist_engine/engine.py",
+        "engine/tests/test_tense.py"
+      ]
+    },
+    {
+      "id": "tense-detector",
+      "targetRelease": "2.1.0",
+      "title": "Detect past or present tense from the current sentence",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "notes": "Code written and engine pytest passes (tests/test_tense.py); not yet tried in real apps. IRL verification pending.",
+      "label": "Tense detector",
+      "completed": "2026-10-05",
+      "refs": [
+        "engine/src/completionist_engine/tense.py"
+      ]
+    },
+    {
+      "id": "tense-verb-forms",
+      "targetRelease": "2.1.0",
+      "title": "Add verb-form table for tense matching",
+      "status": "done",
+      "area": "engine",
+      "stories": [],
+      "notes": "UniMorph English (Wiktionary-derived) turned into a 13k-word P/S/s table, plus rules for regular verbs it lacks. Code written and engine pytest passes (tests/test_tense.py); not yet tried in real apps. IRL verification pending.",
+      "label": "Verb-form table",
+      "completed": "2026-10-05",
+      "refs": [
+        "engine/tools/build_tense_forms.py",
+        "engine/src/completionist_engine/data/tense_forms.tsv"
+      ]
+    },
+    {
+      "id": "tense-dock-value",
+      "targetRelease": "2.1.0",
+      "title": "Report detected tense to the information dock",
+      "status": "done",
+      "area": "dll",
+      "stories": [],
+      "notes": "Engine reply carries tense; DLL passes it to the renderer; dock shows Tense Past / Tense Present / Tense dash (screen and accessibility name). Written without a Windows build: the two protocol files compile and round-trip on Linux, but the DLL and renderer have not been compiled or run. IRL verification pending: needs a rebuild on Windows first.",
+      "label": "Dock tense value",
+      "completed": "2026-10-05",
+      "refs": [
+        "tip/src/protocol.cpp",
+        "tip/src/render_protocol.cpp",
+        "tip/src/tsf_service.cpp",
+        "tip/renderer/text.cpp",
+        "tip/renderer/accessibility.cpp"
+      ]
+    },
+    {
+      "id": "tense-irl-check",
+      "targetRelease": "2.1.0",
+      "title": "Verify tense-aware suggestions in real apps",
+      "status": "next",
+      "area": "test",
+      "stories": [],
+      "notes": "",
+      "label": "Tense IRL check"
     },
     {
       "id": "M6.1",

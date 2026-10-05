@@ -53,6 +53,7 @@ struct WordReply {
     std::optional<int> phrase_elapsed_ms;
     std::string trigger_reason;
     std::vector<std::string> origins;  // optional one-per-word local/learned provenance
+    std::string tense;            // "past" or "present" when the engine is sure of the sentence, else empty
 };
 
 // Parses a frame body. Returns nothing for anything that isn't a well-formed words or phrase message.
