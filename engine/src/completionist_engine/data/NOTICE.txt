@@ -1,0 +1,1 @@
+tense_forms.tsv is derived from UniMorph English (https://github.com/unimorph/eng), which is itself extracted from Wiktionary and licensed CC BY-SA 3.0. Regenerate it with engine/tools/build_tense_forms.py.

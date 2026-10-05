@@ -12,6 +12,7 @@ from completionist_engine.metrics import Metrics
 from completionist_engine.ngrams import NgramTable
 from completionist_engine.personal import PersonalStore
 from completionist_engine.phrases import PhraseService
+from completionist_engine.tense import load_tense_forms
 from completionist_engine.vocabulary import filter_vocabulary
 from completionist_engine.words import WordCompleter
 
@@ -68,7 +69,8 @@ def assemble_engine(
     personal = PersonalStore(config.data_dir / PERSONAL_FILE) if learning_enabled else None
     fuzzy = FuzzyIndex({word.lower() for word, _ in vocabulary})
     ranking = _WhileLearning(personal, lambda: engine.config.learning) if personal is not None else None
-    completer = WordCompleter(vocabulary, ngrams=ngrams, personal=ranking, promote_after=config.promote_after, fuzzy=fuzzy)
+    completer = WordCompleter(vocabulary, ngrams=ngrams, personal=ranking, promote_after=config.promote_after, fuzzy=fuzzy,
+                             tense_forms=load_tense_forms())
     metrics = Metrics(config.data_dir / METRICS_FILE)
     phrases = _phrase_service(config, metrics)
     engine = Engine(completer, config, personal=personal, phrases=phrases, metrics=metrics)

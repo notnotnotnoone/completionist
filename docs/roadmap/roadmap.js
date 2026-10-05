@@ -1282,6 +1282,38 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Added NOTICE crediting UniMorph for the tense word table."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Built the engine side of 2.1.0 tense-aware suggestions: UniMorph word table, detector, demote/lift ranking, words.tense_aware switch, tense field on replies. Dock display still to do."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M11.1 toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed tense-detector toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed tense-verb-forms toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started M11.1 toward 2.1.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started tense-verb-forms toward 2.1.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started tense-detector toward 2.1.0."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Drafted the 2.1.0 tense-aware suggestions PRD and split M11.1 into detector, verb-form, dock and IRL tasks."
     },
     {
@@ -4423,38 +4455,53 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M11.1",
       "title": "Use sentence tense when ranking word suggestions",
-      "status": "next",
+      "status": "done",
       "area": "engine",
       "stories": [],
-      "notes": "Detect whether the current sentence is in past or present tense from available context and use it as a ranking signal. Keep typed-prefix and context evidence in consideration; if tense is ambiguous or mixed, do not force a tense-based change.",
+      "notes": "Clashing tense demoted x0.6, matching lifted x1.15, noun lookalikes never demoted; words.tense_aware switch (default on) added to config and viewer. Code written and engine pytest passes (tests/test_tense.py); not yet tried in real apps. IRL verification pending.",
       "targetRelease": "2.1.0",
-      "label": "Tense-aware ranking"
+      "label": "Tense-aware ranking",
+      "completed": "2026-10-05",
+      "refs": [
+        "engine/src/completionist_engine/words.py",
+        "engine/src/completionist_engine/engine.py",
+        "engine/tests/test_tense.py"
+      ]
     },
     {
       "id": "tense-detector",
       "targetRelease": "2.1.0",
       "title": "Detect past or present tense from the current sentence",
-      "status": "todo",
+      "status": "done",
       "area": "engine",
       "stories": [],
-      "notes": "",
-      "label": "Tense detector"
+      "notes": "Code written and engine pytest passes (tests/test_tense.py); not yet tried in real apps. IRL verification pending.",
+      "label": "Tense detector",
+      "completed": "2026-10-05",
+      "refs": [
+        "engine/src/completionist_engine/tense.py"
+      ]
     },
     {
       "id": "tense-verb-forms",
       "targetRelease": "2.1.0",
       "title": "Add verb-form table for tense matching",
-      "status": "todo",
+      "status": "done",
       "area": "engine",
       "stories": [],
-      "notes": "",
-      "label": "Verb-form table"
+      "notes": "UniMorph English (Wiktionary-derived) turned into a 13k-word P/S/s table, plus rules for regular verbs it lacks. Code written and engine pytest passes (tests/test_tense.py); not yet tried in real apps. IRL verification pending.",
+      "label": "Verb-form table",
+      "completed": "2026-10-05",
+      "refs": [
+        "engine/tools/build_tense_forms.py",
+        "engine/src/completionist_engine/data/tense_forms.tsv"
+      ]
     },
     {
       "id": "tense-dock-value",
       "targetRelease": "2.1.0",
       "title": "Report detected tense to the information dock",
-      "status": "todo",
+      "status": "next",
       "area": "dll",
       "stories": [],
       "notes": "",

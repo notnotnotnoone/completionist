@@ -82,7 +82,7 @@ _PHRASE_KEYS = {
 }  # fmt: skip
 _SCHEMA = {
     "apps": {"block", "allow", "profiles"},
-    "words": {"limit", "next", "next_threshold", "chunks", "typo_correction"},
+    "words": {"limit", "next", "next_threshold", "chunks", "typo_correction", "tense_aware"},
     "learning": {"enabled", "promote_after"},
     "data": {"dir"},
     "phrase": _PHRASE_KEYS,
@@ -162,6 +162,7 @@ class Config:
     phrase: PhraseConfig = field(default_factory=PhraseConfig)
     pause_hotkey: str = "ctrl+alt+p"
     typo_correction: bool = True
+    tense_aware: bool = True
     popup: PopupConfig = field(default_factory=PopupConfig)
     partial_accept_hotkey: str = "ctrl+right"
     dismiss_hotkey: str = "escape"
@@ -228,6 +229,7 @@ def load_config(path: Path) -> Config:
         phrase=_phrase(data.get("phrase", {})),
         pause_hotkey=_hotkey(data.get("hotkeys", {}), config.pause_hotkey),
         typo_correction=_boolean(words.get("typo_correction", True), "words.typo_correction"),
+        tense_aware=_boolean(words.get("tense_aware", True), "words.tense_aware"),
         popup=_popup(data.get("popup", {})),
         partial_accept_hotkey=_enum(data.get("hotkeys", {}).get("partial_accept", "ctrl+right"), "hotkeys.partial_accept", ("ctrl+right", "alt+right", "ctrl+tab")),
         dismiss_hotkey=_enum(data.get("hotkeys", {}).get("dismiss", "escape"), "hotkeys.dismiss", ("escape", "ctrl+backspace", "alt+backspace")),

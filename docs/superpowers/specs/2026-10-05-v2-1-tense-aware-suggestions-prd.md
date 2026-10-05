@@ -100,9 +100,11 @@ The dock's tense field shows `Past`, `Present`, or `—` for `none`. This replac
 
 Per project policy there are no new native tests or harnesses: one small pytest file for the engine, IRL checklist for the dock.
 
-## 8. Open questions for the owner
+## 8. Decisions (owner, 2026-10-05)
 
-1. **Verb-form source.** (a) Hand-made irregular list plus guarded regular rules, no new dependency. Recommended: small, easy to read and fix. (b) A small inflection package such as `lemminflect`: more complete, but adds a dependency and a few MB. Which do you prefer?
-2. **How strong is the nudge?** Recommendation: start gentle (tie-breaker strength) and raise it only if the real-app test says it is too timid.
-3. **Phrases.** Should the detected tense also be passed to the cloud phrase prompt ("the sentence is in the past tense")? It is cheap and likely helps, but it changes what is sent to OpenRouter. Recommendation: leave out of 2.1.0, revisit after.
-4. **Off switch.** Add one `[words] tense_aware = true` config line, or ship it always on? Recommendation: one line, because it is the easiest way to compare before and after in real use.
+1. **Verb-form source:** a public table, not hand-made. We use **UniMorph English** (public, CC BY-SA, derived from Wiktionary), turned into `engine/src/completionist_engine/data/tense_forms.tsv` by `engine/tools/build_tense_forms.py`. Where UniMorph lacks a regular verb's forms (it has no past for "want"), the script spells them out by the usual rules, but only if the result is a real common word. This replaces the hand-made list and the "stem must be a dictionary word" rule in section 4.2.
+2. **Strength:** clashing tense is pushed **down** (x0.6), matching tense is lifted **slightly** (x1.15). A plural-noun lookalike (`walks`, `works`) is only ever lifted, never pushed down. Both numbers are named constants in `words.py` to tune after real use.
+3. **Phrases:** unchanged. The AI model works out tense itself, so nothing new is sent to OpenRouter.
+4. **Switch:** `[words] tense_aware = true`, also in the viewer's settings.
+
+Detector detail: time words used are `yesterday`, `ago`, `earlier`, `previously`, `formerly` (past) and `today`, `now`, `currently`, `nowadays` (present). `every`, `always` and `usually` were dropped as too ambiguous.
