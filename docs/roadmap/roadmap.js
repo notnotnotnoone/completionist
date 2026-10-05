@@ -969,22 +969,17 @@ window.COMPLETIONIST_ROADMAP = {
     },
     {
       "version": "2.0.0",
-      "status": "next",
+      "status": "released",
       "title": "Desktop overhaul",
       "milestone": "M10",
       "essay": [
-        "Completionist 2.0 gives the desktop autocomplete menu and the viewer one deliberate Evergreen identity. The owner has chosen to begin with the native desktop surfaces: a compact suggestion menu beside the caret and a separate lightweight information dock at the bottom-left of the typing monitor. The material should feel like soft liquid glass, with a genuinely blurred background, restrained edge refraction, broad highlights and sharp foreground words. Plain Acrylic is a fallback candidate rather than the target. The dock contains a small connection light and a smaller tense field; countdown and AI activity belong inside the caret menu. Descriptions, insertion previews and duplicated next-word displays are left out.",
-        "The desktop implementation is tracked through nine stages, each with its own scope, dependencies and verification gate, all targeting the same 2.0.0 release. First prove live glass in an isolated native renderer. Then supply truthful AI status and candidate origins, implement the display protocol and focus leases, build layout and typography, finish the glass windows and dock behavior, redraw the dependable host fallback, connect TSF snapshots with failover, integrate renderer lifecycle and packaging, and finally validate and stage the result. The written specification and implementation plan describe the interfaces and checks. A working static spike is a useful visual reference, but cannot prove desktop capture, transparent composition or behavior across monitors.",
-        "Python remains the engine for ranking, learning and cloud phrases. A separate C++ rendering process owns the graphics so a graphics failure does not crash the application receiving typing. The existing text-service DLL retains caret tracking, keyboard rules and text insertion. It sends asynchronous display snapshots and keeps an opaque Evergreen popup ready when the renderer is missing or unhealthy. Live refraction requires local GPU desktop sampling, used only for drawing: no captured pixels are sent to the engine or model or saved to disk. Capture exclusion prevents the glass from sampling itself, with a screenshot-visibility tradeoff that needs review. High contrast, disabled transparency, unsupported displays and device or session failures use opaque surfaces or hide the UI.",
-        "The final result must preserve Enter passthrough, after-space Tab behavior, the phrase selection guard, explicit selection and exact partial acceptance. Real scheduler data drives idle countdowns and request state; labels distinguish local vocabulary, personally promoted words and AI phrases without inventing provenance. Tense detection remains in 2.1, so V2 displays an unavailable dash. Verification covers engine and native tests, generated renderer fixtures, owner-run checks in Notepad, Chrome and Electron, mixed DPI and negative monitor coordinates, focus races, process restarts, accessibility and reduced motion. The viewer still needs its separately approved layout overhaul, with context receipt in Requests and existing settings as the authority. Desktop completion alone does not release all of V2; both tracks and the release checks must be finished."
-      ]
-    },
-    {
-      "version": "2.1.0",
-      "status": "planned",
-      "title": "Tense-aware suggestions",
-      "milestone": "M11",
-      "text": "This release makes the tense of the sentence you are typing one more signal when ranking word suggestions. A small local rule check reads the verb forms and time words already in the sentence, using a public Wiktionary-derived word table, and decides whether it is clearly past or present. When it is, verb forms that fit are lifted a little and forms that clash are pushed down harder, so \"Yesterday we h\" stops offering \"has\". When the sentence mixes tenses or gives no sign, ranking is exactly what it was before. The information dock now shows Past, Present or a dash instead of its placeholder, and one setting, words.tense_aware, turns the whole thing off. No AI is involved and nothing new is sent to the cloud; phrase suggestions are unchanged.",
+        "Completionist 2.0 gives the desktop autocomplete menu and the viewer one deliberate Evergreen identity. The suggestion menu beside the caret is now drawn by a native renderer with a soft liquid-glass look: a blurred view of what is behind it, restrained edge refraction and sharp foreground words. A separate, lightweight information dock sits at the bottom-left of the typing monitor and shows a small connection light and a tense line. Countdown and AI activity live inside the caret menu itself. Descriptions, insertion previews and duplicated next-word displays were left out on purpose, and the dashboard (the viewer) received its own Evergreen overhaul.",
+        "The work was delivered in stages that each carried a scope and a check: a standalone proof of live glass, truthful AI status and suggestion origins from the engine, a display protocol with focus leases and arbitration, native layout, typography and palette, finished glass windows with dock motion and recovery, a matching fallback popup with keyboard regression coverage, snapshot delivery from the text service with failover, renderer lifecycle and packaging, and a final validation and staging pass. Around them sat roadmap work that made this release possible to follow: the Release atlas separating destinations from roadwork, a restored highway map with per-task dots, and shorter task labels.",
+        "Python remains the engine for ranking, learning and cloud phrases. A separate C++ rendering process owns the graphics, so a graphics failure cannot crash the application receiving your typing. The existing text-service DLL keeps caret tracking, key rules and text insertion; it sends display snapshots asynchronously and keeps an opaque Evergreen popup ready whenever the renderer is missing or unhealthy. Live refraction samples the desktop on the local GPU purely for drawing, and no captured pixels are sent to the engine or the model or saved to disk. High contrast, disabled transparency, unsupported displays and device failures fall back to opaque surfaces or hide the UI. Enter passthrough, after-space Tab behaviour, the phrase selection guard and exact partial acceptance are preserved.",
+        "This release was recorded as shipped at the owner's direction before the owner had run it on Windows. The engine tests pass, but the renderer, the dock, mixed-DPI and two-monitor behaviour, focus races and the other desktop checks were written and tested only in code and fixtures, not yet confirmed in real apps such as Notepad, Chrome and Electron. Treat anything found when the owner first rebuilds and tries it as a patch against 2.0. The dock showed a dash for tense here; real tense detection arrived in 2.1. The same applies to the viewer overhaul and the enabled-by-default V2 renderer, which the owner has not yet used day to day, so expect some rough edges until that first real session."
+      ],
+      "date": "2026-10-05",
+      "validation": "Engine pytest suite passes. Shipped at the owner's direction before real-app verification: the native renderer, dock, mixed-DPI and two-monitor checks have not yet been run by the owner on Windows.",
       "highways": [
         "engine",
         "tsf",
@@ -992,8 +987,22 @@ window.COMPLETIONIST_ROADMAP = {
       ]
     },
     {
+      "version": "2.1.0",
+      "status": "released",
+      "title": "Tense-aware suggestions",
+      "milestone": "M11",
+      "text": "Completionist now reads whether the sentence you are typing is clearly past or present, using verb forms and time words and a public Wiktionary-derived word table, and ranks suggestions to match: fitting verb forms are lifted a little, clashing ones pushed down harder. Unclear or mixed sentences rank exactly as before. The information dock shows Past, Present or a dash, and words.tense_aware turns it off. No AI is involved and phrases are unchanged. This was shipped before the owner tried it on Windows, so the DLL and dock changes are unconfirmed in real apps.",
+      "highways": [
+        "engine",
+        "tsf",
+        "tooling"
+      ],
+      "date": "2026-10-05",
+      "validation": "Engine pytest suite passes (tests/test_tense.py plus the existing suite, apart from one Windows-only test). Protocol files compile and round-trip on Linux. Shipped at the owner's direction before real-app verification: the DLL and renderer changes have not been compiled or run on Windows."
+    },
+    {
       "version": "3.0.0",
-      "status": "planned",
+      "status": "next",
       "title": "Autocomplete in the browser",
       "milestone": "M6",
       "highways": [
@@ -1285,6 +1294,26 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-05",
+      "text": "Shipped 2.0.0 and 2.1.0 at the owner's direction, both before real-app verification; tags go on the merge commit."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Released 2.1.0 after validation: Engine pytest suite passes (tests/test_tense.py plus the existing suite, apart from one Windows-only test). Protocol files compile and round-trip on Linux. Shipped at the owner's direction before real-app verification: the DLL and renderer changes have not been compiled or run on Windows."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Released 2.0.0 after validation: Engine pytest suite passes. Shipped at the owner's direction before real-app verification: the native renderer, dock, mixed-DPI and two-monitor checks have not yet been run by the owner on Windows."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed tense-irl-check toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started tense-irl-check toward 2.1.0."
+    },
     {
       "date": "2026-10-05",
       "text": "Tidied the 2.1.0 release plan: goal, done-when, planned writing and touched highways now match the built design."
@@ -2278,7 +2307,7 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "Engine word completion served over a named pipe, 74 tests passing (branch m1-engine-words)."
     }
   ],
-  "activeRelease": "2.0.0",
+  "activeRelease": "3.0.0",
   "releasePlans": {
     "0.0.3": {
       "title": "Foundations and TSF spike",
@@ -4066,7 +4095,8 @@ window.COMPLETIONIST_ROADMAP = {
         "engine/src/completionist_engine/viewer.html",
         "engine/tests/viewer_browser.cjs",
         ".superpowers/sdd/2026-10-02-v2-desktop-overhaul/viewer-report.md"
-      ]
+      ],
+      "shippedIn": "2.0.0"
     },
     {
       "id": "M10.1",
@@ -4082,7 +4112,8 @@ window.COMPLETIONIST_ROADMAP = {
       "notes": "Marked complete by owner direction: code is done and waiting for IRL verification (owner runs it in real apps; agent reads logs). Not verified on Windows by the agent.",
       "targetRelease": "2.0.0",
       "label": "Popup scope",
-      "completed": "2026-10-05"
+      "completed": "2026-10-05",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "M10.2",
@@ -4182,7 +4213,8 @@ window.COMPLETIONIST_ROADMAP = {
       "targetRelease": "2.0.0",
       "stage": 1,
       "label": "Live glass proof",
-      "completed": "2026-10-05"
+      "completed": "2026-10-05",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "M10.15",
@@ -4201,7 +4233,8 @@ window.COMPLETIONIST_ROADMAP = {
       "targetRelease": "2.0.0",
       "stage": 2,
       "label": "AI lifecycle",
-      "completed": "2026-10-05"
+      "completed": "2026-10-05",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "M10.16",
@@ -4220,7 +4253,8 @@ window.COMPLETIONIST_ROADMAP = {
       "targetRelease": "2.0.0",
       "stage": 3,
       "label": "Renderer IPC",
-      "completed": "2026-10-05"
+      "completed": "2026-10-05",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "M10.17",
@@ -4239,7 +4273,8 @@ window.COMPLETIONIST_ROADMAP = {
       "targetRelease": "2.0.0",
       "stage": 4,
       "label": "Native layout",
-      "completed": "2026-10-05"
+      "completed": "2026-10-05",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "M10.18",
@@ -4258,7 +4293,8 @@ window.COMPLETIONIST_ROADMAP = {
       "targetRelease": "2.0.0",
       "stage": 5,
       "label": "Glass & motion",
-      "completed": "2026-10-05"
+      "completed": "2026-10-05",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "M10.19",
@@ -4277,7 +4313,8 @@ window.COMPLETIONIST_ROADMAP = {
       "targetRelease": "2.0.0",
       "stage": 6,
       "label": "Host fallback",
-      "completed": "2026-10-05"
+      "completed": "2026-10-05",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "M10.20",
@@ -4296,7 +4333,8 @@ window.COMPLETIONIST_ROADMAP = {
       "targetRelease": "2.0.0",
       "stage": 7,
       "label": "TSF integration",
-      "completed": "2026-10-05"
+      "completed": "2026-10-05",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "M10.21",
@@ -4321,7 +4359,8 @@ window.COMPLETIONIST_ROADMAP = {
       "targetRelease": "2.0.0",
       "stage": 8,
       "label": "Packaging",
-      "completed": "2026-10-03"
+      "completed": "2026-10-03",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "M10.22",
@@ -4340,7 +4379,8 @@ window.COMPLETIONIST_ROADMAP = {
       "targetRelease": "2.0.0",
       "stage": 9,
       "label": "Validation",
-      "completed": "2026-10-05"
+      "completed": "2026-10-05",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "roadmap-release-atlas",
@@ -4361,7 +4401,8 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/roadmap/map.js",
         "docs/roadmap/page.js",
         "docs/roadmap/tasks.html"
-      ]
+      ],
+      "shippedIn": "2.0.0"
     },
     {
       "id": "atlas-label-readability",
@@ -4376,7 +4417,8 @@ window.COMPLETIONIST_ROADMAP = {
       "refs": [
         "docs/roadmap/map.js",
         "codex/roadmap-release-atlas"
-      ]
+      ],
+      "shippedIn": "2.0.0"
     },
     {
       "id": "fix-requests-clear-list-race-found-in-m10-3-review",
@@ -4392,7 +4434,8 @@ window.COMPLETIONIST_ROADMAP = {
         "engine/src/completionist_engine/viewer.html",
         "engine/tests/viewer_browser.cjs",
         ".superpowers/sdd/2026-10-02-v2-desktop-overhaul/viewer-report.md"
-      ]
+      ],
+      "shippedIn": "2.0.0"
     },
     {
       "id": "quiet-native-test-launcher",
@@ -4405,7 +4448,8 @@ window.COMPLETIONIST_ROADMAP = {
       ],
       "notes": "Added a fail-closed hidden launcher with bounded output, timeout and owned-job cleanup. Protected self-check passed; corrected host suite passed (100 tests). The other four allowlisted suites remain unrun.",
       "label": "Quiet native tests",
-      "completed": "2026-10-04"
+      "completed": "2026-10-04",
+      "shippedIn": "2.0.0"
     },
     {
       "id": "highway-map-restore",
@@ -4423,7 +4467,8 @@ window.COMPLETIONIST_ROADMAP = {
         "roadmap-highway-restore",
         "docs/roadmap/map-layout.js",
         "docs/roadmap/map.js"
-      ]
+      ],
+      "shippedIn": "2.0.0"
     },
     {
       "id": "enable-v2-daily-use",
@@ -4440,7 +4485,8 @@ window.COMPLETIONIST_ROADMAP = {
       "refs": [
         "tip/src/render_client.h",
         "engine/src/completionist_engine/app.py"
-      ]
+      ],
+      "shippedIn": "2.0.0"
     },
     {
       "id": "backfill-shipped-task-labels",
@@ -4457,7 +4503,8 @@ window.COMPLETIONIST_ROADMAP = {
       "refs": [
         "roadmap-task-labels",
         "CLAUDE.md"
-      ]
+      ],
+      "shippedIn": "2.0.0"
     },
     {
       "id": "tense-prd",
@@ -4471,7 +4518,8 @@ window.COMPLETIONIST_ROADMAP = {
       "completed": "2026-10-05",
       "refs": [
         "docs/superpowers/specs/2026-10-05-v2-1-tense-aware-suggestions-prd.md"
-      ]
+      ],
+      "shippedIn": "2.1.0"
     },
     {
       "id": "M11.1",
@@ -4487,7 +4535,8 @@ window.COMPLETIONIST_ROADMAP = {
         "engine/src/completionist_engine/words.py",
         "engine/src/completionist_engine/engine.py",
         "engine/tests/test_tense.py"
-      ]
+      ],
+      "shippedIn": "2.1.0"
     },
     {
       "id": "tense-detector",
@@ -4501,7 +4550,8 @@ window.COMPLETIONIST_ROADMAP = {
       "completed": "2026-10-05",
       "refs": [
         "engine/src/completionist_engine/tense.py"
-      ]
+      ],
+      "shippedIn": "2.1.0"
     },
     {
       "id": "tense-verb-forms",
@@ -4516,7 +4566,8 @@ window.COMPLETIONIST_ROADMAP = {
       "refs": [
         "engine/tools/build_tense_forms.py",
         "engine/src/completionist_engine/data/tense_forms.tsv"
-      ]
+      ],
+      "shippedIn": "2.1.0"
     },
     {
       "id": "tense-dock-value",
@@ -4534,17 +4585,20 @@ window.COMPLETIONIST_ROADMAP = {
         "tip/src/tsf_service.cpp",
         "tip/renderer/text.cpp",
         "tip/renderer/accessibility.cpp"
-      ]
+      ],
+      "shippedIn": "2.1.0"
     },
     {
       "id": "tense-irl-check",
       "targetRelease": "2.1.0",
       "title": "Verify tense-aware suggestions in real apps",
-      "status": "next",
+      "status": "done",
       "area": "test",
       "stories": [],
-      "notes": "",
-      "label": "Tense IRL check"
+      "notes": "Closed by owner direction so 2.1.0 could ship. NOT verified: the owner has not yet rebuilt on Windows or tried it in real apps. Checklist when they do: Notepad 'Yesterday we h' shows Past and offers 'had' not 'has'; 'Today she h' shows Present and offers 'has'; 'I h' shows a dash. If the DLL or renderer fails to build, that is a patch.",
+      "label": "Tense IRL check",
+      "completed": "2026-10-05",
+      "shippedIn": "2.1.0"
     },
     {
       "id": "M6.1",
