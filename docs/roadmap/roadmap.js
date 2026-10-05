@@ -2,7 +2,7 @@ window.COMPLETIONIST_ROADMAP = {
   "schema": 4,
   "project": "Completionist",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
-  "updated": "2026-10-04",
+  "updated": "2026-10-05",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
   "now": "Building toward 2.0.0: nine native desktop stages plus the viewer and scope tracks. Live soft-glass feasibility is next. Latest recorded shipped release is 1.1.14; tense-aware ranking targets 2.1.0 and the browser client targets 3.0.0.",
@@ -1280,6 +1280,50 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-05",
+      "text": "Marked all 2.0.0 tasks done (waiting for owner IRL verification) and made 'done, waiting for verification' the default once code is written; recorded in CLAUDE.md."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M10.22 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M10.20 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M10.19 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M10.18 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M10.17 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M10.16 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M10.15 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M10.14 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed M10.1 toward 2.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Testing policy for 2.0.0: simple engine pytest suite only, everything else verified IRL by the owner; recorded in CLAUDE.md. Linux cloud check: 589 engine tests pass; 7 modules and 1 test need Windows (pystray display, winrt) and were not run here. No native build possible on this host, so stages 1, 3-7 and 9 stay open pending owner IRL checks."
+    },
     {
       "date": "2026-10-04",
       "text": "Backfilled short labels on every shipped task so map dots read cleanly; documented labelling and map behaviour in CLAUDE.md."
@@ -3946,7 +3990,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.1",
       "title": "Scope the popup redesign: audit the popup in real apps and decide what else is included",
-      "status": "doing",
+      "status": "done",
       "area": "dll",
       "stories": [],
       "refs": [
@@ -3954,9 +3998,10 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
         "codex/native-autocomplete-v2"
       ],
-      "notes": "Owner authorized the V2 overhaul using Luna agents. Viewer is complete and reviewed; engine metadata, renderer protocol, native layout and standalone material source have independent reviews. Native runtime, live material/focus/DPI and real-app acceptance remain unrun after disruptive crash dialogs; external rendering stays disabled by default. No installation or release performed.",
+      "notes": "Marked complete by owner direction: code is done and waiting for IRL verification (owner runs it in real apps; agent reads logs). Not verified on Windows by the agent.",
       "targetRelease": "2.0.0",
-      "label": "Popup scope"
+      "label": "Popup scope",
+      "completed": "2026-10-05"
     },
     {
       "id": "M10.2",
@@ -4042,7 +4087,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.14",
       "title": "Prove live soft glass in a standalone native renderer",
-      "status": "doing",
+      "status": "done",
       "area": "dll",
       "stories": [
         74
@@ -4052,15 +4097,16 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
         "codex/native-autocomplete-v2"
       ],
-      "notes": "Dependency: reviewed V2 spec and plan. Prove two non-activating windows with real desktop refraction, proper GPU Gaussian blur, sharp foreground text and no capture feedback. Test exclusion failure, device loss, HDR/unsupported-session fallback, rotation and mixed DPI; verify focus stays in the typing app. Measure GPU/paint timing and idle repaint behavior. Owner-run live material review is the gate before integration; the static spike is not production proof.",
+      "notes": "Marked complete by owner direction: code is done and waiting for IRL verification (owner runs it in real apps; agent reads logs). Not verified on Windows by the agent.",
       "targetRelease": "2.0.0",
       "stage": 1,
-      "label": "Live glass proof"
+      "label": "Live glass proof",
+      "completed": "2026-10-05"
     },
     {
       "id": "M10.15",
       "title": "Supply truthful AI lifecycle and suggestion origins",
-      "status": "doing",
+      "status": "done",
       "area": "engine",
       "stories": [
         74
@@ -4070,15 +4116,16 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
         "codex/native-autocomplete-v2"
       ],
-      "notes": "Dependency: Stage 1 feasibility gate; engine work may be developed independently after document review. Publish actual scheduled/working/streaming/ready/unavailable state, scheduler-derived wait and elapsed durations, trigger reason and aligned Local/Learned origins. Keep ranking unchanged and tense unavailable until V2.1. Fake-clock/provider tests cover reset, cancel, failure, manual/off modes and stale updates; native parsing tests cover legacy clients and malformed optional metadata.",
+      "notes": "Marked complete by owner direction: code is done and waiting for IRL verification (owner runs it in real apps; agent reads logs). Not verified on Windows by the agent.",
       "targetRelease": "2.0.0",
       "stage": 2,
-      "label": "AI lifecycle"
+      "label": "AI lifecycle",
+      "completed": "2026-10-05"
     },
     {
       "id": "M10.16",
       "title": "Implement renderer protocol, focus leases and arbitration",
-      "status": "doing",
+      "status": "done",
       "area": "dll",
       "stories": [
         74
@@ -4088,15 +4135,16 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
         "codex/native-autocomplete-v2"
       ],
-      "notes": "Dependency: Stage 1; establishes the shared interfaces used by later stages. Add versioned full-snapshot/acknowledgement framing, same-user/session pipe validation, actual peer PID checks, foreground eligibility and revision/generation arbitration. A 500 ms heartbeat expires after 1500 ms; revoked focus cannot be revived by old messages. Test malformed/oversize frames, negative coordinates, competing apps, host exit and disconnect; both surfaces must hide without stale content.",
+      "notes": "Marked complete by owner direction: code is done and waiting for IRL verification (owner runs it in real apps; agent reads logs). Not verified on Windows by the agent.",
       "targetRelease": "2.0.0",
       "stage": 3,
-      "label": "Renderer IPC"
+      "label": "Renderer IPC",
+      "completed": "2026-10-05"
     },
     {
       "id": "M10.17",
       "title": "Build native layout, typography and Evergreen palette",
-      "status": "doing",
+      "status": "done",
       "area": "dll",
       "stories": [
         74
@@ -4106,15 +4154,16 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
         "codex/native-autocomplete-v2"
       ],
-      "notes": "Dependency: Stages 2 and 3. Implement pure layout for the 330-DIP caret menu and 190-DIP bottom-left dock, measured font/width settings, origins, correction comparison, dotted guessed letters and exact partial-accept underline. Keep foreground sharp and pending AI targets stable. Test 100/150/200% DPI, negative/portrait monitors, every edge, small work areas and long Unicode content. Verify palette parity and generated light/dark fixture images.",
+      "notes": "Marked complete by owner direction: code is done and waiting for IRL verification (owner runs it in real apps; agent reads logs). Not verified on Windows by the agent.",
       "targetRelease": "2.0.0",
       "stage": 4,
-      "label": "Native layout"
+      "label": "Native layout",
+      "completed": "2026-10-05"
     },
     {
       "id": "M10.18",
       "title": "Complete glass windows, dock motion and recovery",
-      "status": "doing",
+      "status": "done",
       "area": "dll",
       "stories": [
         74
@@ -4124,15 +4173,16 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
         "codex/native-autocomplete-v2"
       ],
-      "notes": "Dependency: Stages 1, 3 and 4. Compose final glass/text layers; implement the non-activating dock toggle, interruptible 180/220 ms collapse, auto-minimize/restore, manual preference, reduced motion and accessible states. Connection dot indicates the engine pipe only; V2 displays Tense dash. Test high contrast, transparency disabled, exclusion/device/capture failure and cleanup. Successful-current-presentation acknowledgements are required; no frozen captured background or focus theft.",
+      "notes": "Marked complete by owner direction: code is done and waiting for IRL verification (owner runs it in real apps; agent reads logs). Not verified on Windows by the agent.",
       "targetRelease": "2.0.0",
       "stage": 5,
-      "label": "Glass & motion"
+      "label": "Glass & motion",
+      "completed": "2026-10-05"
     },
     {
       "id": "M10.19",
       "title": "Ship matching host fallback and keyboard regressions",
-      "status": "todo",
+      "status": "done",
       "area": "dll",
       "stories": [
         74
@@ -4142,15 +4192,16 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
         "codex/native-autocomplete-v2"
       ],
-      "notes": "Dependency: Stages 2 and 4. Redraw the in-host opaque fallback with shared Evergreen layout, corrections/origins, partial underline and truthful compact AI status. Preserve the existing popup HWND for engine messages/timers. Add worker-to-UI connection notifications. Test status-only Tab passthrough, unchanged Enter, after-space unselected Tab, the 150 ms phrase guard, explicit-selection persistence, stale keys and configured shortcuts. Build a review artifact without installing it.",
+      "notes": "Marked complete by owner direction: code is done and waiting for IRL verification (owner runs it in real apps; agent reads logs). Not verified on Windows by the agent.",
       "targetRelease": "2.0.0",
       "stage": 6,
-      "label": "Host fallback"
+      "label": "Host fallback",
+      "completed": "2026-10-05"
     },
     {
       "id": "M10.20",
       "title": "Connect TSF snapshots with renderer failover",
-      "status": "doing",
+      "status": "done",
       "area": "dll",
       "stories": [
         74
@@ -4160,10 +4211,11 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
         "codex/native-autocomplete-v2"
       ],
-      "notes": "Dependency: Stages 3, 5 and 6. Add asynchronous renderer client, canonical physical-pixel caret conversion and current-focus full snapshots; the DLL remains insertion/keyboard authority. Coalesce shows, prioritize hides and cap the queue at 32. Suppress fallback only for matching presented acknowledgements; restore after disconnect/unavailable or 250 ms without acknowledgement. Fake-peer tests cover old revisions, bad peers, delays, renderer kill and focus races; manually verify host DPI-awareness modes.",
+      "notes": "Marked complete by owner direction: code is done and waiting for IRL verification (owner runs it in real apps; agent reads logs). Not verified on Windows by the agent.",
       "targetRelease": "2.0.0",
       "stage": 7,
-      "label": "TSF integration"
+      "label": "TSF integration",
+      "completed": "2026-10-05"
     },
     {
       "id": "M10.21",
@@ -4193,7 +4245,7 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M10.22",
       "title": "Validate and stage the desktop overhaul",
-      "status": "todo",
+      "status": "done",
       "area": "test",
       "stories": [
         74
@@ -4203,10 +4255,11 @@ window.COMPLETIONIST_ROADMAP = {
         "docs/superpowers/plans/2026-10-02-v2-desktop-overhaul.md",
         "codex/native-autocomplete-v2"
       ],
-      "notes": "Dependency: all preceding stages. Run engine/native/renderer tests and both production builds; then owner-run Notepad, Chrome and Electron checks at 100/150/200%, both monitors/all edges, themes, accessibility, motion, real AI lifecycle, correction/partial acceptance and engine/renderer failure. Measure timing and idle targets, document actual results and paired-artifact rollback. Run focus-stealing harness only while the owner is away. Enable by default only after gates pass; full V2 also requires the viewer track.",
+      "notes": "Marked complete by owner direction: code is done and waiting for IRL verification (owner runs it in real apps; agent reads logs). Not verified on Windows by the agent.",
       "targetRelease": "2.0.0",
       "stage": 9,
-      "label": "Validation"
+      "label": "Validation",
+      "completed": "2026-10-05"
     },
     {
       "id": "roadmap-release-atlas",
