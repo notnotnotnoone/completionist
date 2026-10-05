@@ -18,7 +18,7 @@ System-wide, VS Code-style English autocomplete for Windows. A C++ TSF text serv
 - Tasks have stable internal `id`, full `title`, `status`, `area`, `targetRelease`, `stories`, optional `refs`/`notes`, optional concise `label` and optional local numeric `stage`. No task has a `version`. Existing M-style IDs remain internal for links; new IDs are descriptive slugs. Never reuse or renumber IDs.
 - A done task can have a `completed` date. `shippedIn` names the actual released version carrying its work; absence means not yet shipped. Completed work and shipped software are different facts.
 - Task array order controls local order. Stages are local sequence information; reorder tasks without renumbering IDs or releases. Retargeting logs the old and new destination, preserves the task and removes its old local stage.
-- Statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. Dropped work stays in history, does not count toward progress and never silently disappears.
+- Statuses: `todo`, `next`, `doing`, `blocked`, `done`, `dropped`. **When the code is written, the task is `done`, not `doing`:** "complete, waiting for verification" is the default state. `doing` means code is still being written. Use `--note` to say IRL verification is pending, and add the result when the owner reports back. Dropped work stays in history, does not count toward progress and never silently disappears.
 
 **Start every session with** `python scripts/roadmap.py brief`. Generated briefs are ignored by Git; never edit them directly. Choose the smallest view:
 
