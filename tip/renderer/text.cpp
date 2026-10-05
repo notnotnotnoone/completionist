@@ -267,7 +267,7 @@ bool TextRenderer::Prepare(const Snapshot& snapshot, float availableWidthDip, Pr
 
     const std::wstring connectionText = snapshot.engineConnected ? L"Connected" : L"Engine offline";
     if (!MakeLayout(factory_, connectionText, smallFormat.Get(), 150.0f, 24.0f, &next.connection) ||
-        !MakeLayout(factory_, L"Tense —", smallFormat.Get(), 120.0f, 24.0f, &next.tense) ||
+        !MakeLayout(factory_, completionist::render::TenseText(snapshot), smallFormat.Get(), 120.0f, 24.0f, &next.tense) ||
         !MakeLayout(factory_, L"Tab", mono.Get(), 42.0f, 20.0f, &next.shortcut)) return false;
     next.metrics.measuredContentWidthDip = widest;
     *out = std::move(next);

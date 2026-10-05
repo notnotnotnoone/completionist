@@ -1282,6 +1282,18 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Dock now shows the real tense: engine reply, DLL, render pipe, renderer text and accessibility name. Not compiled on Windows yet."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed tense-dock-value toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started tense-dock-value toward 2.1.0."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Added NOTICE crediting UniMorph for the tense word table."
     },
     {
@@ -4501,17 +4513,25 @@ window.COMPLETIONIST_ROADMAP = {
       "id": "tense-dock-value",
       "targetRelease": "2.1.0",
       "title": "Report detected tense to the information dock",
-      "status": "next",
+      "status": "done",
       "area": "dll",
       "stories": [],
-      "notes": "",
-      "label": "Dock tense value"
+      "notes": "Engine reply carries tense; DLL passes it to the renderer; dock shows Tense Past / Tense Present / Tense dash (screen and accessibility name). Written without a Windows build: the two protocol files compile and round-trip on Linux, but the DLL and renderer have not been compiled or run. IRL verification pending: needs a rebuild on Windows first.",
+      "label": "Dock tense value",
+      "completed": "2026-10-05",
+      "refs": [
+        "tip/src/protocol.cpp",
+        "tip/src/render_protocol.cpp",
+        "tip/src/tsf_service.cpp",
+        "tip/renderer/text.cpp",
+        "tip/renderer/accessibility.cpp"
+      ]
     },
     {
       "id": "tense-irl-check",
       "targetRelease": "2.1.0",
       "title": "Verify tense-aware suggestions in real apps",
-      "status": "todo",
+      "status": "next",
       "area": "test",
       "stories": [],
       "notes": "",

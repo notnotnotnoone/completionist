@@ -543,6 +543,7 @@ private:
         model_.SetPhraseAvailable(false);  // no request goes out from here, so Ctrl+Space isn't ours to take
         phrase_.clear();
         origins_.clear();
+        tense_.clear();
         aiState_ = completionist::render::AiState::Off;
         phraseWaitMs_ = phraseElapsedMs_ = 0;
         statusReceivedAt_ = 0;
@@ -634,6 +635,7 @@ private:
                 snapshot.elapsedMs = content.phraseElapsedMs;
                 snapshot.triggerReason = triggerReason_;
                 snapshot.engineConnected = engineConnected_;
+                snapshot.tense = tense_;
                 snapshot.settings = popupSettings_;
                 for (std::size_t i = 0; i < words_.size(); ++i) {
                     completionist::render::Candidate candidate;
@@ -823,6 +825,7 @@ private:
         statusReceivedAt_ = 0;
         triggerReason_.clear();
         origins_.clear();
+        tense_.clear();
         promptWord_ = word;
         promptBefore_ = before;
         caret_ = caret;
@@ -874,6 +877,7 @@ private:
         kinds_ = useWords ? reply.kinds : std::vector<std::string>();
         marks_ = useWords && reply.marks.size() == reply.words.size() ? reply.marks : std::vector<std::vector<int>>();
         origins_ = useWords && reply.origins.size() == reply.words.size() ? reply.origins : std::vector<std::string>();
+        tense_ = reply.tense;  // phrase updates return above, so they never clear it
         phrase_ = phraseAllowed_ ? reply.phrase : std::wstring();
         model_.Open(words_.size(), /*highlightFirst=*/!(useWords && allNext));  // next words: Tab stays the app's until Down
         model_.SetPhrase(!phrase_.empty(), NowMs());
@@ -1113,6 +1117,7 @@ private:
     std::vector<std::string> kinds_;  // what each of words_ is: "word", "chunk" or "next"
     std::vector<std::vector<int>> marks_;  // guessed letter positions per word (a typo correction's marks)
     std::vector<std::string> origins_;
+    std::string tense_;  // "past", "present" or empty (shown as a dash in the dock)
     std::wstring phrase_;  // the phrase continuation on screen (what's left of it)
     completionist::render::AiState aiState_ = completionist::render::AiState::Off;
     std::uint32_t phraseWaitMs_ = 0;
