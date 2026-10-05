@@ -1282,6 +1282,34 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Drafted the 2.1.0 tense-aware suggestions PRD and split M11.1 into detector, verb-form, dock and IRL tasks."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed tense-prd toward 2.1.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task tense-irl-check toward 2.1.0: Verify tense-aware suggestions in real apps"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task tense-dock-value toward 2.1.0: Report detected tense to the information dock"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task tense-verb-forms toward 2.1.0: Add verb-form table for tense matching"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task tense-detector toward 2.1.0: Detect past or present tense from the current sentence"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task tense-prd toward 2.1.0: Write the 2.1.0 tense-aware suggestions PRD"
+    },
+    {
+      "date": "2026-10-05",
       "text": "Marked all 2.0.0 tasks done (waiting for owner IRL verification) and made 'done, waiting for verification' the default once code is written; recorded in CLAUDE.md."
     },
     {
@@ -4379,14 +4407,68 @@ window.COMPLETIONIST_ROADMAP = {
       ]
     },
     {
+      "id": "tense-prd",
+      "targetRelease": "2.1.0",
+      "title": "Write the 2.1.0 tense-aware suggestions PRD",
+      "status": "done",
+      "area": "docs",
+      "stories": [],
+      "notes": "PRD drafted; awaiting owner review of open questions.",
+      "label": "2.1 PRD",
+      "completed": "2026-10-05",
+      "refs": [
+        "docs/superpowers/specs/2026-10-05-v2-1-tense-aware-suggestions-prd.md"
+      ]
+    },
+    {
       "id": "M11.1",
       "title": "Use sentence tense when ranking word suggestions",
-      "status": "todo",
+      "status": "next",
       "area": "engine",
       "stories": [],
       "notes": "Detect whether the current sentence is in past or present tense from available context and use it as a ranking signal. Keep typed-prefix and context evidence in consideration; if tense is ambiguous or mixed, do not force a tense-based change.",
       "targetRelease": "2.1.0",
       "label": "Tense-aware ranking"
+    },
+    {
+      "id": "tense-detector",
+      "targetRelease": "2.1.0",
+      "title": "Detect past or present tense from the current sentence",
+      "status": "todo",
+      "area": "engine",
+      "stories": [],
+      "notes": "",
+      "label": "Tense detector"
+    },
+    {
+      "id": "tense-verb-forms",
+      "targetRelease": "2.1.0",
+      "title": "Add verb-form table for tense matching",
+      "status": "todo",
+      "area": "engine",
+      "stories": [],
+      "notes": "",
+      "label": "Verb-form table"
+    },
+    {
+      "id": "tense-dock-value",
+      "targetRelease": "2.1.0",
+      "title": "Report detected tense to the information dock",
+      "status": "todo",
+      "area": "dll",
+      "stories": [],
+      "notes": "",
+      "label": "Dock tense value"
+    },
+    {
+      "id": "tense-irl-check",
+      "targetRelease": "2.1.0",
+      "title": "Verify tense-aware suggestions in real apps",
+      "status": "todo",
+      "area": "test",
+      "stories": [],
+      "notes": "",
+      "label": "Tense IRL check"
     },
     {
       "id": "M6.1",
