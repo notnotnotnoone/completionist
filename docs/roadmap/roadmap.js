@@ -1306,6 +1306,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Wrote the glass popup recovery plan (docs/superpowers/plans/2026-10-05-glass-popup-recovery.md) after a fresh Notepad showed only the flat popup and logged nothing."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task glass-logging toward 2.2.0: Log every glass handoff step in DLL and renderer, with a one-command report"
+    },
+    {
+      "date": "2026-10-05",
       "text": "Glass flickered back to the flat popup: the renderer retired an app's connection whenever the popup hid, refusing everything after; now it only refuses older revisions. The DLL also stops drawing the flat popup first on every keystroke while glass is working."
     },
     {
@@ -4695,6 +4703,18 @@ window.COMPLETIONIST_ROADMAP = {
       ],
       "notes": "From the owner's Notepad screenshot: missing space ('isa simple…'), loud full magenta AI row, near-invisible typed prefix, 'Local' as loose grey text on every row, oversized empty box, stray dot, no shortcut footer.",
       "label": "Prototype fallback popup"
+    },
+    {
+      "id": "glass-logging",
+      "targetRelease": "2.2.0",
+      "title": "Log every glass handoff step in DLL and renderer, with a one-command report",
+      "status": "todo",
+      "area": "dll",
+      "stories": [
+        1
+      ],
+      "notes": "",
+      "label": "Glass handoff logging"
     },
     {
       "id": "glass-renderer-takeover",
