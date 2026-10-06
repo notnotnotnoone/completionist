@@ -25,6 +25,7 @@
 
 #include "engine_client.h"
 #include "engine_connection_observer.h"
+#include "glass_log.h"
 #include "log.h"
 #include "popup.h"
 #include "popup_model.h"
@@ -333,6 +334,10 @@ public:
     STDMETHODIMP ActivateEx(ITfThreadMgr* threadMgr, TfClientId clientId, DWORD flags) override {
         COMPLETIONIST_GUARD_BEGIN
         completionist::RefreshLogLevel();
+        static volatile LONG bannerWritten = 0;
+        if (InterlockedExchange(&bannerWritten, 1) == 0)
+            completionist::GlassBanner(L"dll", COMPLETIONIST_GLASS_BUILD, g_module);
+        completionist::GlassLog(L"step=activate thread=%lu", GetCurrentThreadId());
         threadMgr_ = threadMgr;
         threadMgr_->AddRef();
         clientId_ = clientId;

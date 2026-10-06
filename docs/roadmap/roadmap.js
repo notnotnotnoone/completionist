@@ -1306,6 +1306,14 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Added the shared always-on glass log with a build banner in the DLL and renderer."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started glass-logging toward 2.2.0."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Wrote the glass handoff logging implementation plan (docs/superpowers/plans/2026-10-05-glass-handoff-logging.md)."
     },
     {
@@ -4712,7 +4720,7 @@ window.COMPLETIONIST_ROADMAP = {
       "id": "glass-logging",
       "targetRelease": "2.2.0",
       "title": "Log every glass handoff step in DLL and renderer, with a one-command report",
-      "status": "todo",
+      "status": "doing",
       "area": "dll",
       "stories": [
         1
