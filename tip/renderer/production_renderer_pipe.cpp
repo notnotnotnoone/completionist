@@ -1,13 +1,17 @@
-#define NOMINMAX
+﻿#define NOMINMAX
 #include <windows.h>
 
 #include <array>
 #include <algorithm>
+#include <atomic>
+#include <optional>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "production_renderer_pipe.h"
 #include "windows.h"
+#include "../src/glass_log.h"
 
 namespace renderer {
 namespace {
@@ -85,49 +89,66 @@ bool Validate(const completionist::render::Identity& owner, HANDLE pipe) {
 DWORD ProductionRendererPipe::Run(HANDLE stopEvent) {
     const std::wstring name = PipeName();
     if (name.empty() || !present_ || !hide_) return ERROR_INVALID_PARAMETER;
+    std::atomic<int> active{0};  // client threads still running; each releases its own pipe
+    DWORD result = ERROR_SUCCESS;
     while (WaitForSingleObject(stopEvent, 0) != WAIT_OBJECT_0) {
+        // A fresh listening instance always exists while earlier apps stay connected, so an idle
+        // background app can never lock the app you are typing in out of the renderer.
         HANDLE pipe = win::CreateLocalRendererPipe(name.c_str());
-        if (pipe == INVALID_HANDLE_VALUE) return GetLastError();
+        if (pipe == INVALID_HANDLE_VALUE) { result = GetLastError(); break; }
         DWORD mode = PIPE_READMODE_BYTE | PIPE_NOWAIT;
-        const bool configured = SetNamedPipeHandleState(pipe, &mode, nullptr, nullptr) != FALSE;
-        if (!configured) { CloseHandle(pipe); return GetLastError(); }
+        if (!SetNamedPipeHandleState(pipe, &mode, nullptr, nullptr)) { result = GetLastError(); CloseHandle(pipe); break; }
         bool clientConnected = false;
         while (WaitForSingleObject(stopEvent, 0) != WAIT_OBJECT_0) {
             if (ConnectNamedPipe(pipe, nullptr) || GetLastError() == ERROR_PIPE_CONNECTED) { clientConnected = true; break; }
             if (GetLastError() != ERROR_PIPE_LISTENING) break;
             Sleep(kPollMs);
         }
-        if (WaitForSingleObject(stopEvent, 0) == WAIT_OBJECT_0) { CloseHandle(pipe); break; }
         if (!clientConnected) { CloseHandle(pipe); continue; }
-        ServeClient(pipe, stopEvent);
-        DisconnectNamedPipe(pipe);
-        CloseHandle(pipe);
-        // ServeClient owns revocation for a peer it actually accepted. A rejected
-        // or already superseded peer must never clear a newer owner's surfaces.
+        ++active;
+        std::thread([this, pipe, stopEvent, &active] {
+            ULONG clientPid = 0;
+            GetNamedPipeClientProcessId(pipe, &clientPid);
+            completionist::GlassLog(L"step=client-connected app=%lu", clientPid);
+            ServeClient(pipe, stopEvent);
+            completionist::GlassLog(L"step=client-released app=%lu", clientPid);
+            DisconnectNamedPipe(pipe);
+            CloseHandle(pipe);
+            --active;
+        }).detach();
     }
+    SetEvent(stopEvent);
+    while (active > 0) Sleep(kPollMs);  // every client loop watches stopEvent
     hide_();
+    std::lock_guard lock(mutex_);
     session_.Revoke();
-    return ERROR_SUCCESS;
+    return result;
 }
 
 bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
+    ULONG clientPid = 0;
+    GetNamedPipeClientProcessId(pipe, &clientPid);
     std::vector<unsigned char> pending;
     pending.reserve(4096);
     bool connected = true;
     std::optional<completionist::render::Identity> clientOwner;
     while (connected && WaitForSingleObject(stopEvent, 0) != WAIT_OBJECT_0) {
-        if (const auto* current = session_.current()) {
+        if (!ReadAvailable(pipe, &pending)) break;
+        std::unique_lock lock(mutex_);
+        if (const auto* current = session_.current(); current && clientOwner &&
+            completionist::render::SameIdentity(current->owner, *clientOwner)) {
             const HWND foreground = GetForegroundWindow();
             DWORD foregroundPid = 0;
             if (foreground) GetWindowThreadProcessId(foreground, &foregroundPid);
             if (foregroundPid != current->owner.pid ||
                 reinterpret_cast<uint64_t>(foreground) != current->owner.hostHwnd) {
+                completionist::GlassLog(L"step=lost-foreground app=%lu rev=%llu gen=%llu hwnd=%llx fgpid=%lu fg=%p",
+                    current->owner.pid, current->revision, current->owner.generation, current->owner.hostHwnd,
+                    foregroundPid, foreground);
                 if (session_.RevokeIfCurrent(current->owner)) hide_();
-                connected = false;
-                break;
+                clientOwner.reset();
             }
         }
-        if (!ReadAvailable(pipe, &pending)) break;
         std::string body;
         while (!pending.empty() && pending.size() >= 4) {
             uint32_t length = static_cast<uint32_t>(pending[0]) |
@@ -137,9 +158,14 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
             if (pending.size() < static_cast<std::size_t>(length) + 4) break;
             if (!TakeFrame(&pending, &body)) { connected = false; break; }
             if (auto snapshot = completionist::render::ParseShow(body)) {
-                if (!Validate(snapshot->owner, pipe)) { connected = false; break; }
+                // A background app (or one whose claim doesn't check out) is refused, not disconnected.
                 const DWORD foreground = ForegroundPid();
-                if (!session_.Accept(*snapshot, foreground, NowMs())) {
+                const bool identityOk = Validate(snapshot->owner, pipe);
+                if (!identityOk || !session_.Accept(*snapshot, foreground, NowMs())) {
+                    completionist::GlassLog(L"step=refused app=%lu rev=%llu gen=%llu hwnd=%llx why=%S fgpid=%lu fg=%p words=%zu selection=%d",
+                        snapshot->owner.pid, snapshot->revision, snapshot->owner.generation, snapshot->owner.hostHwnd,
+                        identityOk ? session_.LastRefusal() : "identity-check", foreground, GetForegroundWindow(),
+                        snapshot->words.size(), snapshot->selection);
                     const auto ack = completionist::render::EncodeAck({snapshot->owner, snapshot->revision, false});
                     if (ack.empty() || !WriteFrame(pipe, ack)) { connected = false; break; }
                     continue;
@@ -150,6 +176,9 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
                 const bool stillCurrent = session_.current() &&
                     completionist::render::IsCurrentAck(*session_.current(), {snapshot->owner, snapshot->revision, true}) &&
                     Validate(snapshot->owner, pipe) && session_.Heartbeat(snapshot->owner, ForegroundPid(), NowMs());
+                completionist::GlassLog(L"step=drawn app=%lu rev=%llu gen=%llu hwnd=%llx drawn=%d current=%d",
+                    snapshot->owner.pid, snapshot->revision, snapshot->owner.generation, snapshot->owner.hostHwnd,
+                    drawn ? 1 : 0, stillCurrent ? 1 : 0);
                 if (!drawn || !stillCurrent) {
                     if (session_.RevokeIfCurrent(snapshot->owner)) hide_();
                 }
@@ -159,15 +188,23 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
                 continue;
             }
             const auto command = completionist::render::ParseCommand(body);
-            if (!command || !Validate(command->owner, pipe)) { connected = false; break; }
-            const DWORD foreground = ForegroundPid();
+            if (!command) {
+                completionist::GlassLog(L"step=unreadable-command app=%lu", clientPid);
+                connected = false; break;
+            }
+            const auto* current = session_.current();
+            const bool owns = current && completionist::render::SameIdentity(current->owner, command->owner);
+            if (!owns) completionist::GlassLog(L"step=command-ignored app=%lu kind=%d gen=%llu hwnd=%llx rev=%llu why=not-owner",
+                command->owner.pid, static_cast<int>(command->command), command->owner.generation,
+                command->owner.hostHwnd, command->revision);
+            if (!owns) continue;  // only the app currently drawn may renew or hide it
             if (command->command == Command::Heartbeat) {
-                if (!session_.Heartbeat(command->owner, foreground, NowMs())) { connected = false; break; }
-                clientOwner = command->owner;
+                if (Validate(command->owner, pipe) && session_.Heartbeat(command->owner, ForegroundPid(), NowMs()))
+                    clientOwner = command->owner;
             } else if (command->command == Command::Hide) {
-                const auto* current = session_.current();
-                if (current && completionist::render::SameIdentity(current->owner, command->owner) &&
-                    command->revision >= current->revision) {
+                if (command->revision >= current->revision) {
+                    completionist::GlassLog(L"step=hide app=%lu rev=%llu gen=%llu hwnd=%llx",
+                        command->owner.pid, command->revision, command->owner.generation, command->owner.hostHwnd);
                     hide_();
                     session_.RevokeIfCurrent(command->owner);
                     clientOwner.reset();
@@ -176,14 +213,21 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
                 connected = false;
             }
         }
+        const auto* expiring = session_.current();
+        const auto expiredOwner = expiring ? std::optional{expiring->owner} : std::nullopt;
+        const uint64_t expiredRevision = expiring ? expiring->revision : 0;
         session_.Expire(NowMs());
         if (clientOwner && !session_.visible()) {
+            if (expiredOwner) completionist::GlassLog(L"step=hide app=%lu rev=%llu gen=%llu hwnd=%llx why=lease-expired",
+                expiredOwner->pid, expiredRevision, expiredOwner->generation, expiredOwner->hostHwnd);
             hide_();
-            connected = false;
+            clientOwner.reset();
         }
+        lock.unlock();
         Sleep(kPollMs);
     }
     if (clientOwner) {
+        std::lock_guard lock(mutex_);
         if (session_.RevokeIfCurrent(*clientOwner)) hide_();
     }
     return connected;

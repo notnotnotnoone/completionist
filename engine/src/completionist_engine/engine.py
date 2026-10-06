@@ -4,6 +4,7 @@ import logging
 import time
 import weakref
 from collections.abc import Callable
+from dataclasses import replace
 
 from completionist_engine.config import Config, effective_config
 from completionist_engine.learning import TypingLearner
@@ -150,7 +151,7 @@ class Session:
             return None
         if request.event == "hotkey":
             if self._phrase is not None and mode.words and not engine.paused and not engine.private_mode:
-                self._phrase.on_hotkey(request, mode.phrase, config=config.phrase)
+                self._phrase.on_hotkey(self._with_word_info(request, config), mode.phrase, config=config.phrase)
             return None
         if request.event == "dismiss":
             if self._phrase is not None:
@@ -179,6 +180,7 @@ class Session:
         tense = engine._completer.tense_of(request.before) if config.tense_aware else "none"
         words, kinds, origins = completion.words, ("word",) * len(completion.words), completion.origins
         marks: tuple[tuple[int, ...], ...] = completion.marks
+        phrase_request = self._with_word_info(request, config, completion.words)
         if config.next_words and not words:
             completion = engine._completer.next_words(
                 request.before, limit=config.word_limit, threshold=config.next_threshold, tense_aware=config.tense_aware
@@ -199,7 +201,7 @@ class Session:
         phrase, phrase_done, phrase_mode = "", True, "off"
         if self._phrase is not None:
             # A quiet request (the popup is held back after Esc) keeps learning but asks for no phrase.
-            update = self._phrase.on_request(request, "off" if request.quiet else mode.phrase, config=config.phrase)
+            update = self._phrase.on_request(phrase_request, "off" if request.quiet else mode.phrase, config=config.phrase)
             phrase, phrase_done = update.phrase, update.done
             self._note_phrase(phrase)
             if engine._phrases is not None and engine._phrases.available:
@@ -221,6 +223,17 @@ class Session:
             tense=tense if tense != "none" else None,
             **status,
         )
+
+    def _with_word_info(self, request: Request, config, words: tuple[str, ...] | None = None) -> Request:
+        """The request plus what the phrase model is told about the word at the caret."""
+        partial = current_word(request.before)
+        if not partial:
+            return request
+        completer = self._engine._completer
+        if words is None:
+            words = completer.complete(request.before, limit=5, typo_correction=config.typo_correction,
+                                       tense_aware=config.tense_aware).words
+        return replace(request, partial=partial, partial_known=completer.is_word(partial), word_hints=tuple(words[:5]))
 
     def _popup_settings(self) -> dict | None:
         config = self._engine.config

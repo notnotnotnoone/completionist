@@ -29,6 +29,21 @@ def phrase_instructions(config: PhraseConfig) -> str:
     return "Explicit writing preferences (take priority over general style matching below):\n" + "\n".join(preferences) + "\n\n" + (config.instructions or INSTRUCTIONS)
 
 
+def fit_reply_start(text: str, partial: str, known: bool) -> str:
+    """A whole dictionary word at the caret gets a space before the phrase; a half-typed one gets none,
+    so the phrase finishes it. Punctuation right after a whole word ("is," "is.") keeps no space."""
+    if not partial or not text:
+        return text
+    if not known:
+        return text.lstrip(" ")
+    if text[0].isspace() or text[0] in _NO_SPACE_BEFORE:
+        return text
+    return " " + text
+
+
+_NO_SPACE_BEFORE = frozenset(",.;:!?)]}'’\"…")
+
+
 def limit_reply(text: str, config: PhraseConfig) -> str:
     if any(phrase.casefold() in text.casefold() for phrase in config.avoid_phrases):
         return ""

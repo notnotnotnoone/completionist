@@ -17,6 +17,7 @@
 #include <thread>
 #include <filesystem>
 
+#include <intrin.h>
 #include "production_service.h"
 #include "production_renderer_pipe.h"
 #include "capture.h"
@@ -27,6 +28,7 @@
 #include "output_color_space.h"
 #include "system_change.h"
 #include "fixture.h"
+#include "../src/glass_log.h"
 
 namespace renderer {
 namespace {
@@ -49,24 +51,35 @@ public:
         DWORD pid = 0;
         const HWND foreground = GetForegroundWindow();
         if (foreground) GetWindowThreadProcessId(foreground, &pid);
-        if (foreground != host || pid != snapshot.owner.pid || !IsWindowVisible(host)) { Hide(); return false; }
-        if (!DpiReady()) { Hide(); return false; }
+        if (foreground != host || pid != snapshot.owner.pid || !IsWindowVisible(host)) {
+            completionist::GlassLog(L"step=present-skipped app=%lu rev=%llu gen=%llu hwnd=%llx why=not-foreground fg=%p fgpid=%lu visible=%d",
+                snapshot.owner.pid, snapshot.revision, snapshot.owner.generation, snapshot.owner.hostHwnd,
+                foreground, pid, IsWindowVisible(host) ? 1 : 0);
+            Hide(); return false;
+        }
+        if (!DpiReady()) {
+            completionist::GlassLog(L"step=present-skipped app=%lu rev=%llu gen=%llu hwnd=%llx why=dpi",
+                snapshot.owner.pid, snapshot.revision, snapshot.owner.generation, snapshot.owner.hostHwnd);
+            Hide(); return false;
+        }
         const RECT caret{snapshot.caret.left,snapshot.caret.top,snapshot.caret.right,snapshot.caret.bottom};
         const HMONITOR monitor = MonitorFromRect(&caret, MONITOR_DEFAULTTONEAREST);
         if (!monitor || (graphicsReady_ && monitor != activeMonitor_)) ResetGraphics();
-        if (!graphicsReady_ && !CreateGraphics(monitor)) return PresentOpaque(snapshot, host, monitor, false);
+        if (!graphicsReady_ && !CreateGraphics(monitor)) {
+            Fatal(snapshot, L"no-graphics-device");
+        }
 
         unsigned dpi=96;
         UINT dpiX=96,dpiY=96;
-        if (FAILED(GetDpiForMonitor(monitor,MDT_EFFECTIVE_DPI,&dpiX,&dpiY))) { Hide(); return false; }
+        if (FAILED(GetDpiForMonitor(monitor,MDT_EFFECTIVE_DPI,&dpiX,&dpiY))) Fatal(snapshot, L"monitor-dpi-query");
         dpi=dpiX;
-        if (dpi < 48 || dpi > 768) { Hide(); return false; }
+        if (dpi < 48 || dpi > 768) Fatal(snapshot, L"monitor-dpi-out-of-range");
         MONITORINFO info{sizeof(info)};
-        if (!GetMonitorInfoW(monitor,&info)) { Hide(); return false; }
+        if (!GetMonitorInfoW(monitor,&info)) Fatal(snapshot, L"monitor-info");
         completionist::layout::WorkArea work{{info.rcWork.left,info.rcWork.top,info.rcWork.right,info.rcWork.bottom},dpi};
         prepared_.Reset();
         text::TextRenderer renderer(surfaces_.writeFactory.Get());
-        if (!renderer.Prepare(snapshot,ContentWidth(snapshot,work),&prepared_)) return PresentOpaque(snapshot,host,monitor,false);
+        if (!renderer.Prepare(snapshot,ContentWidth(snapshot,work),&prepared_)) Fatal(snapshot, L"text-prepare");
         auto layout = completionist::layout::Place(snapshot,work,prepared_.metrics);
         UpdateDockGeometry(layout);
         bool highContrast = false;
@@ -101,20 +114,45 @@ public:
                         mode=ApplyMaterialMode(currentMode_,conditions,[&]{RetireCapture();});
                         currentMode_=mode;
                     } else {
-                        // The single allowed device recreation failed; do not retry
-                        // implicitly through the opaque path below.
-                        Hide();
-                        return false;
+                        Fatal(snapshot, L"device-recreation-failed");
                     }
                 } else if (capture_.failure!=CaptureFailure::none) {
                     captureReady_=false; RetireCapture();
                     conditions.captureAvailable=false; mode=ChooseMaterialMode(conditions);
                     currentMode_=mode;
-                } else if (!capture_.hasFrame) { mode=MaterialMode::Opaque; currentMode_=mode; }
+                }
+                // A quiet desktop has no new frame. Keep the last captured frame
+                // and glass material; only real capture failures retire it.
             }
         }
-        if (mode!=MaterialMode::Glass || !capture_.hasFrame) return PresentOpaque(snapshot,host,monitor,highContrast);
-        return PresentGlass(snapshot,layout,dpi,renderer);
+        if (mode!=MaterialMode::Glass || !capture_.hasFrame) {
+            completionist::GlassLog(L"step=opaque app=%lu rev=%llu gen=%llu hwnd=%llx why=material mode=%d frame=%d capture=%d excluded=%d composition=%d hdr=%d contrast=%d failure=%d",
+                snapshot.owner.pid, snapshot.revision, snapshot.owner.generation, snapshot.owner.hostHwnd,
+                static_cast<int>(mode), capture_.hasFrame ? 1 : 0, captureReady_ ? 1 : 0, surfaces_.captureExcluded() ? 1 : 0,
+                composition ? 1 : 0, outputColorSpace_!=OutputColorSpace::Sdr709 ? 1 : 0, highContrast ? 1 : 0,
+                static_cast<int>(capture_.failure));
+            // Opaque is only for conditions the system chose (high contrast, transparency off,
+            // remote session, HDR). If glass was possible and still did not happen, that is a bug.
+            const bool glassExpected = !highContrast && composition && outputColorSpace_==OutputColorSpace::Sdr709 &&
+                GetSystemMetrics(SM_REMOTESESSION)==0 && surfaces_.captureExcluded();
+            if (glassExpected) Fatal(snapshot, L"glass-expected-but-no-frame");
+            if (!PresentOpaque(snapshot,host,monitor,highContrast)) Fatal(snapshot, L"opaque-present-failed");
+            return true;
+        }
+        const bool glass=PresentGlass(snapshot,layout,dpi,renderer);
+        if (!glass) Fatal(snapshot, L"glass-present-failed");
+        return true;
+    }
+
+    // Crash loudly: write the reason to glass.log, tell the user, then die so a failure
+    // can never be mistaken for the old popup quietly taking over.
+    [[noreturn]] static void Fatal(const completionist::render::Snapshot& snapshot, const wchar_t* why) {
+        completionist::GlassLog(L"step=FATAL app=%lu rev=%llu gen=%llu hwnd=%llx why=%s",
+            snapshot.owner.pid, snapshot.revision, snapshot.owner.generation, snapshot.owner.hostHwnd, why);
+        wchar_t text[256];
+        swprintf_s(text, L"The Completionist glass renderer failed and is stopping on purpose.\n\nReason: %s\n\nDetails are in glass.log.", why);
+        MessageBoxW(nullptr, text, L"Completionist renderer crashed", MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND);
+        __fastfail(FAST_FAIL_FATAL_APP_EXIT);
     }
 
     void Hide() {

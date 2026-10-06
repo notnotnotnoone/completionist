@@ -332,7 +332,6 @@ bool SurfaceWindows::showOpaqueSnapshot(const completionist::render::Snapshot& s
         return true;
     };
     const auto rect=[](const completionist::render::Rect& r){return RECT{r.left,r.top,r.right,r.bottom};};
-    hide();
     if (!presentOpaque(menuPanel,rect(layout.menuBounds),text::Surface::Menu) ||
         !presentOpaque(dockPanel,rect(layout.dockBounds),text::Surface::Dock)) { hide(); return false; }
     const double progress=dockState_.Sample(GetTickCount64());

@@ -86,3 +86,9 @@ def test_first_person_i_is_always_capitalised(completer):
 
 def test_contractions_complete_after_an_apostrophe(completer):
     assert completer.complete("I don'").words == ("don't",)
+
+
+def test_is_word_knows_whole_dictionary_words_only():
+    completer = WordCompleter([("is", 5.0), ("island", 2.0)])
+    assert completer.is_word("is") and completer.is_word("Is")
+    assert not completer.is_word("isl")

@@ -76,7 +76,13 @@ public:
     void SetSettings(const PopupSettings& settings) { settings_ = settings; }
 
     // The text changed since the words were computed. Keys pass through until the next Open().
-    void MarkStale() { stale_ = true; }
+    // Keep the previous presentation only until fresh words arrive, with a deadline
+    // that repeated edits cannot extend. Stale rows never consume an accept key.
+    void MarkStale(std::uint64_t nowMs = 0) {
+        if (!stale_) staleDeadline_ = nowMs + 250;
+        stale_ = true;
+    }
+    std::uint64_t stale_deadline() const { return stale_ ? staleDeadline_ : 0; }
 
     bool visible() const { return count_ > 0 || phrase_; }
     bool stale() const { return stale_; }
@@ -85,6 +91,7 @@ public:
 
     // The highlighted row at `nowMs`: kPhraseRow, or a word index.
     int selection(std::uint64_t nowMs) const {
+        if (!visible()) return kNoRow;
         if (moved_ || !phrase_) return count_ == 0 && phrase_ ? kPhraseRow : selection_;
         if (count_ == 0) return kPhraseRow;
         return nowMs >= armedAt_ ? kPhraseRow : selection_;
@@ -157,6 +164,7 @@ private:
     int selection_ = 0;
     bool moved_ = false;
     bool stale_ = false;
+    std::uint64_t staleDeadline_ = 0;
     bool phrase_ = false;
     bool available_ = false;
     std::uint64_t armedAt_ = 0;

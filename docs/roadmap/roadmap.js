@@ -1001,8 +1001,18 @@ window.COMPLETIONIST_ROADMAP = {
       "validation": "Engine pytest suite passes (tests/test_tense.py plus the existing suite, apart from one Windows-only test). Protocol files compile and round-trip on Linux. Shipped at the owner's direction before real-app verification: the DLL and renderer changes have not been compiled or run on Windows."
     },
     {
-      "version": "3.0.0",
+      "version": "2.2.0",
       "status": "next",
+      "title": "Glass popup that matches the prototype",
+      "highways": [
+        "tsf",
+        "tooling"
+      ],
+      "text": "2.0.0 was marked shipped before anyone saw it running, and the first real-app check on 2026-10-05 failed: Notepad showed the old opaque fallback popup in a green skin, not the glass renderer, and the fallback itself did not match the approved browser prototype. This release fixes that honestly. First the plain in-app popup is redrawn to match the prototype: a soft pink AI strip with its label, the typed text clearly visible, a space between the typed word and the phrase, small right-aligned origin pills, a shortcut footer and a tighter box. Then the glass renderer, which is already built and running but never takes over, is traced and fixed so it actually draws the popup and the corner dock, with text that stays readable over busy backgrounds and no garbled characters. Each step ends with a build the owner looks at in real apps, and nothing is called done until the owner has seen it on screen."
+    },
+    {
+      "version": "3.0.0",
+      "status": "planned",
       "title": "Autocomplete in the browser",
       "milestone": "M6",
       "highways": [
@@ -1296,6 +1306,18 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-06",
+      "text": "Merged the unmerged Codex glass logging and stability branch into the glass-parity work; added crash-loudly, no-fallback behaviour. Awaiting owner retest in Notepad."
+    },
+    {
+      "date": "2026-10-06",
+      "text": "Completed glass-loud-failures toward 2.2.0; no release was created."
+    },
+    {
+      "date": "2026-10-06",
+      "text": "Added task glass-loud-failures toward 2.2.0: Make glass failures crash loudly with no fallback popup"
+    },
+    {
+      "date": "2026-10-06",
       "text": "Commit and integrate glass material fixes, complete spike-versus-product findings and screenshot workflow into local main. Renderer build and roadmap pass; engine verification has 655 passes and an existing fuzzy latency failure, tracked separately."
     },
     {
@@ -1321,6 +1343,118 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "date": "2026-10-06",
       "text": "Added task glass-spike-parity toward 3.0.0: Align production glass with the approved material spike"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Installed the tested overnight DLL and renderer in the daily-use checkout; both SHA-256 hashes match. Preserved before-log without clearing glass.log. Corrected engine startup directory and verified engine ready/listening and renderer PID 2516 alive. Existing apps retain old DLLs until reopened; no fresh repaired-DLL visual evidence yet, so glass-stability-overnight remains doing. Overnight follow-up updated to current branch and current evidence."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Overnight glass lifecycle repair: reproduced two invalid-payload regressions before fixing them; corrected status selection and rejected unencodable snapshots before queueing. Preserved stale display briefly without accepting stale rows, restored eligibility after transient layout failures, guarded background TSF contexts and pending retries, used current client presentation state for fallback, preserved glass on idle capture, and removed opaque pre-hide. Existing native suites now pass (105 host, 12 layout, 23 renderer, 7 capture, WARP shader), engine 659 passed/1 skipped, report 9 passed. Fresh-process owner visual verification remains pending."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started glass-stability-overnight toward 2.2.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task glass-stability-overnight toward 2.2.0: Repair status updates, focus recovery and glass repaint stability"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed glass-publish-fallback toward 2.2.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started glass-publish-fallback toward 2.2.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task glass-publish-fallback toward 2.2.0: Keep confirmed glass visible while a popup update is pending"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed glass-logging toward 2.2.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Installed glass logging DLL and renderer, cleared glass logs and restarted the daily-use engine. Renderer startup banner confirms build Oct__5_2026_19:56:11; fresh-Notepad owner check is pending. Report counts renderer-side connection evidence; nine report tests pass."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added the one-command glass report with per-app build, connection, request, refusal, material and fallback summaries; eight report tests pass. Owner Notepad verification remains pending."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed glass diagnostic review: file-write failures reach debugger output, protocol failures have accurate error codes, and timeouts and writes carry request identifiers."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "The renderer now logs every glass step to glass.log with the exact refusal reason."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "The DLL now logs every glass handoff step: eligibility reason, publish, render decision, connect, ack, and notices."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added the shared always-on glass log with a build banner in the DLL and renderer."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started glass-logging toward 2.2.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Wrote the glass handoff logging implementation plan (docs/superpowers/plans/2026-10-05-glass-handoff-logging.md)."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Wrote the glass popup recovery plan (docs/superpowers/plans/2026-10-05-glass-popup-recovery.md) after a fresh Notepad showed only the flat popup and logged nothing."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task glass-logging toward 2.2.0: Log every glass handoff step in DLL and renderer, with a one-command report"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Glass flickered back to the flat popup: the renderer retired an app's connection whenever the popup hid, refusing everything after; now it only refuses older revisions. The DLL also stops drawing the flat popup first on every keystroke while glass is working."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Found why the glass renderer never drew: it served one app connection at a time and idle background apps held it forever. It now serves every app at once and only draws for the foreground one; six apps connected on restart."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Diagnosing the glass renderer: no app ever connects to it. Added renderer.log and DLL connection logging; compiled the renderer as UTF-8, which fixes the garbled correction arrow."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started glass-renderer-takeover toward 2.2.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Completed phrase-word-boundary toward 2.2.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task phrase-word-boundary toward 2.2.0: Start AI phrases with a space after a whole word, finish half-typed words with the top word hints"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started fallback-popup-prototype toward 2.2.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task glass-renderer-takeover toward 2.2.0: Find why the running glass renderer never draws the popup, and fix it"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task fallback-popup-prototype toward 2.2.0: Redraw the in-app fallback popup to match the approved prototype"
+    },
+    {
+      "date": "2026-10-05",
+      "text": "First real-app check of V2 failed: Notepad shows the opaque fallback popup, not the glass renderer, and it does not match the prototype. Added 2.2.0 to fix this; 2.0.0 stays recorded as shipped unverified."
     },
     {
       "date": "2026-10-05",
@@ -2335,7 +2469,7 @@ window.COMPLETIONIST_ROADMAP = {
       "text": "Engine word completion served over a named pipe, 74 tests passing (branch m1-engine-words)."
     }
   ],
-  "activeRelease": "3.0.0",
+  "activeRelease": "2.2.0",
   "releasePlans": {
     "0.0.3": {
       "title": "Foundations and TSF spike",
@@ -2408,6 +2542,12 @@ window.COMPLETIONIST_ROADMAP = {
       "goal": "Reach web text fields directly with a Chrome extension that talks to the same engine.",
       "done_when": "Inline ghost text works in a Chrome textarea through the extension.",
       "scope": "large"
+    },
+    "2.2.0": {
+      "title": "Glass popup that matches the prototype",
+      "goal": "Make what the owner actually sees while typing look like the approved V2 prototype, first in the plain popup and then as real glass.",
+      "done_when": "In Notepad and Chrome the owner sees the glass popup and corner dock drawn by the renderer, matching the prototype's layout, with readable text in light and dark; the plain fallback popup matches the same layout; the owner has confirmed both on screen.",
+      "scope": "medium"
     }
   },
   "tasks": [
@@ -4637,6 +4777,107 @@ window.COMPLETIONIST_ROADMAP = {
       "notes": "Inline ghost text and page context in web fields. Moved from 1.1.1 to 2.0.1 (2026-10-01), then to 2.1.1 (2026-10-01) to leave room for the tense-aware suggestions milestone; it still leads the 3.0.0 major release after the dashboard and popup redesign.",
       "targetRelease": "3.0.0",
       "label": "Chrome extension"
+    },
+    {
+      "id": "phrase-word-boundary",
+      "targetRelease": "2.2.0",
+      "title": "Start AI phrases with a space after a whole word, finish half-typed words with the top word hints",
+      "status": "done",
+      "area": "engine",
+      "stories": [
+        1
+      ],
+      "notes": "Whole dictionary word at the caret: the phrase gets a leading space (not before punctuation). Half-typed word: no space, the model is told to finish it and sees the top 5 word suggestions. Engine pytest passes (660). IRL check pending: type 'this is' and a half word like 'separ' in Notepad and wait for the AI phrase.",
+      "label": "Phrase word boundary",
+      "completed": "2026-10-05",
+      "refs": [
+        "engine/src/completionist_engine/writing.py",
+        "engine/src/completionist_engine/context.py",
+        "engine/src/completionist_engine/engine.py"
+      ]
+    },
+    {
+      "id": "fallback-popup-prototype",
+      "targetRelease": "2.2.0",
+      "title": "Redraw the in-app fallback popup to match the approved prototype",
+      "status": "doing",
+      "area": "dll",
+      "stories": [
+        1
+      ],
+      "notes": "From the owner's Notepad screenshot: missing space ('isa simple…'), loud full magenta AI row, near-invisible typed prefix, 'Local' as loose grey text on every row, oversized empty box, stray dot, no shortcut footer.",
+      "label": "Prototype fallback popup"
+    },
+    {
+      "id": "glass-logging",
+      "targetRelease": "2.2.0",
+      "title": "Log every glass handoff step in DLL and renderer, with a one-command report",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        1
+      ],
+      "notes": "Owner test 2026-10-05: fresh Notepad PID 31692 loaded DLL build Oct__5_2026_19:55:15; owner reports extremely fast flicker. Initial report: renderer popup drawn 25 times; flat popup shown 26 times, zero timeouts/disconnects. Trace confirms successful glass drawing followed on each refresh by an ack=0 fallback=1 notice, flat shown, then successful ack and flat hidden. Logging verified; glass recovery is not complete.",
+      "label": "Glass handoff logging",
+      "completed": "2026-10-05",
+      "refs": [
+        "tip/src/glass_log.h",
+        "scripts/glass_report.py",
+        "docs/superpowers/plans/2026-10-05-glass-handoff-logging.md"
+      ]
+    },
+    {
+      "id": "glass-renderer-takeover",
+      "targetRelease": "2.2.0",
+      "title": "Find why the running glass renderer never draws the popup, and fix it",
+      "status": "doing",
+      "area": "dll",
+      "stories": [
+        1
+      ],
+      "notes": "CompletionistRenderer.exe --serve is running but Notepad shows the host fallback; tip.log has no renderer lines. Its fixture images also show a garbled arrow, overlapping AI text and unreadable text over busy backdrops.",
+      "label": "Glass renderer takeover"
+    },
+    {
+      "id": "glass-publish-fallback",
+      "targetRelease": "2.2.0",
+      "title": "Keep confirmed glass visible while a popup update is pending",
+      "status": "done",
+      "area": "dll",
+      "stories": [],
+      "notes": "Code complete and installed; DLL build and scoped review passed. Before: fresh Notepad PID 31692 confirmed every renderer draw, yet each Publish posted fallback=1 and the flat popup flashed for 30–50 ms about nine times per second. Publish now preserves confirmed presentation for the same owner and preserves the earliest pending acknowledgement deadline. Refusal, timeout, disconnect and ownership changes still restore fallback. Owner repeat test and after-report are pending; no visual recovery is claimed.",
+      "label": "Glass repaint stability",
+      "completed": "2026-10-05",
+      "refs": [
+        "tip/src/render_client.cpp"
+      ]
+    },
+    {
+      "id": "glass-stability-overnight",
+      "targetRelease": "2.2.0",
+      "title": "Repair status updates, focus recovery and glass repaint stability",
+      "status": "doing",
+      "area": "dll",
+      "stories": [],
+      "notes": "Owner asks for comprehensive inline debugging and meaningful tests overnight. Logs after the first fix show unencodable status-only snapshots (words=0 selection=0) causing repeated reconnects, eligibility remaining false after layout recovery, and explicit popup hides during ordinary edits. Investigate and regression-test the existing native public interfaces; do not steal foreground focus.",
+      "label": "Glass lifecycle repair"
+    },
+    {
+      "id": "glass-loud-failures",
+      "targetRelease": "2.2.0",
+      "title": "Make glass failures crash loudly with no fallback popup",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        1
+      ],
+      "notes": "Merged codex/glass-stability-overnight onto main. Renderer logs step=FATAL why=..., shows an error box, then fails fast on any real present failure; DLL never shows the old popup while the renderer owns the display. Built clean (/W4 /WX); owner Notepad retest pending.",
+      "label": "Loud glass failures",
+      "completed": "2026-10-06",
+      "refs": [
+        "tip/renderer/production_service.cpp",
+        "tip/src/tsf_service.cpp"
+      ]
     },
     {
       "id": "glass-spike-parity",

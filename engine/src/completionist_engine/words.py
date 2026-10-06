@@ -114,6 +114,10 @@ class WordCompleter:
     def set_promote_after(self, promote_after: int) -> None:
         self._promote_after = promote_after
 
+    def is_word(self, word: str) -> bool:
+        """Whether `word` is a whole word in the base dictionary (ignoring case)."""
+        return word.lower() in self._index
+
     def tense_of(self, before: str) -> Tense:
         """The tense of the sentence `before` ends in, ignoring the word being typed."""
         if not self._tense_forms:

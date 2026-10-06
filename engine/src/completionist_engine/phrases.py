@@ -9,13 +9,13 @@ from collections.abc import Callable
 
 from completionist_engine.config import PhraseConfig
 from completionist_engine.metrics import Metrics
-from completionist_engine.context import anchored_window, build_messages, screen_for_prompt, trim_suffix
+from completionist_engine.context import anchored_window, build_messages, screen_for_prompt, trim_suffix, word_note
 from completionist_engine.phrase_provider import Attempt, PhraseProvider, PhraseRequest, ProviderError
 from completionist_engine.phrase_scheduler import Action, Cancel, Mode, PhraseScheduler, Start, Update
 from completionist_engine.protocol import PhraseUpdate, Request
 from completionist_engine.request_log import RequestLog
 from completionist_engine.screen_context import ScreenContext
-from completionist_engine.writing import phrase_instructions, limit_reply
+from completionist_engine.writing import fit_reply_start, phrase_instructions, limit_reply
 
 logger = logging.getLogger("completionist_engine.phrases")
 
@@ -312,6 +312,7 @@ class PhraseSession:
         system_prompt, prompt = build_messages(
             request.app, request.title, anchored_window(request.before, config.context_before),
             phrase_instructions(config), screen_sent, config.context_source,
+            note=word_note(request.partial, request.partial_known, request.word_hints),
         )
         phrase_request = PhraseRequest(prompt=prompt, system_prompt=system_prompt, suffix=trim_suffix(request.after, config.context_after))
         return phrase_request, shot, screen_sent, config, self._service._privacy_generation
@@ -364,18 +365,20 @@ class PhraseSession:
                 if config.avoid_phrases:
                     self._push_status(self._last_request_id if self._last_request_id is not None else request.id)
                     continue  # buffer to avoid showing part of an excluded phrase across chunk boundaries
-                limited = limit_reply(reply, config)
-                if limited != reply:
+                fitted = fit_reply_start(reply, request.partial, request.partial_known)
+                limited = limit_reply(fitted, config)
+                if limited != fitted:
                     event("output_limited", shown=limited)
                 delta = limited[len(emitted):]
                 if delta:
                     self._emit(self._scheduler.chunk(delta, self._now(), origin_id=request.id))
                 emitted = limited
-                if limited != reply:
+                if limited != fitted:
                     break
             if config.avoid_phrases:
-                limited = limit_reply(reply, config)
-                if limited != reply:
+                fitted = fit_reply_start(reply, request.partial, request.partial_known)
+                limited = limit_reply(fitted, config)
+                if limited != fitted:
                     event("output_limited", shown=limited)
                 if limited:
                     self._emit(self._scheduler.chunk(limited, self._now(), origin_id=request.id))
