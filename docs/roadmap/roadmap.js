@@ -1306,6 +1306,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Wrote the glass handoff logging implementation plan (docs/superpowers/plans/2026-10-05-glass-handoff-logging.md)."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Wrote the glass popup recovery plan (docs/superpowers/plans/2026-10-05-glass-popup-recovery.md) after a fresh Notepad showed only the flat popup and logged nothing."
     },
     {
