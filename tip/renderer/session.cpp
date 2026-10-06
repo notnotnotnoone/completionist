@@ -18,9 +18,10 @@ bool Session::HasUsableContent(const completionist::render::Snapshot& snapshot) 
     return snapshot.selection >= 0 && static_cast<std::size_t>(snapshot.selection) < snapshot.words.size();
 }
 
-void Session::Retire(const completionist::render::Identity& owner) {
-    auto [it, inserted] = retiredGenerations_.try_emplace(owner.session, owner.generation);
-    if (!inserted && owner.generation > it->second) it->second = owner.generation;
+void Session::Retire(const completionist::render::Identity& owner, uint64_t revision) {
+    Floor& floor = floors_[owner.session];
+    if (owner.generation > floor.generation) floor = {owner.generation, revision};
+    else if (owner.generation == floor.generation && revision > floor.revision) floor.revision = revision;
 }
 
 bool Session::Accept(const completionist::render::Snapshot& snapshot, uint32_t foregroundPid, uint64_t nowMs) {
@@ -28,15 +29,16 @@ bool Session::Accept(const completionist::render::Snapshot& snapshot, uint32_t f
         snapshot.owner.generation == 0 || snapshot.revision == 0 || foregroundPid != snapshot.owner.pid ||
         !HasUsableContent(snapshot)) return false;
     Expire(nowMs);
-    auto retired = retiredGenerations_.find(snapshot.owner.session);
-    if (retired != retiredGenerations_.end() && snapshot.owner.generation <= retired->second) return false;
+    auto floor = floors_.find(snapshot.owner.session);
+    if (floor != floors_.end() && (snapshot.owner.generation < floor->second.generation ||
+        (snapshot.owner.generation == floor->second.generation && snapshot.revision <= floor->second.revision))) return false;
     if (active_ && SameHost(snapshot_.owner, snapshot.owner)) {
         if (snapshot.owner.generation < snapshot_.owner.generation) return false;
         if (snapshot.owner.generation == snapshot_.owner.generation && snapshot.revision <= snapshot_.revision) return false;
-        if (snapshot.owner.generation > snapshot_.owner.generation) Retire(snapshot_.owner);
+        if (snapshot.owner.generation > snapshot_.owner.generation) Retire(snapshot_.owner, UINT64_MAX);
     } else if (active_) {
         if (foregroundPid == snapshot_.owner.pid && nowMs - renewedAtMs_ <= kLeaseMs) return false;
-        Retire(snapshot_.owner);
+        Retire(snapshot_.owner, snapshot_.revision);
     }
     snapshot_ = snapshot;
     renewedAtMs_ = nowMs;
@@ -62,7 +64,7 @@ void Session::Expire(uint64_t nowMs) {
 }
 
 void Session::Revoke() {
-    if (active_) Retire(snapshot_.owner);
+    if (active_) Retire(snapshot_.owner, snapshot_.revision);
     snapshot_ = {};
     renewedAtMs_ = 0;
     active_ = false;

@@ -617,13 +617,12 @@ private:
             ? static_cast<std::uint32_t>(std::min<std::uint64_t>(600000, phraseElapsedMs_ + statusDelta)) : phraseElapsedMs_;
         content.triggerReason = triggerReason_;
         content.engineConnected = engineConnected_;
-        popup_.Show(content, model_.selection(now), caret_);
+        bool published = false;
         if (publishExternal && rendererEligible_ != loggedEligible_) {
             loggedEligible_ = rendererEligible_;
             LogDebug(L"renderer %s for this window", rendererEligible_ ? L"eligible" : L"not eligible");
         }
         if (publishExternal && completionist::render::kExternalRendererActivationEnabled && rendererEligible_ && renderClient_) {
-            externalPresented_ = false;
             const auto physicalCaret = PhysicalCaret(caretWindow_, caret_);
             if (physicalCaret) {
                 completionist::render::Snapshot snapshot{};
@@ -649,11 +648,16 @@ private:
                     snapshot.words.push_back(std::move(candidate));
                 }
                 renderClient_->Publish(std::move(snapshot));
+                published = true;
             } else {
                 LogDebug(L"renderer skipped: caret position could not be converted to screen pixels");
                 HideExternal();
             }
         }
+        // While glass is drawing for this window, the flat host popup stays hidden; it only returns
+        // when the renderer refuses, times out or disconnects (see the notice handling).
+        if (published && externalHealthy_) popup_.Hide();
+        else popup_.Show(content, model_.selection(now), caret_);
         if (popup_.hwnd()) {
             std::uint64_t armedAt = model_.armed_at(now);
             if (armedAt) SetTimer(popup_.hwnd(), kArmTimer, static_cast<UINT>(armedAt - now + 5), nullptr);
@@ -1065,10 +1069,14 @@ private:
                     service->renderIdentity_ = notice->ack->owner;
                     if (!notice->fallbackVisible && notice->ack->presented) {
                         service->externalPresented_ = true;
+                        service->externalHealthy_ = true;
                         service->popup_.Hide();
+                    } else if (service->externalHealthy_ || service->externalPresented_) {
+                        service->externalPresented_ = service->externalHealthy_ = false;
+                        service->Render(false);
                     }
-                } else if (notice && notice->fallbackVisible && service->externalPresented_) {
-                    service->externalPresented_ = false;
+                } else if (notice && notice->fallbackVisible && (service->externalPresented_ || service->externalHealthy_)) {
+                    service->externalPresented_ = service->externalHealthy_ = false;
                     service->Render(false);
                 }
                 return true;
@@ -1119,6 +1127,7 @@ private:
     bool rendererEligible_ = false;
     bool loggedEligible_ = true;  // so the first ineligible render is logged
     bool externalPresented_ = false;
+    bool externalHealthy_ = false;  // the renderer drew this window's last request; skip the host popup
     std::vector<std::wstring> words_;
     std::vector<std::string> kinds_;  // what each of words_ is: "word", "chunk" or "next"
     std::vector<std::vector<int>> marks_;  // guessed letter positions per word (a typo correction's marks)

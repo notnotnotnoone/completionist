@@ -1306,6 +1306,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Glass flickered back to the flat popup: the renderer retired an app's connection whenever the popup hid, refusing everything after; now it only refuses older revisions. The DLL also stops drawing the flat popup first on every keystroke while glass is working."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Found why the glass renderer never drew: it served one app connection at a time and idle background apps held it forever. It now serves every app at once and only draws for the foreground one; six apps connected on restart."
     },
     {

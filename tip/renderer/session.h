@@ -26,12 +26,15 @@ public:
 
 private:
     bool HasUsableContent(const completionist::render::Snapshot& snapshot) const;
-    void Retire(const completionist::render::Identity& owner);
+    // Raises the floor below which this host session's snapshots are stale. A hidden popup only
+    // refuses its own older revisions; a superseded generation refuses everything it sends.
+    void Retire(const completionist::render::Identity& owner, uint64_t revision);
 
     completionist::render::Snapshot snapshot_{};
     uint64_t renewedAtMs_ = 0;
     bool active_ = false;
-    std::unordered_map<std::string, uint64_t> retiredGenerations_;
+    struct Floor { uint64_t generation = 0, revision = 0; };
+    std::unordered_map<std::string, Floor> floors_;
 };
 
 }  // namespace renderer
