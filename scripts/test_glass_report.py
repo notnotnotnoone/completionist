@@ -24,6 +24,13 @@ LINES = [
 
 
 class GlassReport(unittest.TestCase):
+    def test_renderer_connection_is_evidence_even_without_a_dll_banner(self):
+        app = glass_report.summarize([
+            "19:00:01.000 glass CompletionistRenderer.exe[200] step=client-connected app=100",
+        ])[100]
+        self.assertTrue(app["connected"])
+        self.assertIn("no banner", glass_report.diagnose(app))
+
     def test_published_without_a_draw_is_not_reported_as_success(self):
         app = glass_report.summarize(LINES[:5])[100]
         self.assertIn("no renderer draw", glass_report.diagnose(app))

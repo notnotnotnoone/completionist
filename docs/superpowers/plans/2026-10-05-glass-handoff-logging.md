@@ -704,7 +704,7 @@ git commit -m "Add the one-command glass report"
 **Interfaces:**
 - Consumes: the builds from Tasks 1-3 and the report from Task 4.
 
-- [ ] **Step 1: Install the DLL and renderer, restart the engine**
+- [x] **Step 1: Install the DLL and renderer, restart the engine**
 
 From PowerShell (the engine runs from the main checkout at `C:\projects\Experiments\completionist`):
 
@@ -755,10 +755,12 @@ The next fix (spec Step 3) is planned only from that diagnosis line, as one chan
 
 ## Execution notes (2026-10-05)
 
-Tasks 1–4 are implemented in this worktree. Both native components were built with the prescribed scripts; the report has eight passing unittest cases, and the engine baseline passed 659 tests with one skip. No native test harness was run.
+Tasks 1–4 are implemented in this worktree. Both native components were built with the prescribed scripts; the report has nine passing unittest cases, and the engine baseline passed 659 tests with one skip. No native test harness was run.
 
 The eligibility rewrite preserves the original foreground-root check. Request identifiers were also added to acknowledgements, notices, presentation, timeout and write-failure lines. Review fixes preserve Windows error codes, assign deterministic codes to malformed acknowledgements and empty frames, and send primary log-file failure codes to debugger output even if the fallback file fails.
 
 The report additionally names eligibility/presentation failures, distinguishes opaque renderer popups from glass, diagnoses published requests without confirmed draws, handles fallback logs, and explains renderer-only logs. These changes close gaps in the provided report example without changing popup behavior.
 
-Task 5 remains pending until installation and the owner’s fresh-Notepad observation are recorded. No popup recovery or visual result is claimed.
+Task 5 installation is complete. The daily-use DLL and renderer were replaced and the engine restarted. Renderer PID 19884 logged build Oct__5_2026_19:56:11 from the installed tip/out path. The owner received the exact fresh-Notepad checklist. The first report contains renderer connections from existing processes without new DLL banners; no fresh-Notepad result is claimed. The report now treats a renderer client-connected event as connection evidence even when an older DLL has no banner.
+
+Task 5 remains pending until the owner’s fresh-Notepad observation and its report diagnosis are recorded. No popup recovery or visual result is claimed.

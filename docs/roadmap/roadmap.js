@@ -1306,6 +1306,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Installed glass logging DLL and renderer, cleared glass logs and restarted the daily-use engine. Renderer startup banner confirms build Oct__5_2026_19:56:11; fresh-Notepad owner check is pending. Report counts renderer-side connection evidence; nine report tests pass."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Added the one-command glass report with per-app build, connection, request, refusal, material and fallback summaries; eight report tests pass. Owner Notepad verification remains pending."
     },
     {

@@ -43,6 +43,8 @@ def summarize(lines: list[str]) -> dict[int, dict]:
             if not fields["app"].isdigit() or int(fields["app"]) == 0:
                 continue
             app = _app(apps, int(fields["app"]))
+            if step == "client-connected":
+                app["connected"] = True
             if step == "refused":
                 app["refused"][fields.get("why", "?")] += 1
             elif step == "drawn" and fields.get("drawn") == "1" and fields.get("current") == "1":
