@@ -22,6 +22,7 @@ public:
     void Revoke();
     bool RevokeIfCurrent(const completionist::render::Identity& owner);
     bool visible() const { return active_; }
+    const char* LastRefusal() const { return refusal_; }
     const completionist::render::Snapshot* current() const { return active_ ? &snapshot_ : nullptr; }
 
 private:
@@ -33,6 +34,7 @@ private:
     completionist::render::Snapshot snapshot_{};
     uint64_t renewedAtMs_ = 0;
     bool active_ = false;
+    const char* refusal_ = "none";
     struct Floor { uint64_t generation = 0, revision = 0; };
     std::unordered_map<std::string, Floor> floors_;
 };

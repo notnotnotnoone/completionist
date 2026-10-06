@@ -11,7 +11,7 @@
 
 #include "production_renderer_pipe.h"
 #include "windows.h"
-#include "renderer_log.h"
+#include "../src/glass_log.h"
 
 namespace renderer {
 namespace {
@@ -109,9 +109,9 @@ DWORD ProductionRendererPipe::Run(HANDLE stopEvent) {
         std::thread([this, pipe, stopEvent, &active] {
             ULONG clientPid = 0;
             GetNamedPipeClientProcessId(pipe, &clientPid);
-            Log(L"client connected pid=%lu", clientPid);
+            completionist::GlassLog(L"step=client-connected app=%lu", clientPid);
             ServeClient(pipe, stopEvent);
-            Log(L"client released pid=%lu", clientPid);
+            completionist::GlassLog(L"step=client-released app=%lu", clientPid);
             DisconnectNamedPipe(pipe);
             CloseHandle(pipe);
             --active;
@@ -126,6 +126,8 @@ DWORD ProductionRendererPipe::Run(HANDLE stopEvent) {
 }
 
 bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
+    ULONG clientPid = 0;
+    GetNamedPipeClientProcessId(pipe, &clientPid);
     std::vector<unsigned char> pending;
     pending.reserve(4096);
     bool connected = true;
@@ -140,7 +142,9 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
             if (foreground) GetWindowThreadProcessId(foreground, &foregroundPid);
             if (foregroundPid != current->owner.pid ||
                 reinterpret_cast<uint64_t>(foreground) != current->owner.hostHwnd) {
-                Log(L"owner pid=%lu lost the foreground (now pid=%lu)", current->owner.pid, foregroundPid);
+                completionist::GlassLog(L"step=lost-foreground app=%lu rev=%llu gen=%llu hwnd=%llx fgpid=%lu fg=%p",
+                    current->owner.pid, current->revision, current->owner.generation, current->owner.hostHwnd,
+                    foregroundPid, foreground);
                 if (session_.RevokeIfCurrent(current->owner)) hide_();
                 clientOwner.reset();
             }
@@ -156,9 +160,12 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
             if (auto snapshot = completionist::render::ParseShow(body)) {
                 // A background app (or one whose claim doesn't check out) is refused, not disconnected.
                 const DWORD foreground = ForegroundPid();
-                if (!Validate(snapshot->owner, pipe) || !session_.Accept(*snapshot, foreground, NowMs())) {
-                    Log(L"show rev=%llu from pid=%lu refused (foreground pid=%lu, words=%zu, selection=%d)",
-                        snapshot->revision, snapshot->owner.pid, foreground, snapshot->words.size(), snapshot->selection);
+                const bool identityOk = Validate(snapshot->owner, pipe);
+                if (!identityOk || !session_.Accept(*snapshot, foreground, NowMs())) {
+                    completionist::GlassLog(L"step=refused app=%lu rev=%llu gen=%llu hwnd=%llx why=%S fgpid=%lu fg=%p words=%zu selection=%d",
+                        snapshot->owner.pid, snapshot->revision, snapshot->owner.generation, snapshot->owner.hostHwnd,
+                        identityOk ? session_.LastRefusal() : "identity-check", foreground, GetForegroundWindow(),
+                        snapshot->words.size(), snapshot->selection);
                     const auto ack = completionist::render::EncodeAck({snapshot->owner, snapshot->revision, false});
                     if (ack.empty() || !WriteFrame(pipe, ack)) { connected = false; break; }
                     continue;
@@ -169,7 +176,8 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
                 const bool stillCurrent = session_.current() &&
                     completionist::render::IsCurrentAck(*session_.current(), {snapshot->owner, snapshot->revision, true}) &&
                     Validate(snapshot->owner, pipe) && session_.Heartbeat(snapshot->owner, ForegroundPid(), NowMs());
-                Log(L"show rev=%llu from pid=%lu drawn=%d current=%d", snapshot->revision, snapshot->owner.pid,
+                completionist::GlassLog(L"step=drawn app=%lu rev=%llu gen=%llu hwnd=%llx drawn=%d current=%d",
+                    snapshot->owner.pid, snapshot->revision, snapshot->owner.generation, snapshot->owner.hostHwnd,
                     drawn ? 1 : 0, stillCurrent ? 1 : 0);
                 if (!drawn || !stillCurrent) {
                     if (session_.RevokeIfCurrent(snapshot->owner)) hide_();
@@ -180,15 +188,23 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
                 continue;
             }
             const auto command = completionist::render::ParseCommand(body);
-            if (!command) { Log(L"unreadable command; disconnecting"); connected = false; break; }
+            if (!command) {
+                completionist::GlassLog(L"step=unreadable-command app=%lu", clientPid);
+                connected = false; break;
+            }
             const auto* current = session_.current();
             const bool owns = current && completionist::render::SameIdentity(current->owner, command->owner);
+            if (!owns) completionist::GlassLog(L"step=command-ignored app=%lu kind=%d gen=%llu hwnd=%llx rev=%llu why=not-owner",
+                command->owner.pid, static_cast<int>(command->command), command->owner.generation,
+                command->owner.hostHwnd, command->revision);
             if (!owns) continue;  // only the app currently drawn may renew or hide it
             if (command->command == Command::Heartbeat) {
                 if (Validate(command->owner, pipe) && session_.Heartbeat(command->owner, ForegroundPid(), NowMs()))
                     clientOwner = command->owner;
             } else if (command->command == Command::Hide) {
                 if (command->revision >= current->revision) {
+                    completionist::GlassLog(L"step=hide app=%lu rev=%llu gen=%llu hwnd=%llx",
+                        command->owner.pid, command->revision, command->owner.generation, command->owner.hostHwnd);
                     hide_();
                     session_.RevokeIfCurrent(command->owner);
                     clientOwner.reset();
@@ -197,8 +213,13 @@ bool ProductionRendererPipe::ServeClient(HANDLE pipe, HANDLE stopEvent) {
                 connected = false;
             }
         }
+        const auto* expiring = session_.current();
+        const auto expiredOwner = expiring ? std::optional{expiring->owner} : std::nullopt;
+        const uint64_t expiredRevision = expiring ? expiring->revision : 0;
         session_.Expire(NowMs());
         if (clientOwner && !session_.visible()) {
+            if (expiredOwner) completionist::GlassLog(L"step=hide app=%lu rev=%llu gen=%llu hwnd=%llx why=lease-expired",
+                expiredOwner->pid, expiredRevision, expiredOwner->generation, expiredOwner->hostHwnd);
             hide_();
             clientOwner.reset();
         }

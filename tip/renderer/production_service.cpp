@@ -24,7 +24,7 @@
 #include "live_policy.h"
 #include "output_color_space.h"
 #include "system_change.h"
-#include "renderer_log.h"
+#include "../src/glass_log.h"
 
 namespace renderer {
 namespace {
@@ -47,15 +47,22 @@ public:
         const HWND foreground = GetForegroundWindow();
         if (foreground) GetWindowThreadProcessId(foreground, &pid);
         if (foreground != host || pid != snapshot.owner.pid || !IsWindowVisible(host)) {
-            Log(L"present skipped: host %p is not the visible foreground window (%p, pid=%lu)", host, foreground, pid);
+            completionist::GlassLog(L"step=present-skipped app=%lu rev=%llu gen=%llu hwnd=%llx why=not-foreground fg=%p fgpid=%lu visible=%d",
+                snapshot.owner.pid, snapshot.revision, snapshot.owner.generation, snapshot.owner.hostHwnd,
+                foreground, pid, IsWindowVisible(host) ? 1 : 0);
             Hide(); return false;
         }
-        if (!DpiReady()) { Log(L"present skipped: DPI awareness unavailable"); Hide(); return false; }
+        if (!DpiReady()) {
+            completionist::GlassLog(L"step=present-skipped app=%lu rev=%llu gen=%llu hwnd=%llx why=dpi",
+                snapshot.owner.pid, snapshot.revision, snapshot.owner.generation, snapshot.owner.hostHwnd);
+            Hide(); return false;
+        }
         const RECT caret{snapshot.caret.left,snapshot.caret.top,snapshot.caret.right,snapshot.caret.bottom};
         const HMONITOR monitor = MonitorFromRect(&caret, MONITOR_DEFAULTTONEAREST);
         if (!monitor || (graphicsReady_ && monitor != activeMonitor_)) ResetGraphics();
         if (!graphicsReady_ && !CreateGraphics(monitor)) {
-            Log(L"graphics device could not be created; drawing opaque");
+            completionist::GlassLog(L"step=opaque app=%lu rev=%llu gen=%llu hwnd=%llx why=no-graphics-device",
+                snapshot.owner.pid, snapshot.revision, snapshot.owner.generation, snapshot.owner.hostHwnd);
             return PresentOpaque(snapshot, host, monitor, false);
         }
 
@@ -117,14 +124,16 @@ public:
             }
         }
         if (mode!=MaterialMode::Glass || !capture_.hasFrame) {
-            Log(L"drawing opaque: mode=%d frame=%d capture=%d excluded=%d composition=%d hdr=%d contrast=%d failure=%d",
+            completionist::GlassLog(L"step=opaque app=%lu rev=%llu gen=%llu hwnd=%llx why=material mode=%d frame=%d capture=%d excluded=%d composition=%d hdr=%d contrast=%d failure=%d",
+                snapshot.owner.pid, snapshot.revision, snapshot.owner.generation, snapshot.owner.hostHwnd,
                 static_cast<int>(mode), capture_.hasFrame ? 1 : 0, captureReady_ ? 1 : 0, surfaces_.captureExcluded() ? 1 : 0,
                 composition ? 1 : 0, outputColorSpace_!=OutputColorSpace::Sdr709 ? 1 : 0, highContrast ? 1 : 0,
                 static_cast<int>(capture_.failure));
             return PresentOpaque(snapshot,host,monitor,highContrast);
         }
         const bool glass=PresentGlass(snapshot,layout,dpi,renderer);
-        if (!glass) Log(L"glass draw failed");
+        if (!glass) completionist::GlassLog(L"step=glass-failed app=%lu rev=%llu gen=%llu hwnd=%llx",
+            snapshot.owner.pid, snapshot.revision, snapshot.owner.generation, snapshot.owner.hostHwnd);
         return glass;
     }
 

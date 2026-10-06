@@ -25,19 +25,27 @@ void Session::Retire(const completionist::render::Identity& owner, uint64_t revi
 }
 
 bool Session::Accept(const completionist::render::Snapshot& snapshot, uint32_t foregroundPid, uint64_t nowMs) {
+    refusal_ = "none";
     if (snapshot.owner.pid == 0 || snapshot.owner.hostHwnd == 0 || snapshot.owner.session.empty() ||
-        snapshot.owner.generation == 0 || snapshot.revision == 0 || foregroundPid != snapshot.owner.pid ||
-        !HasUsableContent(snapshot)) return false;
+        snapshot.owner.generation == 0 || snapshot.revision == 0) { refusal_ = "bad-identity"; return false; }
+    if (foregroundPid != snapshot.owner.pid) { refusal_ = "not-foreground"; return false; }
+    if (!HasUsableContent(snapshot)) { refusal_ = "no-content"; return false; }
     Expire(nowMs);
     auto floor = floors_.find(snapshot.owner.session);
     if (floor != floors_.end() && (snapshot.owner.generation < floor->second.generation ||
-        (snapshot.owner.generation == floor->second.generation && snapshot.revision <= floor->second.revision))) return false;
+        (snapshot.owner.generation == floor->second.generation && snapshot.revision <= floor->second.revision))) {
+        refusal_ = "stale"; return false;
+    }
     if (active_ && SameHost(snapshot_.owner, snapshot.owner)) {
-        if (snapshot.owner.generation < snapshot_.owner.generation) return false;
-        if (snapshot.owner.generation == snapshot_.owner.generation && snapshot.revision <= snapshot_.revision) return false;
+        if (snapshot.owner.generation < snapshot_.owner.generation) { refusal_ = "stale"; return false; }
+        if (snapshot.owner.generation == snapshot_.owner.generation && snapshot.revision <= snapshot_.revision) {
+            refusal_ = "stale"; return false;
+        }
         if (snapshot.owner.generation > snapshot_.owner.generation) Retire(snapshot_.owner, UINT64_MAX);
     } else if (active_) {
-        if (foregroundPid == snapshot_.owner.pid && nowMs - renewedAtMs_ <= kLeaseMs) return false;
+        if (foregroundPid == snapshot_.owner.pid && nowMs - renewedAtMs_ <= kLeaseMs) {
+            refusal_ = "other-app-active"; return false;
+        }
         Retire(snapshot_.owner, snapshot_.revision);
     }
     snapshot_ = snapshot;
