@@ -4,13 +4,15 @@
 #include <windows.h>
 
 #include <functional>
+#include <mutex>
 
 #include "session.h"
 
 namespace renderer {
 
-// Runs blocking named-pipe work on its caller's worker thread. The presenter owns the
-// renderer's UI/GPU thread and returns true only after both current surfaces were drawn.
+// Runs blocking named-pipe work on its caller's worker thread, one thread per connected app so
+// every app can reach the renderer at once. The presenter owns the renderer's UI/GPU thread and
+// returns true only after both current surfaces were drawn. `mutex_` serializes session decisions.
 class ProductionRendererPipe {
 public:
     using Present = std::function<bool(const completionist::render::Snapshot&)>;
@@ -24,6 +26,7 @@ private:
     Present present_;
     Hide hide_;
     Session session_;
+    std::mutex mutex_;
 };
 
 }  // namespace renderer

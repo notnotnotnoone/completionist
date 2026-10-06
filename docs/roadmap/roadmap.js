@@ -1306,6 +1306,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Found why the glass renderer never drew: it served one app connection at a time and idle background apps held it forever. It now serves every app at once and only draws for the foreground one; six apps connected on restart."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Diagnosing the glass renderer: no app ever connects to it. Added renderer.log and DLL connection logging; compiled the renderer as UTF-8, which fixes the garbled correction arrow."
     },
     {
