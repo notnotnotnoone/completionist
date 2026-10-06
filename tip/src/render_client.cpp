@@ -133,7 +133,8 @@ bool WriteFrame(HANDLE pipe, const std::string& frame) {
     while (offset < frame.size()) {
         DWORD written = 0;
         const DWORD count = static_cast<DWORD>(std::min<size_t>(frame.size() - offset, 4096));
-        if (!WriteFile(pipe, frame.data() + offset, count, &written, nullptr) || !written) return false;
+        if (!WriteFile(pipe, frame.data() + offset, count, &written, nullptr)) return false;
+        if (!written) { SetLastError(ERROR_WRITE_FAULT); return false; }
         offset += written;
     }
     return true;
@@ -147,8 +148,9 @@ bool ReadAck(HANDLE pipe, std::vector<unsigned char>* pending, std::optional<Ack
         while (available) {
             DWORD read = 0;
             const DWORD count = std::min<DWORD>(available, static_cast<DWORD>(bytes.size()));
-            if (!ReadFile(pipe, bytes.data(), count, &read, nullptr) || !read) return false;
-            if (pending->size() > kMaxFrameBytes + 4 - read) return false;
+            if (!ReadFile(pipe, bytes.data(), count, &read, nullptr)) return false;
+            if (!read) { SetLastError(ERROR_BROKEN_PIPE); return false; }
+            if (pending->size() > kMaxFrameBytes + 4 - read) { SetLastError(ERROR_INVALID_DATA); return false; }
             pending->insert(pending->end(), bytes.begin(), bytes.begin() + read);
             if (!PeekNamedPipe(pipe, nullptr, 0, nullptr, &available, nullptr)) return false;
         }
@@ -157,11 +159,12 @@ bool ReadAck(HANDLE pipe, std::vector<unsigned char>* pending, std::optional<Ack
     const uint32_t length = static_cast<uint32_t>((*pending)[0]) |
         (static_cast<uint32_t>((*pending)[1]) << 8) | (static_cast<uint32_t>((*pending)[2]) << 16) |
         (static_cast<uint32_t>((*pending)[3]) << 24);
-    if (!length || length > kMaxFrameBytes) return false;
+    if (!length || length > kMaxFrameBytes) { SetLastError(ERROR_INVALID_DATA); return false; }
     if (pending->size() < static_cast<size_t>(length) + 4) return true;
     std::string body(reinterpret_cast<const char*>(pending->data() + 4), length);
     pending->erase(pending->begin(), pending->begin() + length + 4);
     *ack = ParseAck(body);
+    if (!ack->has_value()) SetLastError(ERROR_INVALID_DATA);
     return ack->has_value();
 }
 
@@ -418,7 +421,20 @@ void RenderClient::Worker() {
             if (const auto* show = std::get_if<ShowRequest>(&*request)) frame = EncodeShow(show->snapshot);
             else frame = EncodeCommand(*request);
             if (frame.empty() || !WriteFrame(pipe, frame)) {
-                completionist::GlassLog(L"step=write-failed empty=%d error=%lu", frame.empty() ? 1 : 0, GetLastError());
+                const DWORD error = frame.empty() ? ERROR_INVALID_DATA : GetLastError();
+                const Identity* owner = nullptr;
+                uint64_t revision = 0;
+                if (const auto* show = std::get_if<ShowRequest>(&*request)) {
+                    owner = &show->snapshot.owner;
+                    revision = show->snapshot.revision;
+                } else if (const auto* hide = std::get_if<HideRequest>(&*request)) {
+                    owner = &hide->owner;
+                    revision = hide->revision;
+                } else {
+                    owner = &std::get<HeartbeatRequest>(*request).owner;
+                }
+                completionist::GlassLog(L"step=write-failed empty=%d error=%lu rev=%llu gen=%llu hwnd=%llx",
+                    frame.empty() ? 1 : 0, error, revision, owner->generation, owner->hostHwnd);
                 alive = false;
             }
             else if (const auto* heartbeat = std::get_if<HeartbeatRequest>(&*request)) { (void)heartbeat; lastHeartbeat = NowMs(); }
@@ -440,12 +456,18 @@ void RenderClient::Worker() {
             }
         }
         bool timedOut = false;
+        uint64_t timeoutRevision = 0, timeoutGeneration = 0, timeoutHwnd = 0;
         {
             std::lock_guard lock(mutex_);
             timedOut = state_.Tick(NowMs());
+            if (timedOut && state_.current()) {
+                timeoutRevision = state_.current()->revision;
+                timeoutGeneration = state_.current()->owner.generation;
+                timeoutHwnd = state_.current()->owner.hostHwnd;
+            }
         }
         if (timedOut) {
-            completionist::GlassLog(L"step=timeout");
+            completionist::GlassLog(L"step=timeout rev=%llu gen=%llu hwnd=%llx", timeoutRevision, timeoutGeneration, timeoutHwnd);
             Notify();
         }
         if (!alive) { disconnect(); continue; }
@@ -458,8 +480,9 @@ void RenderClient::Worker() {
             if (current) {
                 const std::string frame = EncodeCommand(HeartbeatRequest{current->owner});
                 if (frame.empty() || !WriteFrame(pipe, frame)) {
-                    completionist::GlassLog(L"step=write-failed kind=heartbeat empty=%d error=%lu gen=%llu hwnd=%llx",
-                                            frame.empty() ? 1 : 0, GetLastError(), current->owner.generation, current->owner.hostHwnd);
+                    completionist::GlassLog(L"step=write-failed kind=heartbeat empty=%d error=%lu rev=%llu gen=%llu hwnd=%llx",
+                                            frame.empty() ? 1 : 0, frame.empty() ? ERROR_INVALID_DATA : GetLastError(),
+                                            current->revision, current->owner.generation, current->owner.hostHwnd);
                     disconnect(); continue;
                 }
                 lastHeartbeat = NowMs();

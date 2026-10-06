@@ -1306,6 +1306,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Completed glass diagnostic review: file-write failures reach debugger output, protocol failures have accurate error codes, and timeouts and writes carry request identifiers."
+    },
+    {
+      "date": "2026-10-05",
       "text": "The renderer now logs every glass step to glass.log with the exact refusal reason."
     },
     {

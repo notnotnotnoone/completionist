@@ -82,6 +82,9 @@ inline void GlassLog(const wchar_t* format, ...) {
     if (InterlockedExchange(&reported, 1) == 0) {
         char note[200];
         const int n = sprintf_s(note, "glass.log could not be appended (error %lu); writing here instead\r\n", error);
+        wchar_t debugNote[200];
+        swprintf_s(debugNote, L"glass.log could not be appended (error %lu); trying glass-%lu.log\r\n", error, GetCurrentProcessId());
+        OutputDebugStringW(debugNote);
         glass_detail::AppendUtf8(path, note, n);
     }
     glass_detail::AppendUtf8(path, utf8, bytes - 1);
