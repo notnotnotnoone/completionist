@@ -31,6 +31,7 @@ struct ContentMetrics {
     float measuredContentWidthDip = 0;
     float phraseHeightDip = 0;
     float statusHeightDip = 0;  // measured height of the AI/correction shelf content
+    float headerHeightDip = 0;  // renderer masthead; legacy callers leave this at zero
     bool hasAuxiliaryShelf = false;  // for selected correction context without an AI status
     std::vector<MeasuredRow> rows;
 };
@@ -53,6 +54,7 @@ struct Layout {
     DipRect dockContent{};
     std::vector<RowLayout> rowOrder;  // spatial and keyboard word order; phrase first
     DipRect statusClip{};
+    DipRect headerClip{};
     bool hasPhraseRow = false;
     bool hasStatusShelf = false;
     bool dockCollapsed = false;

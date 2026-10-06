@@ -1,5 +1,7 @@
 #include "surfaces.h"
 #include "resource_lifetime.h"
+#include "fixture.h"
+#include <filesystem>
 
 #include <algorithm>
 #include <cmath>
@@ -30,9 +32,7 @@ LRESULT CALLBACK windowProc(HWND w, UINT m, WPARAM a, LPARAM b) {
                 const LONG y = GET_Y_LPARAM(b) - bounds.top;
                 const LONG dpi=static_cast<LONG>(GetDpiForWindow(w));
                 const LONG button = MulDiv(36,dpi,96);
-                const LONG shell = MulDiv(32,dpi,96);
-                const double progress=gSurfaceWindows->dockState_.Sample(GetTickCount64());
-                const LONG top=static_cast<LONG>((1.0-progress)*std::max(0L,bounds.bottom-bounds.top-shell));
+                const LONG top=0;
                 if (x >= bounds.right - bounds.left - button && x < bounds.right - bounds.left && y >= top && y < top+button)
                     return HTCLIENT;
             }
@@ -51,9 +51,7 @@ LRESULT CALLBACK windowProc(HWND w, UINT m, WPARAM a, LPARAM b) {
         RECT bounds{}; POINT point{}; GetCursorPos(&point); GetWindowRect(w, &bounds);
         const LONG dpi=static_cast<LONG>(GetDpiForWindow(w));
         const LONG button = MulDiv(36,dpi,96);
-        const LONG shell = MulDiv(32,dpi,96);
-        const double progress=gSurfaceWindows->dockState_.Sample(GetTickCount64());
-        const LONG top=static_cast<LONG>((1.0-progress)*std::max(0L,bounds.bottom-bounds.top-shell));
+        const LONG top=0;
         if (pressed && point.x >= bounds.right-button && point.x < bounds.right &&
             point.y >= bounds.top+top && point.y < bounds.top+top+button) gSurfaceWindows->dockToggleRequested_ = true;
         return 0;
@@ -198,6 +196,9 @@ bool SurfaceWindows::presentGlass(Panel& panel,const RECT& bounds,ID3D11Texture2
     if (!panel.window || !panel.swapChain || !panel.drawing || !glass) return false;
     const LONG width=bounds.right-bounds.left, height=bounds.bottom-bounds.top;
     if (width<=0 || height<=0 || source.right<=source.left || source.bottom<=source.top) return false;
+    const bool sideways=rotation==DXGI_MODE_ROTATION_ROTATE90 || rotation==DXGI_MODE_ROTATION_ROTATE270;
+    if(source.right-source.left!=(sideways ? height : width) ||
+        source.bottom-source.top!=(sideways ? width : height)) return false;
     if (!panel.bitmap || static_cast<UINT>(width)!=panel.bitmap->GetPixelSize().width ||
         static_cast<UINT>(height)!=panel.bitmap->GetPixelSize().height) {
         if (!resizePanel(panel,panel.drawing.Get(),static_cast<UINT>(width),static_cast<UINT>(height),dpi)) return false;
@@ -228,7 +229,7 @@ bool SurfaceWindows::presentGlass(Panel& panel,const RECT& bounds,ID3D11Texture2
         static_cast<float>(source.right),static_cast<float>(source.bottom));
     panel.drawing->DrawBitmap(glassSourceBitmap.Get(),destination,1.0f,D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,&sourceRect);
     panel.drawing->SetTransform(D2D1::Matrix3x2F::Identity());
-    const bool ready=textRenderer.Draw(panel.drawing.Get(),snapshot,layout,prepared,colors,surface,connectionOpacity);
+    const bool ready=textRenderer.Draw(panel.drawing.Get(),snapshot,layout,prepared,colors,surface,connectionOpacity,true);
     if (ready && surface==text::Surface::Dock) {
         ComPtr<ID2D1SolidColorBrush> button;
         const palette::Color iconColor=colors.muted;
@@ -236,11 +237,24 @@ bool SurfaceWindows::presentGlass(Panel& panel,const RECT& bounds,ID3D11Texture2
                 iconColor.b/255.0f,1.0f),&button))) {
             const float right=panelWidthDip-12.0f, centerY=12.0f;
             panel.drawing->DrawLine(D2D1::Point2F(right-4.0f,centerY),D2D1::Point2F(right+4.0f,centerY),button.Get(),1.4f);
+            if(layout.dockCollapsed) panel.drawing->DrawLine(D2D1::Point2F(right,centerY-4.0f),
+                D2D1::Point2F(right,centerY+4.0f),button.Get(),1.4f);
         }
     }
     const HRESULT drawn=panel.drawing->EndDraw();
     panel.drawing->SetTarget(nullptr);
-    if (!ready || FAILED(drawn) || FAILED(panel.swapChain->Present(1,0))) return false;
+    if (!ready || FAILED(drawn)) return false;
+    if (captureNextFrame && !screenshotDirectory.empty()) {
+        ComPtr<ID3D11Texture2D> pixels;
+        ComPtr<ID3D11Device> device;
+        ComPtr<ID3D11DeviceContext> context;
+        if (SUCCEEDED(panel.swapChain->GetBuffer(0,IID_PPV_ARGS(&pixels)))) {
+            pixels->GetDevice(&device); device->GetImmediateContext(&context);
+            const auto name=surface==text::Surface::Menu ? L"menu.png" : L"dock.png";
+            saveTexturePng((std::filesystem::path(screenshotDirectory)/name).wstring(),context.Get(),pixels.Get());
+        }
+    }
+    if (FAILED(panel.swapChain->Present(1,0))) return false;
     SetWindowPos(panel.window,HWND_TOPMOST,bounds.left,bounds.top,width,height,SWP_NOACTIVATE|SWP_SHOWWINDOW);
     return SUCCEEDED(composition->Commit());
 }
@@ -249,12 +263,12 @@ bool SurfaceWindows::showGlassSnapshot(const completionist::render::Snapshot& sn
                                   const completionist::layout::Layout& layout,const text::PreparedText& prepared,
                                   text::TextRenderer& textRenderer,const palette::Theme& colors,
                                   ID3D11Texture2D* glass,const RECT& menuSource,const RECT& dockSource,
-                                  float dpi,DXGI_MODE_ROTATION rotation,float connectionOpacity) {
+                                  float dpi,DXGI_MODE_ROTATION rotation,float connectionOpacity,const palette::Theme* dockColors) {
     const auto rect=[](const completionist::render::Rect& r) { return RECT{r.left,r.top,r.right,r.bottom}; };
     if (!presentGlass(menuPanel,rect(layout.menuBounds),glass,menuSource,dpi,rotation,snapshot,layout,prepared,
                       textRenderer,colors,text::Surface::Menu) ||
         !presentGlass(dockPanel,rect(layout.dockBounds),glass,dockSource,dpi,rotation,snapshot,layout,prepared,
-                      textRenderer,colors,text::Surface::Dock,connectionOpacity)) {
+                      textRenderer,dockColors ? *dockColors : colors,text::Surface::Dock,connectionOpacity)) {
         hide();
         return false;
     }
@@ -269,13 +283,10 @@ bool SurfaceWindows::showGlassSnapshot(const completionist::render::Snapshot& sn
 
 bool SurfaceWindows::ApplyDockMotion(double expandedProgress,double bodyOpacity,float dpi) {
     if (!composition || !dockPanel.visual || dpi<48.0f || dpi>768.0f) return false;
-    const auto height=dockPanel.bitmap ? dockPanel.bitmap->GetPixelSize().height : 0;
-    const float heightDip=static_cast<float>(height)*96.0f/dpi;
-    const float collapsedDip=32.0f;
-    const float progress=static_cast<float>(std::clamp(expandedProgress,0.0,1.0));
-    const float opacity=static_cast<float>(std::clamp(bodyOpacity,0.0,1.0));
-    const float shift=(1.0f-progress)*std::max(0.0f,heightDip-collapsedDip);
-    if (FAILED(dockPanel.visual->SetOffsetY(shift)) || FAILED(dockPanel.opacity->SetOpacity(opacity))) return false;
+    (void)expandedProgress; (void)bodyOpacity;
+    // Production animates the rectangle before capture. Moving the visual afterward
+    // would move desktop pixels away from their origin and hide the restore control.
+    if (FAILED(dockPanel.visual->SetOffsetY(0.0f)) || FAILED(dockPanel.opacity->SetOpacity(1.0f))) return false;
     return SUCCEEDED(composition->Commit());
 }
 

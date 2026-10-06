@@ -5,12 +5,39 @@
 #include <cmath>
 
 namespace renderer {
-struct alignas(16) Constants { float direction[2]; float size[2]; float radius; float sigma; float reserved[2]; float weights[80]; };
-struct alignas(16) LensConstants { float outputSize[2]; float panelSize[2]; float panelOrigin[2]; float cornerRadius; float displacement; float padding[2]; float reserved[2]; float tint[4]; };
+struct alignas(16) Constants { float direction[2]; float size[2]; float radius; float sigma; float reserved[2]; float weights[292]; };
+struct alignas(16) LensConstants { float outputSize[2]; float panelSize[2]; float panelOrigin[2]; float cornerRadius; float displacement; float dpiScale; float reserved; float pointer[2]; float tint[4]; };
+static_assert(sizeof(LensConstants)==64);
 void BlurMaterial::reset() {
     ResetResources(vertex,horizontal,vertical,lensShader,sampler,glassBlend,scissorRasterizer,weights,lensConstants,
-        scratchTexture,scratchTarget,scratchView,outputTexture,outputTarget,outputView,glassTexture,glassTarget,glassView);
+        scratchTexture,scratchTarget,scratchView,outputTexture,outputTarget,outputView,glassTexture,glassTarget,glassView,luminanceSamples);
     horizontalRegions.clear(); verticalRegions.clear(); width=height=0;
+}
+
+bool BlurMaterial::backdropDark(ID3D11DeviceContext* c,const D3D11_VIEWPORT& vp,bool previous) {
+    if(!c || !outputTexture || vp.Width<1 || vp.Height<1) return previous;
+    if(!luminanceSamples) {
+        ComPtr<ID3D11Device> device; c->GetDevice(&device);
+        D3D11_TEXTURE2D_DESC desc{}; desc.Width=3; desc.Height=1; desc.MipLevels=1; desc.ArraySize=1;
+        desc.Format=DXGI_FORMAT_B8G8R8A8_UNORM; desc.SampleDesc.Count=1;
+        desc.Usage=D3D11_USAGE_STAGING; desc.CPUAccessFlags=D3D11_CPU_ACCESS_READ;
+        if(FAILED(device->CreateTexture2D(&desc,nullptr,&luminanceSamples))) return previous;
+    }
+    for(UINT i=0;i<3;++i) {
+        const float fraction=static_cast<float>(i+1)*.25f;
+        const UINT x=static_cast<UINT>(std::clamp(vp.TopLeftX+vp.Width*fraction,0.0f,static_cast<float>(width-1)));
+        const UINT y=static_cast<UINT>(std::clamp(vp.TopLeftY+vp.Height*fraction,0.0f,static_cast<float>(height-1)));
+        const D3D11_BOX box{x,y,0,x+1,y+1,1};
+        c->CopySubresourceRegion(luminanceSamples.Get(),0,i,0,0,outputTexture.Get(),0,&box);
+    }
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    if(FAILED(c->Map(luminanceSamples.Get(),0,D3D11_MAP_READ,0,&mapped))) return previous;
+    const auto* pixels=static_cast<const unsigned char*>(mapped.pData);
+    float luminance=0;
+    for(UINT i=0;i<3;++i) luminance+=(.2126f*pixels[i*4+2]+.7152f*pixels[i*4+1]+.0722f*pixels[i*4])/765.0f;
+    c->Unmap(luminanceSamples.Get(),0);
+    // Hysteresis prevents text changing color as a dark line crosses the panel.
+    return previous ? luminance<.58f : luminance<.42f;
 }
 bool BlurMaterial::create(ID3D11Device* d, UINT w, UINT h) {
     if(!d || !w || !h) return false;
@@ -50,19 +77,19 @@ bool BlurMaterial::blur(ID3D11DeviceContext* c, ID3D11ShaderResourceView* input,
 
 bool BlurMaterial::blurRegions(ID3D11DeviceContext* c,ID3D11ShaderResourceView* input,
                                float dpi,const RECT* panels,size_t panelCount) {
-    if(!c||!input||!width||!height||dpi<48.0f||dpi>192.0f) return false;
+    if(!c||!input||!width||!height||dpi<48.0f||dpi>768.0f) return false;
     if(panelCount>0 && !panels) return false;
     const float scale=dpi/96.0f;
     const int radius=static_cast<int>(std::lround(18.0f*scale));
-    const int displacement=static_cast<int>(std::ceil(18.0f*scale));
+    const int displacement=static_cast<int>(std::ceil(24.0f*scale));
     const float sigma=6.0f*scale;
-    float kernel[73]{};
+    float kernel[289]{};
     float sum=0;
-    for(int i=-36;i<=36;++i){float x=static_cast<float>(i);float value=std::exp(-(x*x)/(2.0f*sigma*sigma));kernel[i+36]=value;sum+=value;}
+    for(int i=-radius;i<=radius;++i){float x=static_cast<float>(i);float value=std::exp(-(x*x)/(2.0f*sigma*sigma));kernel[i+radius]=value;sum+=value;}
     for(float& value:kernel)value/=sum;
     D3D11_MAPPED_SUBRESOURCE map{}; if(FAILED(c->Map(weights.Get(),0,D3D11_MAP_WRITE_DISCARD,0,&map))) return false;
     auto* constants=static_cast<Constants*>(map.pData); *constants={}; constants->direction[0]=1.f;constants->direction[1]=0.f;constants->size[0]=static_cast<float>(width);constants->size[1]=static_cast<float>(height);constants->radius=static_cast<float>(radius);constants->sigma=sigma;
-    for(int i=-36;i<=36;++i)constants->weights[i+36]=kernel[i+36];
+    for(int i=0;i<=radius*2;++i)constants->weights[i]=kernel[i];
     c->Unmap(weights.Get(),0);
     D3D11_VIEWPORT viewport{0,0,static_cast<float>(width),static_cast<float>(height),0,1};
     c->IASetInputLayout(nullptr); c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -92,7 +119,7 @@ bool BlurMaterial::blurRegions(ID3D11DeviceContext* c,ID3D11ShaderResourceView* 
     if(FAILED(c->Map(weights.Get(),0,D3D11_MAP_WRITE_DISCARD,0,&map))) { c->OMSetRenderTargets(0,nullptr,nullptr); c->RSSetState(nullptr); return false; }
     constants=static_cast<Constants*>(map.pData); *constants={}; constants->direction[1]=1; constants->size[0]=static_cast<float>(width); constants->size[1]=static_cast<float>(height);
     constants->radius=static_cast<float>(radius); constants->sigma=sigma;
-    for(int i=-36;i<=36;++i) constants->weights[i+36]=kernel[i+36];
+    for(int i=0;i<=radius*2;++i) constants->weights[i]=kernel[i];
     c->Unmap(weights.Get(),0); c->PSSetShader(vertical.Get(),nullptr,0);
     target=outputTarget.Get(); c->OMSetRenderTargets(1,&target,nullptr);
     ID3D11ShaderResourceView* source=scratchView.Get(); c->PSSetShaderResources(0,1,&source);
@@ -116,8 +143,10 @@ bool BlurMaterial::renderLens(ID3D11DeviceContext* c, const D3D11_VIEWPORT& vp,
     values->panelOrigin[0] = vp.TopLeftX;
     values->panelOrigin[1] = vp.TopLeftY;
     const float scale = dpi / 96.0f;
-    values->cornerRadius = (std::min)(radiusDip * scale, (std::min)(vp.Width, vp.Height) * 0.5f);
+    values->cornerRadius = (std::min)(radiusDip * scale, (std::min)(vp.Width, vp.Height) * 0.45f);
     values->displacement = std::clamp(strength * scale, 0.0f, 48.0f * scale);
+    values->dpiScale = scale;
+    values->pointer[0] = pointer[0]; values->pointer[1] = pointer[1];
     for (unsigned i = 0; i < 4; ++i) values->tint[i] = std::clamp(tint[i], 0.0f, 1.0f);
     c->Unmap(lensConstants.Get(), 0);
 

@@ -206,33 +206,32 @@ bool TextRenderer::Prepare(const Snapshot& snapshot, float availableWidthDip, Pr
 
     next.metrics.fontSizeDip = fontSize;
     next.metrics.rowGapDip = 8.0f;
+    next.metrics.headerHeightDip = 20.0f;
+    if(!MakeLayout(factory_,L"Completionist",smallFormat.Get(),contentWidth,20.0f,&next.brand)) return false;
+    next.brand->SetFontWeight(DWRITE_FONT_WEIGHT_SEMI_BOLD,{0,13});
     next.metrics.rows.reserve(snapshot.words.size());
     next.words.reserve(snapshot.words.size());
+    next.origins.reserve(snapshot.words.size());
     next.correctionComparisons.reserve(snapshot.words.size());
     next.correctionMarks.reserve(snapshot.words.size());
     float widest = 0;
     for (const auto& word : snapshot.words) {
-        std::wstring displayed = word.text;
-        UINT32 originBegin = static_cast<UINT32>(displayed.size());
-        if (!word.origin.empty()) {
-            displayed += L"  ";
-            originBegin = static_cast<UINT32>(displayed.size());
-            displayed.append(word.origin.begin(), word.origin.end());
-        }
+        const std::wstring& displayed = word.text;
         ComPtr<IDWriteTextLayout> layout;
-        if (!MakeLayout(factory_, displayed, body.Get(), contentWidth, fontSize * 2.5f + 14.0f, &layout)) return false;
-        if (originBegin < displayed.size()) {
-            const auto begin = originBegin;
-            const auto length = static_cast<UINT32>(displayed.size() - begin);
-            if (FAILED(layout->SetFontSize(10.5f, {begin, length}))) return false;
-        }
+        if (!MakeLayout(factory_, displayed, body.Get(), std::max(1.0f,contentWidth-94.0f), fontSize * 2.5f + 14.0f, &layout)) return false;
+        if(snapshot.selection==static_cast<int>(next.words.size())) layout->SetFontWeight(DWRITE_FONT_WEIGHT_SEMI_BOLD,
+            {0,static_cast<UINT32>(displayed.size())});
+        ComPtr<IDWriteTextLayout> origin;
+        if (!word.origin.empty() && !MakeLayout(factory_,std::wstring(word.origin.begin(),word.origin.end()),
+                smallFormat.Get(),58.0f,24.0f,&origin)) return false;
+        next.origins.push_back(std::move(origin));
         DWRITE_TEXT_METRICS textMetrics{};
         if (FAILED(layout->GetMetrics(&textMetrics))) return false;
         ComPtr<IDWriteTextLayout> comparison;
         float comparisonHeight = 0;
         if (!word.marks.empty() && !snapshot.typedFragment.empty()) {
             const std::wstring comparisonText = snapshot.typedFragment + L" → " + word.text;
-            if (!MakeLayout(factory_, comparisonText, smallFormat.Get(), contentWidth, 20.0f, &comparison)) return false;
+            if (!MakeLayout(factory_, comparisonText, smallFormat.Get(), std::max(1.0f,contentWidth-94.0f), 20.0f, &comparison)) return false;
             DWRITE_TEXT_METRICS comparisonMetrics{};
             if (FAILED(comparison->GetMetrics(&comparisonMetrics))) return false;
             comparisonHeight = comparisonMetrics.height + 2.0f;
@@ -249,7 +248,7 @@ bool TextRenderer::Prepare(const Snapshot& snapshot, float availableWidthDip, Pr
     next.displayPhrase = snapshot.phraseLead + snapshot.phrase;
     next.acceptance = PhraseAcceptanceRange(snapshot);
     if (!next.displayPhrase.empty()) {
-        if (!MakeLayout(factory_, next.displayPhrase, body.Get(), contentWidth, fontSize * 2.5f + 14.0f, &next.phrase)) return false;
+        if (!MakeLayout(factory_, next.displayPhrase, body.Get(), std::max(1.0f,contentWidth-32.0f), fontSize * 2.5f + 14.0f, &next.phrase)) return false;
         DWRITE_TEXT_METRICS phraseMetrics{};
         if (FAILED(next.phrase->GetMetrics(&phraseMetrics))) return false;
         next.metrics.phraseHeightDip = std::min(phraseMetrics.height + 10.0f, fontSize * 2.5f + 14.0f);
@@ -258,7 +257,7 @@ bool TextRenderer::Prepare(const Snapshot& snapshot, float availableWidthDip, Pr
 
     const std::wstring statusText = StatusText(snapshot);
     if (!statusText.empty()) {
-        if (!MakeLayout(factory_, statusText, smallFormat.Get(), contentWidth, fontSize * 3.0f + 20.0f, &next.status)) return false;
+        if (!MakeLayout(factory_, statusText, smallFormat.Get(), std::max(1.0f,contentWidth-72.0f), fontSize * 3.0f + 20.0f, &next.status)) return false;
         DWRITE_TEXT_METRICS statusMetrics{};
         if (FAILED(next.status->GetMetrics(&statusMetrics))) return false;
         next.metrics.statusHeightDip = std::min(statusMetrics.height, 2.0f * 14.0f);
@@ -276,47 +275,49 @@ bool TextRenderer::Prepare(const Snapshot& snapshot, float availableWidthDip, Pr
 
 bool TextRenderer::Draw(ID2D1DeviceContext* context, const Snapshot& snapshot,
                         const completionist::layout::Layout& layout, const PreparedText& prepared,
-                        const palette::Theme& colors, Surface surface, float connectionOpacity) const {
+                        const palette::Theme& colors, Surface surface, float connectionOpacity, bool glassSurface) const {
     if (!context || !factory_) return false;
     ComPtr<ID2D1SolidColorBrush> ink, muted, ghost, accent, accentInk, onAccent, connected, outline;
     if (!MakeBrush(context, colors.ink, &ink) || !MakeBrush(context, colors.muted, &muted) ||
         !MakeBrush(context, colors.ghost, &ghost) || !MakeBrush(context, colors.accent, &accent) ||
         !MakeBrush(context, colors.accentInk, &accentInk) || !MakeBrush(context, colors.onAccent, &onAccent) ||
         !MakeBrush(context, colors.ok, &connected) || !MakeBrush(context, colors.lineStrong, &outline)) return false;
+    ID2D1SolidColorBrush* selectedInk=glassSurface ? ink.Get() : onAccent.Get();
+    const palette::Color selectedColor=glassSurface ? colors.ink : colors.onAccent;
+    if(glassSurface) accent->SetOpacity(.10f);
+
+    if(surface==Surface::Menu && prepared.brand && layout.headerClip.height()>0) {
+        DrawLayout(context,prepared.brand.Get(),layout.headerClip.left,layout.headerClip.top,
+            muted.Get(),Rect(layout.headerClip));
+    }
 
     if (surface == Surface::Menu) for (const auto& row : layout.rowOrder) {
         const bool isPhrase = row.kind == completionist::layout::RowKind::Phrase;
         const bool selected = isPhrase ? snapshot.selection == -1 : snapshot.selection == static_cast<int>(row.wordIndex);
         if (selected) {
-            const D2D1_ROUNDED_RECT shape{Rect(row.bounds), 7.0f, 7.0f};
+            const D2D1_ROUNDED_RECT shape{Rect(row.bounds), glassSurface ? 12.0f : 7.0f, glassSurface ? 12.0f : 7.0f};
             context->FillRoundedRectangle(shape, accent.Get());
-            context->FillRectangle(D2D1::RectF(row.bounds.left, row.bounds.top, row.bounds.left + 3.0f,
+            if(!glassSurface) context->FillRectangle(D2D1::RectF(row.bounds.left, row.bounds.top, row.bounds.left + 3.0f,
                                                row.bounds.bottom), onAccent.Get());
         }
         IDWriteTextLayout* textLayout = nullptr;
         if (isPhrase) textLayout = prepared.phrase.Get();
         else if (row.wordIndex < prepared.words.size()) textLayout = prepared.words[row.wordIndex].Get();
         if (textLayout && isPhrase && !snapshot.phraseLead.empty()) {
-            textLayout->SetDrawingEffect(selected ? static_cast<IUnknown*>(onAccent.Get())
+            textLayout->SetDrawingEffect(selected ? static_cast<IUnknown*>(selectedInk)
                                                   : static_cast<IUnknown*>(ink.Get()),
                                         {0, static_cast<UINT32>(snapshot.phraseLead.size())});
             if (!snapshot.phrase.empty())
-                textLayout->SetDrawingEffect(selected ? static_cast<IUnknown*>(onAccent.Get())
+                textLayout->SetDrawingEffect(selected ? static_cast<IUnknown*>(selectedInk)
                                                       : static_cast<IUnknown*>(ghost.Get()),
                                             {static_cast<UINT32>(snapshot.phraseLead.size()),
                                              static_cast<UINT32>(snapshot.phrase.size())});
-        } else if (textLayout && row.wordIndex < snapshot.words.size()) {
-            const auto& word = snapshot.words[row.wordIndex];
-            if (!word.origin.empty()) {
-                const UINT32 begin = static_cast<UINT32>(word.text.size() + 2);
-                const UINT32 length = static_cast<UINT32>(word.origin.size());
-                textLayout->SetDrawingEffect(selected ? static_cast<IUnknown*>(onAccent.Get())
-                                                      : static_cast<IUnknown*>(muted.Get()), {begin, length});
-            }
         }
         const float x = row.textClip.left;
         float y = row.textClip.top + std::max(0.0f, (row.textClip.height() - prepared.metrics.fontSizeDip) / 2.0f);
-        ID2D1SolidColorBrush* textBrush = selected ? onAccent.Get() : (isPhrase ? ghost.Get() : ink.Get());
+        ID2D1SolidColorBrush* textBrush = selected ? selectedInk : (isPhrase ? ghost.Get() : ink.Get());
+        auto textClip=Rect(row.textClip);
+        textClip.right=std::max(textClip.left,textClip.right-(isPhrase ? 32.0f : 94.0f));
         if (!isPhrase && row.wordIndex < prepared.correctionComparisons.size() &&
             prepared.correctionComparisons[row.wordIndex]) {
             auto* comparison = prepared.correctionComparisons[row.wordIndex].Get();
@@ -324,32 +325,42 @@ bool TextRenderer::Draw(ID2D1DeviceContext* context, const Snapshot& snapshot,
             if (SUCCEEDED(comparison->GetMetrics(&comparisonMetrics))) {
                 const float comparisonY = row.textClip.top;
                 DrawLayout(context, comparison, x, comparisonY,
-                           selected ? onAccent.Get() : muted.Get(), Rect(row.textClip));
+                           selected ? selectedInk : muted.Get(), textClip);
                 y = comparisonY + comparisonMetrics.height;
             }
         }
-        if (!DrawLayout(context, textLayout, x, y, textBrush, Rect(row.textClip))) return false;
+        if(textLayout && !isPhrase) textLayout->SetFontWeight(selected && glassSurface ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
+            {0,static_cast<UINT32>(snapshot.words[row.wordIndex].text.size())});
+        if (!DrawLayout(context, textLayout, x, y, textBrush, textClip)) return false;
+        if(!isPhrase && row.wordIndex<prepared.origins.size() && prepared.origins[row.wordIndex]) {
+            DWRITE_TEXT_METRICS originMetrics{}; prepared.origins[row.wordIndex]->GetMetrics(&originMetrics);
+            const float right=row.textClip.right-36.0f;
+            DrawLayout(context,prepared.origins[row.wordIndex].Get(),right-originMetrics.width,y,
+                selected && !glassSurface ? selectedInk : muted.Get(),
+                D2D1::RectF(row.textClip.right-94.0f,row.textClip.top,right,row.textClip.bottom));
+        }
 
         if (isPhrase) {
             if (!DrawDottedRange(context, textLayout, prepared.acceptance, x, y,
-                                 selected ? colors.onAccent : colors.accentInk)) return false;
+                                 selected ? selectedColor : colors.accentInk)) return false;
         } else if (row.wordIndex < prepared.correctionMarks.size()) {
             if (!DrawMarks(context, textLayout, prepared.correctionMarks[row.wordIndex], x, y,
-                           selected ? colors.onAccent : colors.accentInk)) return false;
+                           selected ? selectedColor : colors.accentInk)) return false;
         }
         if (selected && prepared.shortcut) {
             DWRITE_TEXT_METRICS hint{};
             prepared.shortcut->GetMetrics(&hint);
             const float hintX = row.textClip.right - hint.width;
             DrawLayout(context, prepared.shortcut.Get(), hintX, row.bounds.top + 4.0f,
-                       selected ? onAccent.Get() : muted.Get(), Rect(row.textClip));
+                       selected ? selectedInk : muted.Get(), Rect(row.textClip));
         }
     }
 
     if (surface == Surface::Menu && layout.hasStatusShelf && prepared.status) {
         const bool selected = false;
+        auto statusClip=Rect(layout.statusClip); statusClip.right=std::max(statusClip.left,statusClip.right-72.0f);
         DrawLayout(context, prepared.status.Get(), layout.statusClip.left, layout.statusClip.top,
-                   selected ? onAccent.Get() : muted.Get(), Rect(layout.statusClip));
+                   selected ? onAccent.Get() : muted.Get(), statusClip);
         const std::wstring hint = PartialHint(snapshot.settings);
         ComPtr<IDWriteTextFormat> hintFormat;
         ComPtr<IDWriteTextLayout> hintLayout;
@@ -372,7 +383,7 @@ bool TextRenderer::Draw(ID2D1DeviceContext* context, const Snapshot& snapshot,
         }
         else context->DrawEllipse(connectionMark, outline.Get(), 1.4f);
         DrawLayout(context, prepared.connection.Get(), layout.dockContent.left + 12.0f, dockY,
-                   snapshot.engineConnected ? accentInk.Get() : muted.Get(), Rect(layout.dockContent));
+                   ink.Get(), Rect(layout.dockContent));
         if (prepared.tense && !layout.dockCollapsed) {
             DWRITE_TEXT_METRICS tenseMetrics{};
             prepared.tense->GetMetrics(&tenseMetrics);

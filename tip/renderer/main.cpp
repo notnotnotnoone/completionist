@@ -18,6 +18,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         result = renderer::runLiveFixture();
     } else if (count == 2 && lstrcmpW(args[1], L"--serve") == 0) {
         result = renderer::runProductionService();
+    } else if (count == 4 && lstrcmpW(args[1], L"--serve") == 0 && lstrcmpW(args[2], L"--capture-dir") == 0) {
+        result = renderer::runProductionService(args[3]);
+    } else if (count == 4 && lstrcmpW(args[1], L"--review") == 0 && lstrcmpW(args[2], L"--capture-dir") == 0) {
+        result = renderer::runMaterialReview(args[3]);
     } else if (count != 1) {
         result = ERROR_INVALID_PARAMETER;
     }

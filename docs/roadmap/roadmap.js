@@ -2,7 +2,7 @@ window.COMPLETIONIST_ROADMAP = {
   "schema": 4,
   "project": "Completionist",
   "tagline": "System-wide, VS Code-style English autocomplete for Windows",
-  "updated": "2026-10-05",
+  "updated": "2026-10-06",
   "prd": "https://github.com/notnotnotnoone/typer/issues/1",
   "repo": "https://github.com/notnotnotnoone/typer",
   "now": "Building toward 2.0.0: nine native desktop stages plus the viewer and scope tracks. Live soft-glass feasibility is next. Latest recorded shipped release is 1.1.14; tense-aware ranking targets 2.1.0 and the browser client targets 3.0.0.",
@@ -1294,6 +1294,34 @@ window.COMPLETIONIST_ROADMAP = {
     }
   ],
   "log": [
+    {
+      "date": "2026-10-06",
+      "text": "Commit and integrate glass material fixes, complete spike-versus-product findings and screenshot workflow into local main. Renderer build and roadmap pass; engine verification has 655 passes and an existing fuzzy latency failure, tracked separately."
+    },
+    {
+      "date": "2026-10-06",
+      "text": "Added task fuzzy-pipe-latency-investigation toward 3.0.0: Investigate existing fuzzy pipe latency test exceeding 10 ms p95"
+    },
+    {
+      "date": "2026-10-06",
+      "text": "Commit and integrate the production glass alignment/refraction fixes, screenshot workflow, and complete spike-versus-product findings into local main."
+    },
+    {
+      "date": "2026-10-06",
+      "text": "Completed glass-spike-parity toward 3.0.0; no release was created."
+    },
+    {
+      "date": "2026-10-06",
+      "text": "Traced glass crop compression and radial lens distortion; adapted the spike material, contrast, selection, masthead and dock geometry, and added opt-in production surface screenshots."
+    },
+    {
+      "date": "2026-10-06",
+      "text": "Started glass-spike-parity toward 3.0.0."
+    },
+    {
+      "date": "2026-10-06",
+      "text": "Added task glass-spike-parity toward 3.0.0: Align production glass with the approved material spike"
+    },
     {
       "date": "2026-10-05",
       "text": "Shipped 2.0.0 and 2.1.0 at the owner's direction, both before real-app verification; tags go on the merge commit."
@@ -4603,12 +4631,43 @@ window.COMPLETIONIST_ROADMAP = {
     {
       "id": "M6.1",
       "title": "Chrome extension over Native Messaging",
-      "status": "todo",
+      "status": "next",
       "area": "extension",
       "stories": [],
       "notes": "Inline ghost text and page context in web fields. Moved from 1.1.1 to 2.0.1 (2026-10-01), then to 2.1.1 (2026-10-01) to leave room for the tense-aware suggestions milestone; it still leads the 3.0.0 major release after the dashboard and popup redesign.",
       "targetRelease": "3.0.0",
       "label": "Chrome extension"
+    },
+    {
+      "id": "glass-spike-parity",
+      "targetRelease": "3.0.0",
+      "title": "Align production glass with the approved material spike",
+      "status": "done",
+      "area": "dll",
+      "stories": [
+        1
+      ],
+      "notes": "Built with /W4 /WX. Inspected production-renderer screenshots on light/dark backdrops at 150% scale; moved backdrop crop stayed pixel-identical; collapsed/restored dock kept its visible shell and correct geometry. Installed and restarted the matching renderer build with rollback copy. Owner real-app typing and other monitors/scales remain unverified; see comparison document.",
+      "label": "Glass material parity",
+      "completed": "2026-10-06",
+      "refs": [
+        "fix/glass-spike-parity",
+        "tip/renderer/blur.hlsl",
+        "tip/renderer/production_service.cpp",
+        "docs/glass-material-parity.md"
+      ]
+    },
+    {
+      "id": "fuzzy-pipe-latency-investigation",
+      "targetRelease": "3.0.0",
+      "title": "Investigate existing fuzzy pipe latency test exceeding 10 ms p95",
+      "status": "todo",
+      "area": "engine",
+      "stories": [
+        49
+      ],
+      "notes": "Discovered during glass merge verification on 2026-10-06: 655 engine tests pass; existing fuzzy pipe p95 test fails at 27.58 ms in full suite and 17.89 ms alone after renderer build finished. Engine tree is unchanged from main. Investigate performance/environment without weakening the assertion.",
+      "label": "Fuzzy pipe latency"
     }
   ]
 };

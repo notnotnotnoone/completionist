@@ -34,6 +34,9 @@ struct SurfaceWindows {
     int dockExpandedRequest_=-1;
     dock::State dockState_;
     accessibility::Trees accessibility_{};
+    // Explicit diagnostic mode only; normal production never writes screenshots.
+    std::wstring screenshotDirectory;
+    bool captureNextFrame=false;
     bool create(HINSTANCE instance, ID3D11Device* device);
     static bool CaptureExcluded(bool menu, bool dock) { return menu && dock; }
     bool captureExcluded() const { return captureExcluded_; }
@@ -50,7 +53,8 @@ struct SurfaceWindows {
                        const completionist::layout::Layout& layout, const text::PreparedText& prepared,
                        text::TextRenderer& textRenderer, const palette::Theme& colors,
                        ID3D11Texture2D* glass, const RECT& menuSource, const RECT& dockSource,
-                       float dpi, DXGI_MODE_ROTATION rotation,float connectionOpacity = 1.0f);
+                       float dpi, DXGI_MODE_ROTATION rotation,float connectionOpacity = 1.0f,
+                       const palette::Theme* dockColors = nullptr);
     bool showOpaqueSnapshot(const completionist::render::Snapshot& snapshot,
                        const completionist::layout::Layout& layout, const text::PreparedText& prepared,
                        text::TextRenderer& textRenderer, bool systemColors, float dpi,

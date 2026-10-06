@@ -10,10 +10,12 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <future>
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <filesystem>
 
 #include "production_service.h"
 #include "production_renderer_pipe.h"
@@ -24,6 +26,7 @@
 #include "live_policy.h"
 #include "output_color_space.h"
 #include "system_change.h"
+#include "fixture.h"
 
 namespace renderer {
 namespace {
@@ -40,6 +43,7 @@ struct Request {
 
 class HostRenderer {
 public:
+    explicit HostRenderer(const std::wstring& screenshotDirectory) { surfaces_.screenshotDirectory=screenshotDirectory; }
     bool Present(const completionist::render::Snapshot& snapshot) {
         const HWND host = reinterpret_cast<HWND>(static_cast<UINT_PTR>(snapshot.owner.hostHwnd));
         DWORD pid = 0;
@@ -62,7 +66,7 @@ public:
         completionist::layout::WorkArea work{{info.rcWork.left,info.rcWork.top,info.rcWork.right,info.rcWork.bottom},dpi};
         prepared_.Reset();
         text::TextRenderer renderer(surfaces_.writeFactory.Get());
-        if (!renderer.Prepare(snapshot,330.0f*static_cast<float>(dpi)/96.0f,&prepared_)) return PresentOpaque(snapshot,host,monitor,false);
+        if (!renderer.Prepare(snapshot,ContentWidth(snapshot,work),&prepared_)) return PresentOpaque(snapshot,host,monitor,false);
         auto layout = completionist::layout::Place(snapshot,work,prepared_.metrics);
         UpdateDockGeometry(layout);
         bool highContrast = false;
@@ -106,7 +110,7 @@ public:
                     captureReady_=false; RetireCapture();
                     conditions.captureAvailable=false; mode=ChooseMaterialMode(conditions);
                     currentMode_=mode;
-        } else { mode=MaterialMode::Opaque; currentMode_=mode; }
+                } else if (!capture_.hasFrame) { mode=MaterialMode::Opaque; currentMode_=mode; }
             }
         }
         if (mode!=MaterialMode::Glass || !capture_.hasFrame) return PresentOpaque(snapshot,host,monitor,highContrast);
@@ -121,6 +125,7 @@ public:
         current_ = {};
         hasCurrent_ = false;
         currentMode_=MaterialMode::Hidden;
+        capturedRevision_=UINT64_MAX;
     }
 
     void ToggleDock() {
@@ -134,6 +139,11 @@ public:
         if (!Present(current_)) KillTimer(surfaces_.dockPanel.window,kAnimationTimer);
     }
 
+    void ReviewToggleDock() {
+        surfaces_.dockToggleRequested_=true;
+        ToggleDock();
+    }
+
     void OnSystemChange(UINT message) {
         BOOL animations=TRUE;
         SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION,0,&animations,0);
@@ -143,6 +153,11 @@ public:
     }
 
 private:
+    static float ContentWidth(const completionist::render::Snapshot& snapshot,const completionist::layout::WorkArea& work) {
+        const float factor=std::isfinite(snapshot.settings.width_scale) && snapshot.settings.width_scale>0
+            ? static_cast<float>(snapshot.settings.width_scale) : 1.0f;
+        return (std::min)(330.0f*factor,static_cast<float>(work.bounds.right-work.bounds.left)*96.0f/static_cast<float>(work.dpi));
+    }
     bool DpiReady() {
         const auto current = GetThreadDpiAwarenessContext();
         if (AreDpiAwarenessContextsEqual(current,DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) return true;
@@ -185,7 +200,7 @@ private:
         completionist::layout::WorkArea work{{info.rcWork.left,info.rcWork.top,info.rcWork.right,info.rcWork.bottom},dpi};
         prepared_.Reset();
         text::TextRenderer renderer(surfaces_.writeFactory.Get());
-        if (!renderer.Prepare(snapshot,330.0f*static_cast<float>(dpi)/96.0f,&prepared_)) { surfaces_.hide(); return false; }
+        if (!renderer.Prepare(snapshot,ContentWidth(snapshot,work),&prepared_)) { surfaces_.hide(); return false; }
         auto layout=completionist::layout::Place(snapshot,work,prepared_.metrics);
         UpdateDockGeometry(layout);
         RetireCapture();
@@ -209,22 +224,58 @@ private:
         const RECT menu{layout.menuBounds.left,layout.menuBounds.top,layout.menuBounds.right,layout.menuBounds.bottom};
         const RECT dock{layout.dockBounds.left,layout.dockBounds.top,layout.dockBounds.right,layout.dockBounds.bottom};
         RECT menuSource{},dockSource{};
-        const UINT padding=static_cast<UINT>(40U*dpi/96U);
-        if (!capture_.panelCrop(menu,padding,&menuSource) || !capture_.panelCrop(dock,padding,&dockSource)) return false;
+        // Padding belongs to blur sampling, never the displayed panel. Scaling a
+        // padded crop into the HWND shifts and shrinks the desktop underneath it.
+        if (!capture_.panelCrop(menu,0,&menuSource) || !capture_.panelCrop(dock,0,&dockSource)) return false;
         const RECT regions[]{menuSource,dockSource};
         if (!material_.blurRegions(context_.Get(),frameView_.Get(),static_cast<float>(dpi),regions,2)) return false;
         const D3D11_VIEWPORT menuViewport{static_cast<float>(menuSource.left),static_cast<float>(menuSource.top),
             static_cast<float>(menuSource.right-menuSource.left),static_cast<float>(menuSource.bottom-menuSource.top),0,1};
         const D3D11_VIEWPORT dockViewport{static_cast<float>(dockSource.left),static_cast<float>(dockSource.top),
             static_cast<float>(dockSource.right-dockSource.left),static_cast<float>(dockSource.bottom-dockSource.top),0,1};
-        const float tint[]{0.035f,0.32f,0.20f,0.18f};
-        if (!material_.renderLens(context_.Get(),menuViewport,26,18,static_cast<float>(dpi),tint,true) ||
-            !material_.renderLens(context_.Get(),dockViewport,16,8,static_cast<float>(dpi),tint,false)) return false;
+        const uint64_t now=GetTickCount64();
+        const bool oldMenuDark=menuDark_,oldDockDark=dockDark_;
+        if(now-themeSampleAt_>=250 || menu.left!=lastThemeMenu_.left || menu.top!=lastThemeMenu_.top ||
+            dock.top!=lastThemeDock_.top) {
+            menuDark_=material_.backdropDark(context_.Get(),menuViewport,menuDark_);
+            dockDark_=material_.backdropDark(context_.Get(),dockViewport,dockDark_);
+            themeSampleAt_=now; lastThemeMenu_=menu; lastThemeDock_=dock;
+        }
+        const auto& menuColors=menuDark_ ? palette::kDark : palette::kLight;
+        const auto& dockColors=dockDark_ ? palette::kDark : palette::kLight;
+        auto tint=[](const palette::Theme& colors,bool dark,float values[4]) {
+            values[0]=colors.surface.r/255.0f; values[1]=colors.surface.g/255.0f; values[2]=colors.surface.b/255.0f;
+            values[3]=dark ? .35f : .24f;
+        };
+        float menuTint[4]{},dockTint[4]{}; tint(menuColors,menuDark_,menuTint); tint(dockColors,dockDark_,dockTint);
+        POINT cursor{};
+        material_.pointer[0]=material_.pointer[1]=-1;
+        if(GetCursorPos(&cursor)) {
+            RECT cursorCrop{}; const RECT cursorRect{cursor.x,cursor.y,cursor.x+1,cursor.y+1};
+            if(capture_.panelCrop(cursorRect,0,&cursorCrop)) {
+                material_.pointer[0]=static_cast<float>(cursorCrop.left); material_.pointer[1]=static_cast<float>(cursorCrop.top);
+            } else material_.pointer[0]=material_.pointer[1]=-1;
+        }
+        if (!material_.renderLens(context_.Get(),menuViewport,26,18,static_cast<float>(dpi),menuTint,true) ||
+            !material_.renderLens(context_.Get(),dockViewport,26,18,static_cast<float>(dpi),dockTint,false)) return false;
         context_->Flush();
         current_=snapshot; hasCurrent_=true;
-        const bool shown=surfaces_.showGlassSnapshot(snapshot,layout,prepared_,renderer,palette::kLight,
+        surfaces_.captureNextFrame=!surfaces_.screenshotDirectory.empty() &&
+            (snapshot.revision!=capturedRevision_ || snapshot.owner.session!=capturedSession_ ||
+             oldMenuDark!=menuDark_ || oldDockDark!=dockDark_ ||
+             dock.bottom-dock.top!=capturedDockHeight_);
+        if(surfaces_.captureNextFrame) {
+            const std::filesystem::path directory(surfaces_.screenshotDirectory);
+            saveTextureCropPng((directory/L"menu-backdrop.png").wstring(),context_.Get(),capture_.frame.Get(),menuSource);
+            saveTextureCropPng((directory/L"dock-backdrop.png").wstring(),context_.Get(),capture_.frame.Get(),dockSource);
+        }
+        const bool shown=surfaces_.showGlassSnapshot(snapshot,layout,prepared_,renderer,menuColors,
             material_.glassTexture.Get(),menuSource,dockSource,static_cast<float>(dpi),capture_.rotation,
-            static_cast<float>(surfaces_.DockState().Frame(GetTickCount64(),true,snapshot.engineConnected).connectionOpacity));
+            static_cast<float>(surfaces_.DockState().Frame(GetTickCount64(),true,snapshot.engineConnected).connectionOpacity),&dockColors);
+        if (shown && surfaces_.captureNextFrame) {
+            capturedRevision_=snapshot.revision; capturedSession_=snapshot.owner.session; capturedDockHeight_=dock.bottom-dock.top;
+        }
+        surfaces_.captureNextFrame=false;
         if (shown) captureReady_=true;
         if (shown) ScheduleDockFrames();
         else KillTimer(surfaces_.dockPanel.window,kAnimationTimer);
@@ -238,7 +289,7 @@ private:
         else KillTimer(surfaces_.dockPanel.window,kAnimationTimer);
     }
 
-    void UpdateDockGeometry(const completionist::layout::Layout& layout) {
+    void UpdateDockGeometry(completionist::layout::Layout& layout) {
         const uint64_t now=GetTickCount64();
         const bool collapsed=layout.dockCollapsed;
         if (!dockGeometryReady_ || collapsed!=lastAutoCollapsed_) {
@@ -246,6 +297,13 @@ private:
             lastAutoCollapsed_=collapsed;
             dockGeometryReady_=true;
         }
+        const double progress=surfaces_.DockState().Sample(now);
+        const float scale=layout.dockDip.height()>0
+            ? static_cast<float>(layout.dockBounds.bottom-layout.dockBounds.top)/layout.dockDip.height() : 1.0f;
+        const float height=collapsed ? layout.dockDip.height() : 32.0f+22.0f*static_cast<float>(progress);
+        layout.dockBounds.top=layout.dockBounds.bottom-static_cast<LONG>(std::lround(height*scale));
+        layout.dockDip.bottom=height; layout.dockContent.bottom=height-6.0f;
+        layout.dockCollapsed=collapsed || progress<.95;
     }
 
     void RetireCapture() {
@@ -254,6 +312,7 @@ private:
         captureReady_=false;
         frameView_.Reset();
         material_.reset();
+        themeSampleAt_=0;
     }
 
     void ResetGraphics() {
@@ -280,6 +339,12 @@ private:
     bool dockGeometryReady_=false, lastAutoCollapsed_=false;
     completionist::render::Snapshot current_{};
     bool hasCurrent_=false;
+    uint64_t capturedRevision_=UINT64_MAX;
+    std::string capturedSession_;
+    LONG capturedDockHeight_=-1;
+    bool menuDark_=false,dockDark_=false;
+    uint64_t themeSampleAt_=0;
+    RECT lastThemeMenu_{},lastThemeDock_{};
 };
 
 bool DispatchRequest(DWORD threadId,std::unique_ptr<Request> request) {
@@ -295,9 +360,96 @@ bool DispatchRequest(DWORD threadId,std::unique_ptr<Request> request) {
 LRESULT CALLBACK ServiceWindowProc(HWND window,UINT message,WPARAM w,LPARAM l) {
     return DefWindowProcW(window,message,w,l);
 }
+
+struct ReviewState {
+    HostRenderer renderer;
+    bool dark=false;
+    uint64_t revision=0;
+    explicit ReviewState(const std::wstring& directory) : renderer(directory) {}
+};
+
+LRESULT CALLBACK ReviewProc(HWND window,UINT message,WPARAM w,LPARAM l) {
+    auto* state=reinterpret_cast<ReviewState*>(GetWindowLongPtrW(window,GWLP_USERDATA));
+    if (message==WM_NCCREATE) {
+        state=static_cast<ReviewState*>(reinterpret_cast<CREATESTRUCTW*>(l)->lpCreateParams);
+        SetWindowLongPtrW(window,GWLP_USERDATA,reinterpret_cast<LONG_PTR>(state));
+    }
+    if (!state) return DefWindowProcW(window,message,w,l);
+    if (message==WM_PAINT) {
+        PAINTSTRUCT paint{}; HDC dc=BeginPaint(window,&paint);
+        RECT client{}; GetClientRect(window,&client);
+        const auto& colors=state->dark ? palette::kDark : palette::kLight;
+        auto rgb=[](palette::Color c) { return RGB(c.r,c.g,c.b); };
+        HBRUSH paper=CreateSolidBrush(rgb(colors.paper)); FillRect(dc,&client,paper); DeleteObject(paper);
+        SetBkMode(dc,TRANSPARENT);
+        const int scale=static_cast<int>(GetDpiForWindow(window));
+        auto label=[&](int x,int y,const wchar_t* text,int size,palette::Color color,int weight=FW_NORMAL) {
+            HFONT font=CreateFontW(-MulDiv(size,scale,96),0,0,0,weight,FALSE,FALSE,FALSE,DEFAULT_CHARSET,
+                OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,ANTIALIASED_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+            HGDIOBJ previous=SelectObject(dc,font); SetTextColor(dc,rgb(color));
+            TextOutW(dc,MulDiv(x,scale,96),MulDiv(y,scale,96),text,static_cast<int>(wcslen(text)));
+            SelectObject(dc,previous); DeleteObject(font);
+        };
+        label(44,30,L"Completionist / production glass review",19,colors.ink,FW_SEMIBOLD);
+        label(44,62,L"D: light/dark. C: collapse/restore dock. Drag to check alignment. Esc: close.",13,colors.muted);
+        label(65,150,L"A clearer thought.",48,colors.ink,FW_SEMIBOLD);
+        label(65,222,L"I want to separate the idea from the noise.",23,colors.ink);
+        const wchar_t* lines[]{L"The surface should feel like a lens: clear through its center,",
+            L"curved at the edge, with light resting along the rim.",L"Words stay sharp. The world underneath bends.",
+            L"A little refraction reveals the material. Too much hides the work."};
+        for(int i=0;i<4;++i) label(65,282+i*43,lines[i],18,colors.muted);
+        HPEN pen=CreatePen(PS_SOLID,1,rgb(colors.line)); HGDIOBJ old=SelectObject(dc,pen);
+        for(int y=314;y<490;y+=43) { MoveToEx(dc,MulDiv(60,scale,96),MulDiv(y,scale,96),nullptr); LineTo(dc,client.right-40,MulDiv(y,scale,96)); }
+        SelectObject(dc,old); DeleteObject(pen);
+        EndPaint(window,&paint); return 0;
+    }
+    if (message==WM_KEYDOWN) {
+        if(w==VK_ESCAPE) { DestroyWindow(window); return 0; }
+        if(w=='D') { state->dark=!state->dark; ++state->revision; InvalidateRect(window,nullptr,FALSE); return 0; }
+        if(w=='C') { state->renderer.ReviewToggleDock(); return 0; }
+    }
+    if (message==WM_MOVE || message==WM_SIZE) ++state->revision;
+    if (message==WM_TIMER) {
+        completionist::render::Snapshot snapshot{};
+        snapshot.owner.pid=GetCurrentProcessId(); snapshot.owner.hostHwnd=reinterpret_cast<uint64_t>(window);
+        snapshot.owner.session="production-glass-review"; snapshot.owner.generation=1; snapshot.revision=state->revision;
+        POINT caret{MulDiv(260,static_cast<int>(GetDpiForWindow(window)),96),MulDiv(190,static_cast<int>(GetDpiForWindow(window)),96)};
+        ClientToScreen(window,&caret); snapshot.caret={caret.x,caret.y,caret.x+2,caret.y+24};
+        snapshot.words={{L"separate","local",{}},{L"separation","local",{}},{L"separately","learned",{}}};
+        snapshot.selection=0; snapshot.typedFragment=L"seper";
+        snapshot.phrase=L"the idea from the noise"; snapshot.ai=completionist::render::AiState::Scheduled;
+        snapshot.waitMs=400; snapshot.engineConnected=true; snapshot.settings.font_size=12;
+        state->renderer.Present(snapshot); state->renderer.ToggleDock(); return 0;
+    }
+    if (message==WM_DESTROY) { state->renderer.Hide(); PostQuitMessage(0); return 0; }
+    return DefWindowProcW(window,message,w,l);
+}
 }  // namespace
 
-int runProductionService() {
+int runMaterialReview(const std::wstring& directory) {
+    std::error_code error; std::filesystem::create_directories(directory,error);
+    if(error) return ERROR_PATH_NOT_FOUND;
+    const HRESULT initialized=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);
+    if(FAILED(initialized)) return ERROR_FUNCTION_FAILED;
+    SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    ReviewState state(directory);
+    WNDCLASSEXW cls{sizeof(cls)}; cls.lpfnWndProc=ReviewProc; cls.hInstance=GetModuleHandleW(nullptr);
+    cls.hCursor=LoadCursorW(nullptr,IDC_ARROW); cls.lpszClassName=L"CompletionistProductionGlassReview";
+    RegisterClassExW(&cls);
+    HWND window=CreateWindowExW(0,cls.lpszClassName,L"Completionist production glass review",WS_OVERLAPPEDWINDOW,
+        100,100,1000,740,nullptr,nullptr,cls.hInstance,&state);
+    if(!window) { CoUninitialize(); return ERROR_FUNCTION_FAILED; }
+    ShowWindow(window,SW_SHOW); SetTimer(window,1,50,nullptr);
+    MSG message{}; while(GetMessageW(&message,nullptr,0,0)>0) { TranslateMessage(&message); DispatchMessageW(&message); }
+    CoUninitialize(); return ERROR_SUCCESS;
+}
+
+int runProductionService(const std::wstring& screenshotDirectory) {
+    if (!screenshotDirectory.empty()) {
+        std::error_code error;
+        std::filesystem::create_directories(screenshotDirectory,error);
+        if (error) return ERROR_PATH_NOT_FOUND;
+    }
     const HRESULT comResult=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);
     if (FAILED(comResult)) return ERROR_FUNCTION_FAILED;
     const auto previous=SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -306,7 +458,7 @@ int runProductionService() {
     const DWORD threadId=GetCurrentThreadId();
     HANDLE stopEvent=CreateEventW(nullptr,TRUE,FALSE,nullptr);
     if (!stopEvent) return ERROR_NOT_ENOUGH_MEMORY;
-    HostRenderer host;
+    HostRenderer host(screenshotDirectory);
     ProductionRendererPipe pipe([threadId](const completionist::render::Snapshot& snapshot) {
         auto request=std::make_unique<Request>(); request->show=true; request->snapshot=snapshot;
         return DispatchRequest(threadId,std::move(request));

@@ -244,7 +244,7 @@ void GraphicsWorker(HostState* host,HINSTANCE instance) {
         DWORD foregroundPid=0; GetWindowThreadProcessId(foreground,&foregroundPid);
         if (!wasVisible && !session.Accept(snapshot,foregroundPid,MonotonicMilliseconds())) continue;
         if (!textRenderer || (!prepared.phrase && !textRenderer->Prepare(
-                snapshot,330.0f*static_cast<float>(dpi)/96.0f,&prepared))) {
+                snapshot,330.0f,&prepared))) {
             releaseRenderedCapture(); systemColors=false;
             PresentOpaqueFixture(surfaces,host->window,monitor,false); disabled=true;
             opaqueRevision=host->layoutRevision.load(); continue;
@@ -289,17 +289,22 @@ void GraphicsWorker(HostState* host,HINSTANCE instance) {
             static_cast<float>(menuSource.right-menuSource.left),static_cast<float>(menuSource.bottom-menuSource.top),0,1};
         const D3D11_VIEWPORT dockViewport{static_cast<float>(dockSource.left),static_cast<float>(dockSource.top),
             static_cast<float>(dockSource.right-dockSource.left),static_cast<float>(dockSource.bottom-dockSource.top),0,1};
-        const float tint[4]{0.035f,0.32f,0.20f,0.18f};
-        if (!material.renderLens(context.Get(),menuViewport,26,18,static_cast<float>(dpi),tint,true) ||
-            !material.renderLens(context.Get(),dockViewport,16,8,static_cast<float>(dpi),tint,false)) {
+        const bool menuDark=material.backdropDark(context.Get(),menuViewport,false);
+        const bool dockDark=material.backdropDark(context.Get(),dockViewport,false);
+        const auto& menuColors=menuDark ? palette::kDark : palette::kLight;
+        const auto& dockColors=dockDark ? palette::kDark : palette::kLight;
+        const float menuTint[4]{menuColors.surface.r/255.0f,menuColors.surface.g/255.0f,menuColors.surface.b/255.0f,menuDark ? .35f : .24f};
+        const float dockTint[4]{dockColors.surface.r/255.0f,dockColors.surface.g/255.0f,dockColors.surface.b/255.0f,dockDark ? .35f : .24f};
+        if (!material.renderLens(context.Get(),menuViewport,26,18,static_cast<float>(dpi),menuTint,true) ||
+            !material.renderLens(context.Get(),dockViewport,26,18,static_cast<float>(dpi),dockTint,false)) {
             capture.invalidate(CaptureFailure::unavailable); releaseRenderedCapture(); systemColors=false;
             PresentOpaqueFixture(surfaces,host->window,monitor,false); disabled=true;
             opaqueRevision=host->layoutRevision.load(); continue;
         }
         context->Flush();
         if (
-            !surfaces.showGlassSnapshot(snapshot,layout,prepared,*textRenderer,palette::kLight,
-                material.glassTexture.Get(),menuSource,dockSource,static_cast<float>(dpi),capture.rotation)) {
+            !surfaces.showGlassSnapshot(snapshot,layout,prepared,*textRenderer,menuColors,
+                material.glassTexture.Get(),menuSource,dockSource,static_cast<float>(dpi),capture.rotation,1.0f,&dockColors)) {
             capture.invalidate(CaptureFailure::unavailable); releaseRenderedCapture(); systemColors=false; PresentOpaqueFixture(surfaces,host->window,monitor,false); disabled=true; opaqueRevision=host->layoutRevision.load();
         } else {
             lastMenu=menu; lastDock=dock; lastDpi=dpi; hasPresented=true;

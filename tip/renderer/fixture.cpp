@@ -94,6 +94,25 @@ bool savePng(const std::wstring& path, ID3D11DeviceContext* context, ID3D11Textu
 }
 }
 
+bool saveTexturePng(const std::wstring& path, ID3D11DeviceContext* context, ID3D11Texture2D* texture) {
+    return context && texture && !path.empty() && savePng(path, context, texture);
+}
+
+bool saveTextureCropPng(const std::wstring& path,ID3D11DeviceContext* context,ID3D11Texture2D* texture,const RECT& crop) {
+    if(!context || !texture || crop.left<0 || crop.top<0 || crop.right<=crop.left || crop.bottom<=crop.top) return false;
+    D3D11_TEXTURE2D_DESC desc{}; texture->GetDesc(&desc);
+    if(static_cast<UINT>(crop.right)>desc.Width || static_cast<UINT>(crop.bottom)>desc.Height) return false;
+    desc.Width=static_cast<UINT>(crop.right-crop.left); desc.Height=static_cast<UINT>(crop.bottom-crop.top);
+    desc.Usage=D3D11_USAGE_DEFAULT; desc.BindFlags=0; desc.CPUAccessFlags=0; desc.MiscFlags=0;
+    ComPtr<ID3D11Device> device; context->GetDevice(&device);
+    ComPtr<ID3D11Texture2D> cropped;
+    if(FAILED(device->CreateTexture2D(&desc,nullptr,&cropped))) return false;
+    const D3D11_BOX box{static_cast<UINT>(crop.left),static_cast<UINT>(crop.top),0,
+        static_cast<UINT>(crop.right),static_cast<UINT>(crop.bottom),1};
+    context->CopySubresourceRegion(cropped.Get(),0,0,0,0,texture,0,&box);
+    return saveTexturePng(path,context,cropped.Get());
+}
+
 bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark, int fontSizePoints) {
     if (outputPath.empty() || dpi < 96 || fontSizePoints < 7 || fontSizePoints > 24) return false;
     const UINT width = kBaseWidth * dpi / 96;
@@ -179,10 +198,10 @@ bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark, int font
     const bool laidOut = textRenderer.Prepare(snapshot, 330.0f, &prepared);
     if (laidOut) layout = completionist::layout::Place(snapshot, work, prepared.metrics);
     const float materialTint[4]{
-        static_cast<float>(colors.sign.r) / 255.0f,
-        static_cast<float>(colors.sign.g) / 255.0f,
-        static_cast<float>(colors.sign.b) / 255.0f,
-        0.20f};
+        static_cast<float>(colors.surface.r) / 255.0f,
+        static_cast<float>(colors.surface.g) / 255.0f,
+        static_cast<float>(colors.surface.b) / 255.0f,
+        dark ? .35f : .24f};
     auto panelViewport = [](const completionist::render::Rect& bounds) {
         return D3D11_VIEWPORT{static_cast<float>(bounds.left), static_cast<float>(bounds.top),
             static_cast<float>(bounds.right - bounds.left), static_cast<float>(bounds.bottom - bounds.top), 0, 1};
@@ -193,7 +212,7 @@ bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark, int font
         const auto dockViewport = panelViewport(layout.dockBounds);
         materialReady = blur.renderLens(context.Get(), menuViewport, 26.0f, 18.0f,
                                         static_cast<float>(dpi), materialTint, true) &&
-            blur.renderLens(context.Get(), dockViewport, 16.0f, 8.0f,
+            blur.renderLens(context.Get(), dockViewport, 26.0f, 18.0f,
                             static_cast<float>(dpi), materialTint, false);
     }
     ComPtr<IDXGISurface> glassSurface;
@@ -213,12 +232,12 @@ bool renderFixture(const std::wstring& outputPath, UINT dpi, bool dark, int font
             static_cast<float>(layout.menuBounds.left) / scale,
             static_cast<float>(layout.menuBounds.top) / scale));
         const bool menuDrawn = textRenderer.Draw(drawing.Get(), snapshot, layout, prepared, colors,
-                                                  renderer::text::Surface::Menu);
+                                                  renderer::text::Surface::Menu,1.0f,true);
         drawing->SetTransform(D2D1::Matrix3x2F::Translation(
             static_cast<float>(layout.dockBounds.left) / scale,
             static_cast<float>(layout.dockBounds.top) / scale));
         const bool dockDrawn = textRenderer.Draw(drawing.Get(), snapshot, layout, prepared, colors,
-                                                  renderer::text::Surface::Dock);
+                                                  renderer::text::Surface::Dock,1.0f,true);
         sharpTextDrawn = menuDrawn && dockDrawn;
         drawing->SetTransform(D2D1::Matrix3x2F::Identity());
         prepared.Reset();

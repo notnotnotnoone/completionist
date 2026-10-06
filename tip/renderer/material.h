@@ -3,7 +3,6 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <cstddef>
-#include <vector>
 #include <wrl/client.h>
 #include <vector>
 
@@ -28,8 +27,10 @@ struct BlurMaterial {
     ComPtr<ID3D11Texture2D> glassTexture;
     ComPtr<ID3D11RenderTargetView> glassTarget;
     ComPtr<ID3D11ShaderResourceView> glassView;
+    ComPtr<ID3D11Texture2D> luminanceSamples;
     std::vector<RECT> horizontalRegions, verticalRegions;
     UINT width=0, height=0;
+    float pointer[2]{-1,-1};
     bool create(ID3D11Device* device, UINT w, UINT h);
     void reset();
     bool blur(ID3D11DeviceContext* context, ID3D11ShaderResourceView* input, float dpi = 96.0f);
@@ -37,5 +38,6 @@ struct BlurMaterial {
                      float dpi, const RECT* panelRegions, size_t panelCount);
     bool renderLens(ID3D11DeviceContext* context, const D3D11_VIEWPORT& viewport,
                     float radiusDip, float strength, float dpi, const float tint[4], bool clearTarget = false);
+    bool backdropDark(ID3D11DeviceContext* context, const D3D11_VIEWPORT& viewport, bool previous);
 };
 }

@@ -28,12 +28,14 @@ bool HitTestRangeRects(IDWriteTextLayout* textLayout, Utf16Range range, float or
 struct PreparedText {
     completionist::layout::ContentMetrics metrics;
     std::vector<ComPtr<IDWriteTextLayout>> words;
+    std::vector<ComPtr<IDWriteTextLayout>> origins;
     std::vector<ComPtr<IDWriteTextLayout>> correctionComparisons;
     ComPtr<IDWriteTextLayout> phrase;
     ComPtr<IDWriteTextLayout> status;
     ComPtr<IDWriteTextLayout> connection;
     ComPtr<IDWriteTextLayout> tense;
     ComPtr<IDWriteTextLayout> shortcut;
+    ComPtr<IDWriteTextLayout> brand;
     std::vector<std::vector<UINT32>> correctionMarks;
     Utf16Range acceptance{};
     std::wstring displayPhrase;
@@ -41,9 +43,10 @@ struct PreparedText {
     // Call when the owning session hides/revokes; no text cache is retained by TextRenderer.
     void Reset() {
         words.clear();
+        origins.clear();
         correctionComparisons.clear();
         correctionMarks.clear();
-        phrase.Reset(); status.Reset(); connection.Reset(); tense.Reset(); shortcut.Reset();
+        phrase.Reset(); status.Reset(); connection.Reset(); tense.Reset(); shortcut.Reset(); brand.Reset();
         displayPhrase.clear();
         acceptance = {};
         metrics = {};
@@ -60,7 +63,7 @@ public:
     bool Draw(ID2D1DeviceContext* context, const completionist::render::Snapshot& snapshot,
               const completionist::layout::Layout& layout, const PreparedText& prepared,
               const palette::Theme& colors, Surface surface = Surface::Menu,
-              float connectionOpacity = 1.0f) const;
+              float connectionOpacity = 1.0f, bool glassSurface = false) const;
 
 private:
     IDWriteFactory* factory_ = nullptr;  // owned by the renderer surface lifetime

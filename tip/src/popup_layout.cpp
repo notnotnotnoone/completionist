@@ -97,7 +97,8 @@ Layout Place(const render::Snapshot& snapshot, const WorkArea& work, const Conte
         rowsHeight += std::max(measuredHeight, measured.fontSizeDip + 12.0f);
     }
     const float gaps = static_cast<float>(snapshot.words.size() + (out.hasPhraseRow ? 1u : 0u)) * 2.0f;
-    const float desiredHeightDip = std::max(1.0f, kPaddingDip * 2.0f + statusHeight + phraseHeight + rowsHeight + gaps);
+    const float headerHeight=std::max(0.0f,measured.headerHeightDip);
+    const float desiredHeightDip = std::max(1.0f, kPaddingDip * 2.0f + headerHeight + statusHeight + phraseHeight + rowsHeight + gaps);
     const float menuHeightDip = std::min(desiredHeightDip, workHeightDip);
     const int menuHeightPx = std::max(1, std::min(workHeight, Px(menuHeightDip, scale)));
     const int gapPx = std::min(Px(kCaretGapDip, scale), std::max(0, workHeight / 2));
@@ -110,6 +111,10 @@ Layout Place(const render::Snapshot& snapshot, const WorkArea& work, const Conte
 
     const float contentWidth = std::max(0.0f, out.menuContent.width());
     float y = out.menuContent.top;
+    if(headerHeight>0) {
+        const float h=std::min(headerHeight,std::max(0.0f,out.menuContent.bottom-y));
+        out.headerClip={out.menuContent.left,y,out.menuContent.right,y+h}; y+=h;
+    }
     if (out.hasStatusShelf) {
         const float h = std::min(statusHeight, std::max(0.0f, out.menuContent.bottom - y));
         out.statusClip = {out.menuContent.left, y, out.menuContent.right, y + h};
