@@ -563,8 +563,10 @@ private:
     }
 
     void HideExternal() {
-        if (renderClient_ && renderIdentity_.pid && renderIdentity_.hostHwnd && renderIdentity_.generation)
-            renderClient_->Hide(renderIdentity_, ++renderRevision_);
+        const bool sent = renderClient_ && renderIdentity_.pid && renderIdentity_.hostHwnd && renderIdentity_.generation;
+        if (sent) renderClient_->Hide(renderIdentity_, ++renderRevision_);
+        completionist::GlassLog(L"step=hide-external sent=%d rev=%llu gen=%llu hwnd=%llx", sent ? 1 : 0,
+                                renderRevision_, renderIdentity_.generation, renderIdentity_.hostHwnd);
         externalPresented_ = false;
     }
 
@@ -574,21 +576,28 @@ private:
         if (foreground) GetWindowThreadProcessId(foreground, &pid);
         ITfContextView* view = nullptr;
         HWND viewWindow = nullptr;
+        const wchar_t* reason = L"ok";
         if (!context || FAILED(context->GetActiveView(&view)) || !view) {
-            rendererEligible_ = false;
-            return;
+            reason = L"no-view";
+        } else {
+            view->GetWnd(&viewWindow);
+            view->Release();
+            const HWND foregroundRoot = foreground ? GetAncestor(foreground, GA_ROOT) : nullptr;
+            const HWND viewRoot = viewWindow ? GetAncestor(viewWindow, GA_ROOT) : nullptr;
+            if (!foreground) reason = L"no-foreground";
+            else if (!viewWindow) reason = L"no-view-window";
+            else if (!foregroundRoot) reason = L"no-foreground-root";
+            else if (foregroundRoot != viewRoot) reason = L"different-root";
+            else if (pid != GetCurrentProcessId()) reason = L"foreground-other-process";
+            else if (renderSession_.empty()) reason = L"no-session";
         }
-        view->GetWnd(&viewWindow);
-        view->Release();
-        const HWND foregroundRoot = foreground ? GetAncestor(foreground, GA_ROOT) : nullptr;
-        const HWND viewRoot = viewWindow ? GetAncestor(viewWindow, GA_ROOT) : nullptr;
-        if (!foreground || !viewWindow || !foregroundRoot || foregroundRoot != viewRoot ||
-            pid != GetCurrentProcessId() || renderSession_.empty()) {
-            rendererEligible_ = false;
-            return;
-        }
-        renderIdentity_ = {pid, reinterpret_cast<uint64_t>(foreground), renderSession_, completionist::render::NextRenderGeneration()};
-        rendererEligible_ = true;
+        rendererEligible_ = wcscmp(reason, L"ok") == 0;
+        if (rendererEligible_)
+            renderIdentity_ = {pid, reinterpret_cast<uint64_t>(foreground), renderSession_, completionist::render::NextRenderGeneration()};
+        completionist::GlassLog(L"step=eligible value=%d reason=%s fg=%p fgpid=%lu view=%p gen=%llu hwnd=%llx",
+                                rendererEligible_ ? 1 : 0, reason, foreground, pid, viewWindow,
+                                rendererEligible_ ? renderIdentity_.generation : 0ull,
+                                rendererEligible_ ? renderIdentity_.hostHwnd : 0ull);
     }
 
     // Draws the popup for the current model state, and arranges a redraw when the phrase row becomes
@@ -598,6 +607,8 @@ private:
             aiState_ == completionist::render::AiState::Scheduled || aiState_ == completionist::render::AiState::Working ||
             aiState_ == completionist::render::AiState::Streaming || aiState_ == completionist::render::AiState::Unavailable;
         if (!model_.visible() && !hasStatus) {
+            completionist::GlassLog(L"step=render external=%d host=closed rev=%llu gen=%llu hwnd=%llx",
+                                    publishExternal ? 1 : 0, renderRevision_, renderIdentity_.generation, renderIdentity_.hostHwnd);
             HideExternal();
             popup_.Hide();
             if (popup_.hwnd()) {
@@ -623,10 +634,6 @@ private:
         content.triggerReason = triggerReason_;
         content.engineConnected = engineConnected_;
         bool published = false;
-        if (publishExternal && rendererEligible_ != loggedEligible_) {
-            loggedEligible_ = rendererEligible_;
-            LogDebug(L"renderer %s for this window", rendererEligible_ ? L"eligible" : L"not eligible");
-        }
         if (publishExternal && completionist::render::kExternalRendererActivationEnabled && rendererEligible_ && renderClient_) {
             const auto physicalCaret = PhysicalCaret(caretWindow_, caret_);
             if (physicalCaret) {
@@ -652,17 +659,31 @@ private:
                     if (i < marks_.size()) candidate.marks = marks_[i];
                     snapshot.words.push_back(std::move(candidate));
                 }
+                const uint64_t publishedRevision = snapshot.revision;
+                const uint64_t publishedGeneration = snapshot.owner.generation;
+                const uint64_t publishedHwnd = snapshot.owner.hostHwnd;
+                const size_t publishedWords = snapshot.words.size();
+                const int publishedSelection = snapshot.selection;
                 renderClient_->Publish(std::move(snapshot));
                 published = true;
+                completionist::GlassLog(L"step=publish rev=%llu gen=%llu hwnd=%llx words=%zu selection=%d",
+                                        publishedRevision, publishedGeneration, publishedHwnd, publishedWords, publishedSelection);
             } else {
-                LogDebug(L"renderer skipped: caret position could not be converted to screen pixels");
+                completionist::GlassLog(L"step=no-caret rev=%llu gen=%llu hwnd=%llx caret=%ld,%ld,%ld,%ld",
+                                        renderRevision_, renderIdentity_.generation, renderIdentity_.hostHwnd,
+                                        caret_.left, caret_.top, caret_.right, caret_.bottom);
                 HideExternal();
             }
         }
         // While glass is drawing for this window, the flat host popup stays hidden; it only returns
         // when the renderer refuses, times out or disconnects (see the notice handling).
-        if (published && externalHealthy_) popup_.Hide();
+        const bool hostHidden = published && externalHealthy_;
+        if (hostHidden) popup_.Hide();
         else popup_.Show(content, model_.selection(now), caret_);
+        completionist::GlassLog(L"step=render external=%d eligible=%d published=%d healthy=%d host=%s rev=%llu gen=%llu hwnd=%llx",
+                                publishExternal ? 1 : 0, rendererEligible_ ? 1 : 0, published ? 1 : 0,
+                                externalHealthy_ ? 1 : 0, hostHidden ? L"hidden" : L"shown",
+                                renderRevision_, renderIdentity_.generation, renderIdentity_.hostHwnd);
         if (popup_.hwnd()) {
             std::uint64_t armedAt = model_.armed_at(now);
             if (armedAt) SetTimer(popup_.hwnd(), kArmTimer, static_cast<UINT>(armedAt - now + 5), nullptr);
@@ -1066,6 +1087,13 @@ private:
             if (message == completionist::render::kRenderClientNoticeMessage) {
                 std::unique_ptr<completionist::render::ClientNotice> notice(
                     reinterpret_cast<completionist::render::ClientNotice*>(lParam));
+                completionist::GlassLog(L"step=notice ack=%d rev=%llu gen=%llu hwnd=%llx presented=%d fallback=%d matches=%d healthy=%d",
+                    notice && notice->ack ? 1 : 0, notice && notice->ack ? notice->ack->revision : 0ull,
+                    notice && notice->ack ? notice->ack->owner.generation : service->renderIdentity_.generation,
+                    notice && notice->ack ? notice->ack->owner.hostHwnd : service->renderIdentity_.hostHwnd,
+                    notice && notice->ack && notice->ack->presented ? 1 : 0, notice && notice->fallbackVisible ? 1 : 0,
+                    notice && notice->ack && notice->ack->revision == service->renderRevision_ ? 1 : 0,
+                    service->externalHealthy_ ? 1 : 0);
                 if (notice && notice->ack && notice->ack->revision == service->renderRevision_ &&
                     notice->ack->owner.pid == service->renderIdentity_.pid &&
                     notice->ack->owner.hostHwnd == service->renderIdentity_.hostHwnd &&
@@ -1076,6 +1104,9 @@ private:
                         service->externalPresented_ = true;
                         service->externalHealthy_ = true;
                         service->popup_.Hide();
+                        completionist::GlassLog(L"step=render external=1 eligible=%d published=1 healthy=1 host=hidden rev=%llu gen=%llu hwnd=%llx reason=ack",
+                            service->rendererEligible_ ? 1 : 0, service->renderRevision_,
+                            service->renderIdentity_.generation, service->renderIdentity_.hostHwnd);
                     } else if (service->externalHealthy_ || service->externalPresented_) {
                         service->externalPresented_ = service->externalHealthy_ = false;
                         service->Render(false);
@@ -1130,7 +1161,6 @@ private:
     std::string renderSession_;
     std::uint64_t renderRevision_ = 0;
     bool rendererEligible_ = false;
-    bool loggedEligible_ = true;  // so the first ineligible render is logged
     bool externalPresented_ = false;
     bool externalHealthy_ = false;  // the renderer drew this window's last request; skip the host popup
     std::vector<std::wstring> words_;

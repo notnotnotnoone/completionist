@@ -1306,6 +1306,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "The DLL now logs every glass handoff step: eligibility reason, publish, render decision, connect, ack, and notices."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Added the shared always-on glass log with a build banner in the DLL and renderer."
     },
     {

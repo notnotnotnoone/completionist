@@ -2,7 +2,7 @@
 #define NOMINMAX
 #include "render_client.h"
 
-#include "log.h"
+#include "glass_log.h"
 
 #include <algorithm>
 #include <array>
@@ -101,30 +101,30 @@ HANDLE ConnectFailed(const std::wstring& reason, DWORD error) {
     const std::wstring key = reason + L":" + std::to_wstring(error);
     if (key != g_lastConnectFailure) {
         g_lastConnectFailure = key;
-        completionist::LogDebug(L"renderer connect failed: %s (error %lu)", reason.c_str(), error);
+        completionist::GlassLog(L"step=connect result=fail reason=%s error=%lu", reason.c_str(), error);
     }
     return INVALID_HANDLE_VALUE;
 }
 
 HANDLE Connect() {
     const std::wstring name = PipeName();
-    if (name.empty()) return ConnectFailed(L"no pipe name (logon identity unreadable)", GetLastError());
-    if (!WaitNamedPipeW(name.c_str(), 50)) return ConnectFailed(L"wait " + name, GetLastError());
+    if (name.empty()) return ConnectFailed(L"no-pipe-name", GetLastError());
+    if (!WaitNamedPipeW(name.c_str(), 50)) return ConnectFailed(L"wait", GetLastError());
     HANDLE pipe = CreateFileW(name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
-    if (pipe == INVALID_HANDLE_VALUE) return ConnectFailed(L"open " + name, GetLastError());
+    if (pipe == INVALID_HANDLE_VALUE) return ConnectFailed(L"open", GetLastError());
     DWORD mode = PIPE_READMODE_BYTE;
     if (!SetNamedPipeHandleState(pipe, &mode, nullptr, nullptr)) {
         const DWORD error = GetLastError();
         CloseHandle(pipe);
-        return ConnectFailed(L"pipe mode", error);
+        return ConnectFailed(L"pipe-mode", error);
     }
     if (!ValidateRendererServer(pipe)) {
         const DWORD error = GetLastError();
         CloseHandle(pipe);
-        return ConnectFailed(L"renderer process failed identity check", error);
+        return ConnectFailed(L"server-identity", error);
     }
     g_lastConnectFailure.clear();
-    completionist::LogDebug(L"renderer connected");
+    completionist::GlassLog(L"step=connect result=ok");
     return pipe;
 }
 
@@ -300,7 +300,7 @@ void RenderClient::Start() {
     if (started_) return;
     stopping_ = false;
     started_ = true;
-    completionist::LogDebug(L"renderer client started");
+    completionist::GlassLog(L"step=client-start");
     worker_ = std::thread([this] { Worker(); });
 }
 
@@ -376,7 +376,7 @@ void RenderClient::Worker() {
         const bool wasConnected = pipe != INVALID_HANDLE_VALUE;
         if (wasConnected) {
             CloseHandle(pipe);
-            completionist::LogDebug(L"renderer disconnected");
+            completionist::GlassLog(L"step=disconnect reason=connection-lost");
         }
         pipe = INVALID_HANDLE_VALUE;
         bool changed = false;
@@ -417,13 +417,17 @@ void RenderClient::Worker() {
             std::string frame;
             if (const auto* show = std::get_if<ShowRequest>(&*request)) frame = EncodeShow(show->snapshot);
             else frame = EncodeCommand(*request);
-            if (frame.empty() || !WriteFrame(pipe, frame)) alive = false;
+            if (frame.empty() || !WriteFrame(pipe, frame)) {
+                completionist::GlassLog(L"step=write-failed empty=%d error=%lu", frame.empty() ? 1 : 0, GetLastError());
+                alive = false;
+            }
             else if (const auto* heartbeat = std::get_if<HeartbeatRequest>(&*request)) { (void)heartbeat; lastHeartbeat = NowMs(); }
             else if (const auto* show = std::get_if<ShowRequest>(&*request)) { (void)show; lastHeartbeat = NowMs(); }
         }
         if (alive) {
             std::optional<Ack> ack;
             alive = ReadAck(pipe, &pending, &ack);
+            if (!alive) completionist::GlassLog(L"step=read-failed error=%lu", GetLastError());
             if (alive && ack) {
                 bool accepted = false;
                 {
@@ -431,8 +435,8 @@ void RenderClient::Worker() {
                     accepted = state_.OnAck(*ack);
                 }
                 if (accepted) Notify(*ack);
-                completionist::LogDebug(L"renderer ack rev=%llu presented=%d accepted=%d", ack->revision,
-                                        ack->presented ? 1 : 0, accepted ? 1 : 0);
+                completionist::GlassLog(L"step=ack rev=%llu gen=%llu hwnd=%llx presented=%d accepted=%d", ack->revision,
+                                        ack->owner.generation, ack->owner.hostHwnd, ack->presented ? 1 : 0, accepted ? 1 : 0);
             }
         }
         bool timedOut = false;
@@ -441,7 +445,7 @@ void RenderClient::Worker() {
             timedOut = state_.Tick(NowMs());
         }
         if (timedOut) {
-            completionist::LogDebug(L"renderer did not answer in time; host popup stays");
+            completionist::GlassLog(L"step=timeout");
             Notify();
         }
         if (!alive) { disconnect(); continue; }
@@ -453,7 +457,11 @@ void RenderClient::Worker() {
             }
             if (current) {
                 const std::string frame = EncodeCommand(HeartbeatRequest{current->owner});
-                if (frame.empty() || !WriteFrame(pipe, frame)) { disconnect(); continue; }
+                if (frame.empty() || !WriteFrame(pipe, frame)) {
+                    completionist::GlassLog(L"step=write-failed kind=heartbeat empty=%d error=%lu gen=%llu hwnd=%llx",
+                                            frame.empty() ? 1 : 0, GetLastError(), current->owner.generation, current->owner.hostHwnd);
+                    disconnect(); continue;
+                }
                 lastHeartbeat = NowMs();
             }
         }
@@ -464,6 +472,7 @@ void RenderClient::Worker() {
         // Closing the accepted peer is the renderer's revocation signal; teardown never waits
         // for a final synchronous hide write from the host UI thread.
         CloseHandle(pipe);
+        completionist::GlassLog(L"step=disconnect reason=shutdown");
     }
     bool changed = false;
     { std::lock_guard lock(mutex_); changed = state_.Disconnect(); }
