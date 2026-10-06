@@ -58,3 +58,11 @@ Whichever material wins, the layout must match `tip/prototype/index.html`: soft 
 - Every test ends with the report, not a guess.
 - Nothing is called fixed until the user has seen it on screen.
 - An app only picks up a new DLL after its process restarts; the report's banner line proves which build ran.
+
+## 2026-10-05: first logged Notepad result and single follow-up fix
+
+The new log proves fresh Notepad PID 31692 loaded DLL build Oct__5_2026_19:55:15. The owner reported extremely rapid flicker. The initial report recorded 25 confirmed renderer draws, 26 flat-popup shows, no timeout, and no disconnect. At revision 15, publish/host-hidden appeared at 20:04:28.993–994, an acknowledgement-free fallback-visible notice at 20:04:28.994, flat shown at 20:04:29.001, renderer drawn at 20:04:29.032, and successful acknowledgement/flat hidden at 20:04:29.042. The same sequence repeats roughly every 110 ms during status refreshes.
+
+Cause: RenderClientState::Publish sets fallbackVisible_ to true on each revision, even after glass was confirmed. RenderClient::Publish posts the resulting fallback notice, and PopupHook shows the flat popup until the next acknowledgement.
+
+One follow-up change preserves confirmed presentation for updates to the same owner identity. It also preserves the earliest pending acknowledgement deadline so repeated updates cannot defer fallback forever. New ownership, refusal, timeout, hide and disconnect still return to fallback. The DLL build and scoped review passed, and the rebuilt DLL was installed with matching hashes. The renderer was unchanged. The before-log was preserved so a fresh Notepad process can supply a separate after-report. Owner repeat observation and after-report are pending; the flicker is not yet called resolved.

@@ -1306,6 +1306,18 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Completed glass-publish-fallback toward 2.2.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started glass-publish-fallback toward 2.2.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task glass-publish-fallback toward 2.2.0: Keep confirmed glass visible while a popup update is pending"
+    },
+    {
+      "date": "2026-10-05",
       "text": "Completed glass-logging toward 2.2.0; no release was created."
     },
     {
@@ -4769,6 +4781,20 @@ window.COMPLETIONIST_ROADMAP = {
       ],
       "notes": "CompletionistRenderer.exe --serve is running but Notepad shows the host fallback; tip.log has no renderer lines. Its fixture images also show a garbled arrow, overlapping AI text and unreadable text over busy backdrops.",
       "label": "Glass renderer takeover"
+    },
+    {
+      "id": "glass-publish-fallback",
+      "targetRelease": "2.2.0",
+      "title": "Keep confirmed glass visible while a popup update is pending",
+      "status": "done",
+      "area": "dll",
+      "stories": [],
+      "notes": "Code complete and installed; DLL build and scoped review passed. Before: fresh Notepad PID 31692 confirmed every renderer draw, yet each Publish posted fallback=1 and the flat popup flashed for 30–50 ms about nine times per second. Publish now preserves confirmed presentation for the same owner and preserves the earliest pending acknowledgement deadline. Refusal, timeout, disconnect and ownership changes still restore fallback. Owner repeat test and after-report are pending; no visual recovery is claimed.",
+      "label": "Glass repaint stability",
+      "completed": "2026-10-05",
+      "refs": [
+        "tip/src/render_client.cpp"
+      ]
     }
   ]
 };

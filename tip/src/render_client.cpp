@@ -212,6 +212,9 @@ bool RenderClientState::Publish(Snapshot snapshot, uint64_t nowMs) {
     if (snapshot.owner.pid == 0 || snapshot.owner.hostHwnd == 0 || snapshot.owner.session.empty() ||
         snapshot.owner.generation == 0 || snapshot.revision == 0) return false;
     if (current_ && SameIdentity(current_->owner, snapshot.owner) && snapshot.revision <= current_->revision) return false;
+    const bool sameOwner = current_ && SameIdentity(current_->owner, snapshot.owner);
+    const bool alreadyAwaiting = sameOwner && awaitingAck_;
+    const bool keepPresented = sameOwner && !fallbackVisible_;
     if (queue_.size() >= kQueueLimit) {
         auto expendable = std::find_if(queue_.begin(), queue_.end(), [](const ClientRequest& item) {
             return std::holds_alternative<ShowRequest>(item) || std::holds_alternative<HeartbeatRequest>(item);
@@ -223,9 +226,11 @@ bool RenderClientState::Publish(Snapshot snapshot, uint64_t nowMs) {
         return std::holds_alternative<ShowRequest>(item);
     }), queue_.end());
     current_ = std::move(snapshot);
-    showQueuedAtMs_ = nowMs;
+    // An update to a confirmed popup is not a renderer failure. Keep glass visible while
+    // it is pending, and keep the first pending deadline so refreshes cannot defer fallback.
+    if (!alreadyAwaiting) showQueuedAtMs_ = nowMs;
     awaitingAck_ = true;
-    fallbackVisible_ = true;
+    fallbackVisible_ = !keepPresented;
     queue_.push_back(ShowRequest{*current_, nowMs});
     return true;
 }
