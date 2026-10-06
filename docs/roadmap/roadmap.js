@@ -1306,6 +1306,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Completed glass-logging toward 2.2.0; no release was created."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Installed glass logging DLL and renderer, cleared glass logs and restarted the daily-use engine. Renderer startup banner confirms build Oct__5_2026_19:56:11; fresh-Notepad owner check is pending. Report counts renderer-side connection evidence; nine report tests pass."
     },
     {
@@ -4740,13 +4744,19 @@ window.COMPLETIONIST_ROADMAP = {
       "id": "glass-logging",
       "targetRelease": "2.2.0",
       "title": "Log every glass handoff step in DLL and renderer, with a one-command report",
-      "status": "doing",
+      "status": "done",
       "area": "dll",
       "stories": [
         1
       ],
-      "notes": "",
-      "label": "Glass handoff logging"
+      "notes": "Owner test 2026-10-05: fresh Notepad PID 31692 loaded DLL build Oct__5_2026_19:55:15; owner reports extremely fast flicker. Initial report: renderer popup drawn 25 times; flat popup shown 26 times, zero timeouts/disconnects. Trace confirms successful glass drawing followed on each refresh by an ack=0 fallback=1 notice, flat shown, then successful ack and flat hidden. Logging verified; glass recovery is not complete.",
+      "label": "Glass handoff logging",
+      "completed": "2026-10-05",
+      "refs": [
+        "tip/src/glass_log.h",
+        "scripts/glass_report.py",
+        "docs/superpowers/plans/2026-10-05-glass-handoff-logging.md"
+      ]
     },
     {
       "id": "glass-renderer-takeover",

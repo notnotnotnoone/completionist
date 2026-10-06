@@ -723,18 +723,18 @@ Start-Process -FilePath "C:\projects\Experiments\completionist\engine\.venv\Scri
 
 Expected: `glass.log` gets a `step=loaded component=renderer` line within about 10 seconds.
 
-- [ ] **Step 2: Owner checklist (hand this to the owner exactly)**
+- [x] **Step 2: Owner checklist (hand this to the owner exactly)**
 
 1. Close every Notepad window. In Task Manager, confirm no "Notepad" process is left; end it if one is.
 2. Open Notepad. Type `this is`, wait two seconds, then type ` separ`.
 3. Say what you saw: glass the whole time, flat box the whole time, or switching between them.
 
-- [ ] **Step 3: Read the report**
+- [x] **Step 3: Read the report**
 
 Run: `python scripts/glass_report.py`
 Expected: a Notepad entry whose `build=` matches today's build, with a `=>` diagnosis line. If Notepad has no entry at all, that answers the question: the DLL never activated there. Write that down.
 
-- [ ] **Step 4: Record the finding**
+- [x] **Step 4: Record the finding**
 
 ```bash
 python scripts/roadmap.py done glass-logging --refs tip/src/glass_log.h,scripts/glass_report.py --note "Owner test <date>: <what the owner saw>. Report: <diagnosis line for Notepad>."
@@ -763,4 +763,4 @@ The report additionally names eligibility/presentation failures, distinguishes o
 
 Task 5 installation is complete. The daily-use DLL and renderer were replaced and the engine restarted. Renderer PID 19884 logged build Oct__5_2026_19:56:11 from the installed tip/out path. The owner received the exact fresh-Notepad checklist. The first report contains renderer connections from existing processes without new DLL banners; no fresh-Notepad result is claimed. The report now treats a renderer client-connected event as connection evidence even when an older DLL has no banner.
 
-Task 5 remains pending until the owner’s fresh-Notepad observation and its report diagnosis are recorded. No popup recovery or visual result is claimed.
+Task 5 is complete. The owner reports extremely rapid flicker in fresh Notepad PID 31692, whose DLL banner matches the installed build. The initial report recorded 25 confirmed renderer draws, 26 flat-popup shows, and no timeout or disconnect. Later trace lines identify the cause: each publish sends an acknowledgement-free fallback-visible notice; the DLL shows the flat popup until the successful renderer acknowledgement hides it again. This verifies the logging goal and supplies the evidence for the next single fix; glass recovery remains unverified.
