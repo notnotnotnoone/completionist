@@ -1306,6 +1306,10 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Added the one-command glass report with per-app build, connection, request, refusal, material and fallback summaries; eight report tests pass. Owner Notepad verification remains pending."
+    },
+    {
+      "date": "2026-10-05",
       "text": "Completed glass diagnostic review: file-write failures reach debugger output, protocol failures have accurate error codes, and timeouts and writes carry request identifiers."
     },
     {

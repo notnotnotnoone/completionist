@@ -51,7 +51,7 @@ HH:MM:SS.mmm glass <exe>[<pid>] step=<name> key=value key=value ...
 **Interfaces:**
 - Produces: `void completionist::GlassLog(const wchar_t* format, ...)` (writes one line; the format is the part after `<exe>[<pid>] `). Also `void completionist::GlassBanner(const wchar_t* component, const wchar_t* build)`, which writes `step=loaded component=<component> build=<build> path=<module path>`.
 
-- [ ] **Step 1: Create `tip/src/glass_log.h`**
+- [x] **Step 1: Create `tip/src/glass_log.h`**
 
 ```cpp
 // Always-on log of the glass popup handoff, shared by the TSF DLL and the renderer.
@@ -142,7 +142,7 @@ inline void GlassBanner(const wchar_t* component, const wchar_t* build, HMODULE 
 #define COMPLETIONIST_GLASS_BUILD (L"" __DATE__ L"_" __TIME__)
 ```
 
-- [ ] **Step 2: Banner in the DLL, once per process**
+- [x] **Step 2: Banner in the DLL, once per process**
 
 In `tip/src/tsf_service.cpp`, add `#include "glass_log.h"` beside the other `#include "..."` lines. In `ActivateEx`, directly after `completionist::RefreshLogLevel();`:
 
@@ -155,7 +155,7 @@ In `tip/src/tsf_service.cpp`, add `#include "glass_log.h"` beside the other `#in
 
 (`__DATE__` has double spaces for single-digit days, such as `Oct  5 2026`. That's fine, because the report reads `build=` up to the next space. Replace them to be safe: see Step 3.)
 
-- [ ] **Step 3: Make the build stamp space-free**
+- [x] **Step 3: Make the build stamp space-free**
 
 In `glass_log.h`, change `GlassBanner` so the `build` value has its spaces replaced as well:
 
@@ -171,7 +171,7 @@ inline void GlassBanner(const wchar_t* component, const wchar_t* build, HMODULE 
 }
 ```
 
-- [ ] **Step 4: Banner in the renderer**
+- [x] **Step 4: Banner in the renderer**
 
 In `tip/renderer/main.cpp`, add `#include "../src/glass_log.h"`. In the `--serve` branch, before `result = renderer::runProductionService();`:
 
@@ -179,12 +179,12 @@ In `tip/renderer/main.cpp`, add `#include "../src/glass_log.h"`. In the `--serve
         completionist::GlassBanner(L"renderer", COMPLETIONIST_GLASS_BUILD, nullptr);
 ```
 
-- [ ] **Step 5: Build both**
+- [x] **Step 5: Build both**
 
 Run: `cmd /c tip\build.cmd` then `cmd /c tip\renderer\build.cmd` from the worktree root.
 Expected: both finish with no `error` lines (`/W4 /WX`, so warnings fail the build too).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add tip/src/glass_log.h tip/src/tsf_service.cpp tip/renderer/main.cpp
@@ -207,7 +207,7 @@ git commit -m "Add the shared glass log and build banner"
 - Consumes: `completionist::GlassLog` from Task 1.
 - Produces these `step=` names, which the report (Task 4) counts: `activate`, `eligible`, `render`, `publish`, `no-caret`, `hide-external`, `client-start`, `connect`, `disconnect`, `ack`, `timeout`, `notice`.
 
-- [ ] **Step 1: Eligibility with a reason**
+- [x] **Step 1: Eligibility with a reason**
 
 Replace the body of `RefreshRendererOwner` with:
 
@@ -243,7 +243,7 @@ Replace the body of `RefreshRendererOwner` with:
 
 Delete the `loggedEligible_` member and the `if (publishExternal && rendererEligible_ != loggedEligible_) {...}` block in `Render`, because this line replaces them.
 
-- [ ] **Step 2: Publish, missing caret and the render decision**
+- [x] **Step 2: Publish, missing caret and the render decision**
 
 In `Render`, right after `renderClient_->Publish(std::move(snapshot));` (the snapshot is moved, so take the values first). Replace that line and the following `published = true;` with:
 
@@ -281,7 +281,7 @@ At the top of `Render`, in the early-return branch where nothing is visible (`if
             completionist::GlassLog(L"step=render external=%d host=closed", publishExternal ? 1 : 0);
 ```
 
-- [ ] **Step 3: Hide and notices**
+- [x] **Step 3: Hide and notices**
 
 In `HideExternal`, replace the body with:
 
@@ -304,7 +304,7 @@ In `PopupHook`, inside `if (message == completionist::render::kRenderClientNotic
                     service->externalHealthy_ ? 1 : 0);
 ```
 
-- [ ] **Step 4: Client connection lines**
+- [x] **Step 4: Client connection lines**
 
 In `tip/src/render_client.cpp`, replace `#include "log.h"` with `#include "glass_log.h"`, then make these replacements:
 
@@ -341,12 +341,12 @@ and after `alive = ReadAck(pipe, &pending, &ack);` add:
             if (!alive) completionist::GlassLog(L"step=read-failed error=%lu", GetLastError());
 ```
 
-- [ ] **Step 5: Build the DLL**
+- [x] **Step 5: Build the DLL**
 
 Run: `cmd /c tip\build.cmd`
 Expected: no `error` lines.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add tip/src/tsf_service.cpp tip/src/render_client.cpp
@@ -371,7 +371,7 @@ git commit -m "Log every DLL glass handoff step"
 - Produces `const char* renderer::Session::LastRefusal() const`, which returns why the last `Accept` returned false: one of `bad-identity`, `not-foreground`, `no-content`, `stale`, `other-app-active`, or `none`.
 - Produces these `step=` names: `client-connected`, `client-released`, `refused`, `drawn`, `lost-foreground`, `command-ignored`, `hide`, `present-skipped`, `opaque`, `glass-failed`, `unreadable-command`.
 
-- [ ] **Step 1: Refusal reason in `Session`**
+- [x] **Step 1: Refusal reason in `Session`**
 
 In `session.h`, add a public accessor and a private member:
 
@@ -413,7 +413,7 @@ bool Session::Accept(const completionist::render::Snapshot& snapshot, uint32_t f
 }
 ```
 
-- [ ] **Step 2: Pipe steps**
+- [x] **Step 2: Pipe steps**
 
 In `production_renderer_pipe.cpp`, replace `#include "renderer_log.h"` with `#include "../src/glass_log.h"`. Then make these replacements:
 
@@ -454,7 +454,7 @@ Replace the unreadable-command log with `completionist::GlassLog(L"step=unreadab
 
 In the Hide branch, before `hide_();`, add `completionist::GlassLog(L"step=hide app=%lu rev=%llu", command->owner.pid, command->revision);`.
 
-- [ ] **Step 3: Presenter steps**
+- [x] **Step 3: Presenter steps**
 
 In `production_service.cpp`, replace `#include "renderer_log.h"` with `#include "../src/glass_log.h"` and every `Log(` call:
 
@@ -474,12 +474,12 @@ In `production_service.cpp`, replace `#include "renderer_log.h"` with `#include 
 
 Then delete `tip/renderer/renderer_log.h`.
 
-- [ ] **Step 4: Build the renderer**
+- [x] **Step 4: Build the renderer**
 
 Run: `cmd /c tip\renderer\build.cmd`
 Expected: no `error` lines. `grep -rn "renderer_log.h" tip/renderer` prints nothing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A tip/renderer
@@ -501,7 +501,7 @@ git commit -m "Log every renderer glass step with refusal reasons"
 - Consumes: the log line format above, and the `step=` names from Tasks 1-3.
 - Produces: `summarize(lines: list[str]) -> dict[int, dict]` (per app pid) and `diagnose(app: dict) -> str`, plus the command line `python scripts/glass_report.py [--clear] [--log PATH]`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 """The glass report turns glass.log lines into a per-app summary and names the first missing step."""
@@ -550,12 +550,12 @@ if __name__ == "__main__":
     unittest.main()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m unittest scripts/test_glass_report.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'glass_report'`.
 
-- [ ] **Step 3: Write the report**
+- [x] **Step 3: Write the report**
 
 ```python
 """Summarize glass.log: per app, which build ran, what it tried, what the renderer answered.
@@ -679,12 +679,12 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m unittest scripts/test_glass_report.py -v`
 Expected: 2 tests, OK.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/glass_report.py scripts/test_glass_report.py
@@ -752,3 +752,13 @@ The next fix (spec Step 3) is planned only from that diagnosis line, as one chan
 - Spec Step 1 coverage: the banner (Task 1), logging that never silently drops (Task 1: fallback file plus `OutputDebugString`), every handoff step in both processes (Tasks 2-3), refusal reasons (Task 3), the one-command summary (Task 4). Spec Step 2 is Task 5.
 - The spec says to turn the extra logging off with `verbose` later. That's deliberately not done here: the logging stays always on until the owner confirms the glass works, per the Global Constraints.
 - Names used consistently: `GlassLog`, `GlassBanner`, `COMPLETIONIST_GLASS_BUILD`, `LastRefusal`, `summarize`, `diagnose`.
+
+## Execution notes (2026-10-05)
+
+Tasks 1–4 are implemented in this worktree. Both native components were built with the prescribed scripts; the report has eight passing unittest cases, and the engine baseline passed 659 tests with one skip. No native test harness was run.
+
+The eligibility rewrite preserves the original foreground-root check. Request identifiers were also added to acknowledgements, notices, presentation, timeout and write-failure lines. Review fixes preserve Windows error codes, assign deterministic codes to malformed acknowledgements and empty frames, and send primary log-file failure codes to debugger output even if the fallback file fails.
+
+The report additionally names eligibility/presentation failures, distinguishes opaque renderer popups from glass, diagnoses published requests without confirmed draws, handles fallback logs, and explains renderer-only logs. These changes close gaps in the provided report example without changing popup behavior.
+
+Task 5 remains pending until installation and the owner’s fresh-Notepad observation are recorded. No popup recovery or visual result is claimed.
