@@ -21,6 +21,67 @@ Snapshot Sample(uint64_t revision = 1) {
 
 }  // namespace
 
+TEST(render_client_rejects_unencodable_status_instead_of_queueing_a_reconnect_loop) {
+    RenderClientState state;
+    auto invalid = Sample();
+    invalid.words.clear();
+    invalid.ai = AiState::Working;
+    invalid.selection = 0;
+    CHECK(!state.Publish(invalid, 1000));
+    CHECK(!state.current().has_value());
+    CHECK_EQ(state.queued(), 0u);
+    invalid.selection = -2;
+    CHECK(state.Publish(invalid, 1010));
+    CHECK_EQ(state.queued(), 1u);
+    auto next = state.Take();
+    CHECK(next.has_value() && std::holds_alternative<ShowRequest>(*next));
+    if (next && std::holds_alternative<ShowRequest>(*next))
+        CHECK(!EncodeShow(std::get<ShowRequest>(*next).snapshot).empty());
+}
+
+TEST(render_client_updates_preserve_glass_and_bound_the_pending_deadline) {
+    RenderClientState state;
+    CHECK(state.Publish(Sample(1), 1000));
+    CHECK(state.OnAck({Sample().owner, 1, true}));
+    CHECK(state.Publish(Sample(2), 1100));
+    CHECK(!state.fallbackVisible());
+    CHECK(state.Publish(Sample(3), 1200));
+    CHECK(!state.fallbackVisible());
+    CHECK(!state.OnAck({Sample().owner, 2, true}));
+    CHECK(!state.Tick(1349));
+    CHECK(state.Tick(1350));
+    CHECK(state.fallbackVisible());
+    CHECK(state.OnAck({Sample().owner, 3, true}));
+    CHECK(!state.fallbackVisible());
+    auto changed = Sample(4);
+    ++changed.owner.generation;
+    CHECK(state.Publish(changed, 1400));
+    CHECK(state.fallbackVisible());
+}
+
+TEST(current_presentation_state_supersedes_queued_failure_and_success_notices) {
+    RenderClientState state;
+    const auto first = Sample(1);
+    CHECK(state.Publish(first, 1000));
+    CHECK(state.OnAck({first.owner, 1, true}));
+    const auto queuedSuccess = state.PresentationState();
+    CHECK(!queuedSuccess.fallbackVisible);
+    CHECK(state.Publish(Sample(2), 1100));
+    CHECK(state.Tick(1350));
+    const auto queuedFailure = state.PresentationState();
+    CHECK(queuedFailure.fallbackVisible);
+    CHECK(state.Publish(Sample(3), 1360));
+    CHECK(state.PresentationState().fallbackVisible);  // revision changes cannot discard a live failure
+    CHECK_EQ(state.PresentationState().revision, 3u);
+    CHECK(state.OnAck({first.owner, 3, true}));
+    CHECK(!state.PresentationState().fallbackVisible);  // delayed old failure must not cover fresh glass
+    CHECK(state.Disconnect());
+    CHECK(state.PresentationState().fallbackVisible);  // delayed old success must not conceal a disconnect
+    CHECK(state.Hide(first.owner, 4));
+    CHECK_EQ(state.PresentationState().revision, 0u);
+    CHECK_EQ(state.PresentationState().owner.pid, 0u);
+}
+
 TEST(render_client_delayed_ack_keeps_host_fallback_until_current_presentation) {
     RenderClientState state;
     CHECK(state.Publish(Sample(1), 1000));

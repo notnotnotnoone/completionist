@@ -27,6 +27,8 @@ uint64_t NextRenderGeneration();
 struct ClientNotice {
     std::optional<Ack> ack;
     bool fallbackVisible = true;
+    Identity owner{};
+    uint64_t revision = 0;
 };
 
 struct ShowRequest { Snapshot snapshot; uint64_t queuedAtMs = 0; };
@@ -48,6 +50,7 @@ public:
     bool Disconnect();
     void Reconnect(Identity owner, uint64_t nowMs);
     bool fallbackVisible() const { return fallbackVisible_; }
+    ClientNotice PresentationState() const;
     const std::optional<Snapshot>& current() const { return current_; }
     std::size_t queued() const { return queue_.size(); }
 
@@ -69,9 +72,10 @@ public:
 
     void Start();
     void Stop();
-    void Publish(Snapshot snapshot);
+    bool Publish(Snapshot snapshot);
     void Hide(Identity owner, uint64_t revision);
     void Heartbeat(Identity owner);
+    ClientNotice PresentationState();
 
 private:
     void Worker();

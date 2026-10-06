@@ -45,6 +45,8 @@ TEST(dock_reduced_motion_and_immediate_geometry_are_synchronous) {
     CHECK(state.Sample(10) == 0.0);
     CHECK(!state.NeedsFrame());
     state.Immediate(true, false, 20);
+    CHECK(state.Sample(20) == 0.0);  // geometry preserves the writer's manual minimization
+    state.SetExpanded(true, 20);
     CHECK(state.Sample(20) == 1.0);
     CHECK(state.Opacity(20) == 1.0);
 }
@@ -60,7 +62,7 @@ TEST(connection_pulse_runs_only_for_visible_connected_reduced_motion_enabled_doc
 
 TEST(production_dock_frame_plan_pulses_and_schedules_only_visible_connected_status) {
     renderer::dock::State state;
-    const auto active = state.Frame(600, true, true);
+    const auto active = state.Frame(0, true, true);  // 600 ms is the pulse's fully opaque peak
     CHECK(active.connectionOpacity < 1.0);
     CHECK_EQ(active.nextFrameMs, 33u);
     const auto hidden = state.Frame(600, false, true);

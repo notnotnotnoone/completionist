@@ -120,7 +120,9 @@ public:
                     captureReady_=false; RetireCapture();
                     conditions.captureAvailable=false; mode=ChooseMaterialMode(conditions);
                     currentMode_=mode;
-        } else { mode=MaterialMode::Opaque; currentMode_=mode; }
+                }
+                // A quiet desktop has no new frame. Keep the last captured frame
+                // and glass material; only real capture failures retire it.
             }
         }
         if (mode!=MaterialMode::Glass || !capture_.hasFrame) {

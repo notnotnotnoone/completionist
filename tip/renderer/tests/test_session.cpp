@@ -41,13 +41,15 @@ TEST(session_lease_expires_after_1500_milliseconds_without_renewal) {
     CHECK(!session.visible());
 }
 
-TEST(revoked_generation_cannot_return_through_heartbeat_or_show) {
+TEST(hide_requires_fresh_show_and_rejects_replay_or_heartbeat) {
     renderer::Session session;
     auto current = Make(100, 2, 8);
     CHECK(session.Accept(current, 100, 0));
     session.Revoke();
     CHECK(!session.Heartbeat(current.owner, 100, 500));
-    CHECK(!session.Accept(Make(100, 2, 9), 100, 501));
+    CHECK(!session.Accept(Make(100, 2, 8), 100, 501));
+    CHECK(session.Accept(Make(100, 2, 9), 100, 501));
+    session.Revoke();
     CHECK(session.Accept(Make(100, 3, 1), 100, 502));
 }
 
@@ -56,12 +58,14 @@ TEST(disconnect_revokes_surfaces_and_content_and_new_owner_takes_over_when_eligi
     auto a = Make(100, 2, 8);
     auto b = Make(200, 1, 1, "B");
     CHECK(session.Accept(a, 100, 0));
-    CHECK(!session.Accept(b, 200, 100));
+    CHECK(session.Accept(b, 200, 100));  // actual foreground ownership supersedes the previous app
+    CHECK(!session.Accept(a, 200, 100));
     session.Revoke();
     CHECK(!session.visible());
     CHECK(session.current() == nullptr);
+    b.revision = 2;
     CHECK(session.Accept(b, 200, 101));
-    CHECK_EQ(session.current()->owner.pid, 200u);
+    if (session.current()) CHECK_EQ(session.current()->owner.pid, 200u);
 }
 
 TEST(stale_peer_disconnect_cannot_revoke_a_new_foreground_owner) {

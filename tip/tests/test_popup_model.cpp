@@ -1,4 +1,5 @@
 #include "../src/popup_model.h"
+#include "../src/render_protocol.h"
 #include "../src/engine_connection_observer.h"
 #include "test_harness.h"
 
@@ -52,6 +53,24 @@ TEST(status_only_presentation_has_no_selectable_popup_rows) {
     CHECK(!model.visible());
     CHECK(!model.OnKey(Key::Tab, kNone).consume);
     CHECK(!model.OnKey(Key::Enter, kNone).consume);
+}
+
+TEST(edits_block_acceptance_and_do_not_extend_the_stale_display_deadline) {
+    PopupModel model = OpenWith(3);
+    model.MarkStale(1000);
+    CHECK_EQ(model.stale_deadline(), 1250u);
+    model.MarkStale(1200);
+    CHECK_EQ(model.stale_deadline(), 1250u);
+    for (Key key : kAllKeys) {
+        CHECK(!model.OnKey(key, kNone, 1200).consume);
+    }
+    model.Open(2);
+    CHECK_EQ(model.stale_deadline(), 0u);
+    CHECK(model.OnKey(Key::Tab, kNone, 1300).consume);
+    model.MarkStale(1400);
+    CHECK_EQ(model.stale_deadline(), 1650u);
+    model.Close();
+    CHECK_EQ(model.stale_deadline(), 0u);
 }
 
 TEST(queued_connection_messages_from_a_prior_popup_registration_are_ignored) {
@@ -533,4 +552,21 @@ TEST(shortcut_preferences_survive_close_and_can_reset_to_defaults) {
     CHECK(!model.Peek(Key::Backspace, kCtrl).consume);
     CHECK_EQ(model.Peek(Key::Right, kCtrl).action, Action::AcceptPhraseWord);
     CHECK_EQ(model.Peek(Key::Escape, kNone).action, Action::Dismiss);
+}
+TEST(status_only_popup_has_no_selected_word_and_can_be_encoded) {
+    completionist::PopupModel model;
+    model.Open(0);
+    CHECK_EQ(model.selection(0), completionist::PopupModel::kNoRow);
+    completionist::render::Snapshot snapshot{};
+    snapshot.owner = {77, 0x2020, "status-session", 1};
+    snapshot.revision = 1;
+    snapshot.ai = completionist::render::AiState::Scheduled;
+    snapshot.selection = model.selection(0);
+    const auto frame = completionist::render::EncodeShow(snapshot);
+    CHECK(!frame.empty());
+    if (!frame.empty()) CHECK(completionist::render::ParseShow(frame.substr(4)).has_value());
+    model.Open(2);
+    model.SetPhrase(true, 0);
+    model.Close();
+    CHECK_EQ(model.selection(200), completionist::PopupModel::kNoRow);
 }

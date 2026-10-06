@@ -1306,6 +1306,22 @@ window.COMPLETIONIST_ROADMAP = {
   "log": [
     {
       "date": "2026-10-05",
+      "text": "Installed the tested overnight DLL and renderer in the daily-use checkout; both SHA-256 hashes match. Preserved before-log without clearing glass.log. Corrected engine startup directory and verified engine ready/listening and renderer PID 2516 alive. Existing apps retain old DLLs until reopened; no fresh repaired-DLL visual evidence yet, so glass-stability-overnight remains doing. Overnight follow-up updated to current branch and current evidence."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Overnight glass lifecycle repair: reproduced two invalid-payload regressions before fixing them; corrected status selection and rejected unencodable snapshots before queueing. Preserved stale display briefly without accepting stale rows, restored eligibility after transient layout failures, guarded background TSF contexts and pending retries, used current client presentation state for fallback, preserved glass on idle capture, and removed opaque pre-hide. Existing native suites now pass (105 host, 12 layout, 23 renderer, 7 capture, WARP shader), engine 659 passed/1 skipped, report 9 passed. Fresh-process owner visual verification remains pending."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Started glass-stability-overnight toward 2.2.0."
+    },
+    {
+      "date": "2026-10-05",
+      "text": "Added task glass-stability-overnight toward 2.2.0: Repair status updates, focus recovery and glass repaint stability"
+    },
+    {
+      "date": "2026-10-05",
       "text": "Completed glass-publish-fallback toward 2.2.0; no release was created."
     },
     {
@@ -4795,6 +4811,16 @@ window.COMPLETIONIST_ROADMAP = {
       "refs": [
         "tip/src/render_client.cpp"
       ]
+    },
+    {
+      "id": "glass-stability-overnight",
+      "targetRelease": "2.2.0",
+      "title": "Repair status updates, focus recovery and glass repaint stability",
+      "status": "doing",
+      "area": "dll",
+      "stories": [],
+      "notes": "Owner asks for comprehensive inline debugging and meaningful tests overnight. Logs after the first fix show unencodable status-only snapshots (words=0 selection=0) causing repeated reconnects, eligibility remaining false after layout recovery, and explicit popup hides during ordinary edits. Investigate and regression-test the existing native public interfaces; do not steal foreground focus.",
+      "label": "Glass lifecycle repair"
     }
   ]
 };

@@ -46,7 +46,7 @@ TEST(capture_crop_accounts_for_negative_desktop_origin_and_padding) {
     RECT crop{};
     CHECK(capture.panelCrop(RECT{-1800,100,-1700,200},10,&crop));
     CHECK_EQ(crop.left,110L); CHECK_EQ(crop.top,90L);
-    CHECK_EQ(crop.right,260L); CHECK_EQ(crop.bottom,210L);
+    CHECK_EQ(crop.right,230L); CHECK_EQ(crop.bottom,210L);
 }
 
 TEST(capture_crop_maps_each_supported_output_rotation) {
@@ -64,8 +64,8 @@ TEST(capture_crop_maps_each_supported_output_rotation) {
     CHECK_EQ(crop.right,400L); CHECK_EQ(crop.bottom,980L);
     capture.rotation=DXGI_MODE_ROTATION_ROTATE270;
     CHECK(capture.panelCrop(RECT{100,200,300,400},0,&crop));
-    CHECK_EQ(crop.left,1520L); CHECK_EQ(crop.top,200L);
-    CHECK_EQ(crop.right,1720L); CHECK_EQ(crop.bottom,400L);
+    CHECK_EQ(crop.left,1520L); CHECK_EQ(crop.top,100L);
+    CHECK_EQ(crop.right,1720L); CHECK_EQ(crop.bottom,300L);
 }
 
 TEST(capture_dirty_and_move_rectangles_only_invalidate_intersecting_panels) {

@@ -26,7 +26,7 @@ Snapshot SnapshotWithRows(std::size_t count) {
 
 ContentMetrics MetricsFor(const Snapshot& snapshot, float rowHeight = 28.0f) {
     ContentMetrics metrics{};
-    metrics.fontSizeDip = 12.0f;
+    metrics.fontSizeDip = snapshot.settings.font_size * 96.0f / 72.0f;
     metrics.rowGapDip = 8.0f;
     metrics.measuredContentWidthDip = 170.0f;
     metrics.rows.resize(snapshot.words.size());
@@ -128,9 +128,9 @@ TEST(SelectedCorrectionGetsMeasuredContextWithoutAddingASelectableRow) {
 TEST(CustomFontMetricsAndMeasuredWrappingDriveLogicalHeight) {
     WorkArea work{{0, 0, 1400, 900}, 192};
     Snapshot snapshot = SnapshotWithRows(2);
+    snapshot.settings.font_size = 18;
     auto metricsSmall = MetricsFor(snapshot, 27.0f);
     auto metricsLarge = MetricsFor(snapshot, 57.0f);
-    snapshot.settings.font_size = 18;
     const auto smallLayout = completionist::layout::Place(snapshot, work, metricsSmall);
     const auto largeLayout = completionist::layout::Place(snapshot, work, metricsLarge);
     CHECK(largeLayout.menuDip.height() > smallLayout.menuDip.height());

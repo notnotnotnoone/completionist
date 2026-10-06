@@ -95,7 +95,7 @@ std::wstring PipeName() {
 }
 
 // Why the last connection attempt failed, so a run of identical failures is logged once.
-std::wstring g_lastConnectFailure;  // worker threads only; a benign race at worst repeats a log line
+thread_local std::wstring g_lastConnectFailure;  // each service worker owns its failure suppression
 
 HANDLE ConnectFailed(const std::wstring& reason, DWORD error) {
     const std::wstring key = reason + L":" + std::to_wstring(error);
@@ -211,6 +211,8 @@ bool RenderClientState::MakeRoomForPriority() {
 bool RenderClientState::Publish(Snapshot snapshot, uint64_t nowMs) {
     if (snapshot.owner.pid == 0 || snapshot.owner.hostHwnd == 0 || snapshot.owner.session.empty() ||
         snapshot.owner.generation == 0 || snapshot.revision == 0) return false;
+    // A locally invalid payload cannot be repaired by reconnecting the transport.
+    if (EncodeShow(snapshot).empty()) return false;
     if (current_ && SameIdentity(current_->owner, snapshot.owner) && snapshot.revision <= current_->revision) return false;
     const bool sameOwner = current_ && SameIdentity(current_->owner, snapshot.owner);
     const bool alreadyAwaiting = sameOwner && awaitingAck_;
@@ -301,6 +303,16 @@ void RenderClientState::Reconnect(Identity owner, uint64_t nowMs) {
 RenderClient::RenderClient(HWND notificationWindow, const Identity& identity)
     : notificationWindow_(notificationWindow), identity_(identity) {}
 
+ClientNotice RenderClientState::PresentationState() const {
+    ClientNotice notice;
+    notice.fallbackVisible = fallbackVisible_;
+    if (current_) {
+        notice.owner = current_->owner;
+        notice.revision = current_->revision;
+    }
+    return notice;
+}
+
 RenderClient::~RenderClient() { Stop(); }
 
 void RenderClient::Start() {
@@ -327,19 +339,21 @@ void RenderClient::Stop() {
     started_ = false;
 }
 
-void RenderClient::Publish(Snapshot snapshot) {
+bool RenderClient::Publish(Snapshot snapshot) {
     bool fallbackChanged = false;
     {
         std::lock_guard lock(mutex_);
         const bool before = state_.fallbackVisible();
-        if (identity_.pid == 0 || !SameIdentityBase(identity_, snapshot.owner) ||
-            snapshot.owner.generation > identity_.generation) identity_ = snapshot.owner;
-        else if (SameIdentityBase(identity_, snapshot.owner)) snapshot.owner = identity_;
-        state_.Publish(std::move(snapshot), NowMs());
+        if (SameIdentityBase(identity_, snapshot.owner) && snapshot.owner.generation <= identity_.generation)
+            snapshot.owner = identity_;
+        const Identity owner = snapshot.owner;
+        if (!state_.Publish(std::move(snapshot), NowMs())) return false;
+        identity_ = owner;
         fallbackChanged = before != state_.fallbackVisible();
     }
     wake_.notify_one();
     if (fallbackChanged) Notify();
+    return true;
 }
 
 void RenderClient::Hide(Identity owner, uint64_t revision) {
@@ -364,14 +378,15 @@ void RenderClient::Heartbeat(Identity owner) {
     wake_.notify_one();
 }
 
+ClientNotice RenderClient::PresentationState() {
+    std::lock_guard lock(mutex_);
+    return state_.PresentationState();
+}
+
 void RenderClient::Notify(std::optional<Ack> ack) {
     if (!notificationWindow_) return;
-    auto notice = std::make_unique<ClientNotice>();
+    auto notice = std::make_unique<ClientNotice>(PresentationState());
     notice->ack = std::move(ack);
-    {
-        std::lock_guard lock(mutex_);
-        notice->fallbackVisible = state_.fallbackVisible();
-    }
     if (!PostMessageW(notificationWindow_, kRenderClientNoticeMessage, 0, reinterpret_cast<LPARAM>(notice.get()))) return;
     notice.release();
 }
